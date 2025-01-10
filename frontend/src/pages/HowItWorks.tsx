@@ -1,12 +1,4 @@
 import React from "react";
-import {
-  FaUserPlus,
-  FaSearch,
-  FaClipboardCheck,
-  FaProjectDiagram,
-  FaUsers,
-  FaChartLine,
-} from "react-icons/fa";
 import step1Image from "../assets/step1.png";
 import step2Image from "../assets/step2.png";
 import step3Image from "../assets/step3.png";
