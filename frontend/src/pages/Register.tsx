@@ -51,7 +51,7 @@ const Register: React.FC = () => {
       setLoading(true);
 
       // API call to your backend
-      await axios.post("http://localhost:8081/register", {
+      await axios.post("hhttps://craftify-react-git-main-myjeydsss-projects.vercel.app//register", {
         email: emailRef.current.value,
         password: passwordRef.current.value,
         firstName: firstNameRef.current.value,
