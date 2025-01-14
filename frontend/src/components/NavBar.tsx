@@ -36,7 +36,7 @@ const NavBar: React.FC = () => {
   const fetchUserRole = async () => {
     if (user) {
       try {
-        const response = await axios.get(`http://localhost:8081/user-role/${user.id}`);
+        const response = await axios.get(`https://craftify-react-git-main-myjeydsss-projects.vercel.app/user-role/${user.id}`);
         setRole(response.data.role);
       } catch (error) {
         console.error("Error fetching user role:", error);
@@ -52,7 +52,7 @@ const NavBar: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:8081/logout");
+      await axios.post("https://craftify-react-git-main-myjeydsss-projects.vercel.app/logout");
       await signOut(); // Update the state in AuthProvider
       navigate("/login");
     } catch (error) {
