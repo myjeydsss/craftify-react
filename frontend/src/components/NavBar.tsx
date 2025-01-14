@@ -13,6 +13,9 @@ const NavBar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Get the base API URL from environment variables
+  const API_BASE_URL = process.env.REACT_APP_API_URL;
+
   // Function to check if the current route is active
   const isActive = (path: string) => location.pathname === path;
 
@@ -36,7 +39,7 @@ const NavBar: React.FC = () => {
   const fetchUserRole = async () => {
     if (user) {
       try {
-        const response = await axios.get(`https://craftify-react-git-main-myjeydsss-projects.vercel.app/user-role/${user.id}`);
+        const response = await axios.get(`${API_BASE_URL}/user-role/${user.id}`);
         setRole(response.data.role);
       } catch (error) {
         console.error("Error fetching user role:", error);
@@ -52,7 +55,7 @@ const NavBar: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post("https://craftify-react-git-main-myjeydsss-projects.vercel.app/logout");
+      await axios.post(`${API_BASE_URL}/logout`);
       await signOut(); // Update the state in AuthProvider
       navigate("/login");
     } catch (error) {

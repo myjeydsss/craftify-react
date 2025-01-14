@@ -39,7 +39,8 @@ const Login: React.FC = () => {
         throw new Error("User ID not found after login.");
       }
 
-      const response = await axios.get(`https://craftify-react-git-main-myjeydsss-projects.vercel.app/${userId}`);
+      const API_BASE_URL = process.env.REACT_APP_API_URL; // Get the backend URL from environment variables
+      const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
       const { role } = response.data;
 
       if (role === "Artist") {

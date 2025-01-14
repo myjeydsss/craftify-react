@@ -17,7 +17,6 @@ const Register: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Toggle for confirm password visibility
   const navigate = useNavigate();
 
-  // Function to handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -50,8 +49,11 @@ const Register: React.FC = () => {
     try {
       setLoading(true);
 
+      // Dynamically use the backend URL
+      const API_BASE_URL = process.env.REACT_APP_API_URL; 
+
       // API call to your backend
-      await axios.post("hhttps://craftify-react-git-main-myjeydsss-projects.vercel.app//register", {
+      await axios.post(`${API_BASE_URL}/register`, {
         email: emailRef.current.value,
         password: passwordRef.current.value,
         firstName: firstNameRef.current.value,
