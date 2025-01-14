@@ -5,22 +5,20 @@ const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const PORT = process.env.PORT || 8081; // Use Render's assigned port or fallback to 8081 for local testing
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
 // Middleware
 const allowedOrigins = [
   "http://localhost:5173", // Local frontend for testing
-  "https://craftify-react-git-main-myjeydsss-projects.vercel.app/" // Deployed Vercel frontend
+  "https://craftify-react-git-main-myjeydsss-projects.vercel.app", // Deployed Vercel frontend
 ];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (allowedOrigins.includes(origin) || !origin) {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(new Error("CORS policy error: Origin not allowed."));
       }
     },
     methods: ["GET", "POST"],
@@ -30,7 +28,7 @@ app.use(
 
 app.use(express.json());
 
-// Supabase client
+// Supabase client setup
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_API_KEY
@@ -108,7 +106,7 @@ app.post("/login", async (req, res) => {
     const userId = data.user.id;
     return res.status(200).json({ userId });
   } catch (err) {
-    return res.status(500).json({ error: "Login failed. Please try again later." });
+    res.status(500).json({ error: "Login failed. Please try again later." });
   }
 });
 
@@ -132,7 +130,7 @@ app.get("/user-role/:userId", async (req, res) => {
   }
 });
 
-// Handle user logout (NavBar)
+// Handle user logout
 app.post("/logout", async (req, res) => {
   try {
     const { error } = await supabase.auth.signOut();
@@ -141,4 +139,9 @@ app.post("/logout", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Start the server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
