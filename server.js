@@ -1,33 +1,45 @@
+require("dotenv").config({ path: ".env.local" });
 const express = require("express");
 const cors = require("cors");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
-const PORT = 8081;
-
+const PORT = process.env.PORT || 8081; // Use Render's assigned port or fallback to 8081 for local testing
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});
 // Middleware
+const allowedOrigins = [
+  "http://localhost:5173", // Local frontend for testing
+  "https://craftify-react-git-main-myjeydsss-projects.vercel.app/" // Deployed Vercel frontend
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173", // Replace with your frontend's origin
+    origin: function (origin, callback) {
+      if (allowedOrigins.includes(origin) || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 // Supabase client
 const supabase = createClient(
-  "https://seaczeofjlkfcwnofbny.supabase.co", // Replace with your Supabase project URL
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlYWN6ZW9mamxrZmN3bm9mYm55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkwODEyODQsImV4cCI6MjA0NDY1NzI4NH0.KNUD4xQ0l5iVTzqXuPjG253Ff8C-UtWQFLwZPE2Dps8" // Replace with your Supabase API Key
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_API_KEY
 );
 
 // Root endpoint
 app.get("/", (req, res) => {
   res.send("Supabase API is running...");
 });
-
-// Start the server
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
 // Register user
 app.post("/register", async (req, res) => {
