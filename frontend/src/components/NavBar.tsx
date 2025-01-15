@@ -14,10 +14,8 @@ const NavBar: React.FC = () => {
   const navigate = useNavigate();
 
     // Check and log the API URL environment variable
-    console.log("API URL in React:", process.env.REACT_APP_API_URL);
-
-  // Get the base API URL from environment variables
-  const API_BASE_URL = process.env.REACT_APP_API_URL;  // Use the correct env variable here
+    const API_BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
+    console.log("API URL:", API_BASE_URL);  // This should print the URL from environment variables
 
   // Function to check if the current route is active
   const isActive = (path: string) => location.pathname === path;
