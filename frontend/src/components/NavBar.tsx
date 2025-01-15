@@ -14,11 +14,10 @@ const NavBar: React.FC = () => {
   const navigate = useNavigate();
 
     // Check and log the API URL environment variable
-    console.log("API URL:", process.env.REACT_APP_API_URL);
-
+    console.log("API URL in React:", process.env.REACT_APP_API_URL);
 
   // Get the base API URL from environment variables
-  const API_BASE_URL = process.env.REACT_APP_API_URL;
+  const API_BASE_URL = process.env.REACT_APP_API_URL;  // Use the correct env variable here
 
   // Function to check if the current route is active
   const isActive = (path: string) => location.pathname === path;
@@ -48,8 +47,6 @@ const NavBar: React.FC = () => {
       } catch (error) {
         console.error("Error fetching user role:", error);
       }
-    } else {
-      setRole(null); // Clear the role when user logs out
     }
   };
 

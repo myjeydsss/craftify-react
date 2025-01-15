@@ -10,6 +10,8 @@ const PORT = process.env.PORT || 8081; // Use Render's assigned port or fallback
 const allowedOrigins = [
   "http://localhost:5173", // Local frontend for testing
   "https://craftify-react-git-main-myjeydsss-projects.vercel.app", // Deployed Vercel frontend
+  "https://craftify-react.onrender.com",  // Render backend URL
+
 ];
 
 app.use(
