@@ -39,9 +39,9 @@ const Login: React.FC = () => {
         throw new Error("User ID not found after login.");
       }
 
-      const API_BASE_URL = process.env.REACT_APP_API_URL; // Get the backend URL from environment variables
+      const API_BASE_URL = import.meta.env.VITE_API_URL; // Correct for Vite // Get the backend URL from environment variables
       const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
-      const { role } = response.data;
+            const { role } = response.data;
 
       if (role === "Artist") {
         navigate("/artist-dashboard");

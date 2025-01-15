@@ -14,7 +14,7 @@ const NavBar: React.FC = () => {
   const navigate = useNavigate();
 
     // Check and log the API URL environment variable
-    const API_BASE_URL = import.meta.env.VITE_REACT_APP_API_URL;
+    const API_BASE_URL = import.meta.env.VITE_API_URL; // This is the correct approach for Vite // Correct for Vite
     console.log("API URL:", API_BASE_URL);  // This should print the URL from environment variables
 
   // Function to check if the current route is active
