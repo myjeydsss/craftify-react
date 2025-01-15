@@ -56,7 +56,7 @@ const HowItWorks: React.FC = () => {
   return (
     <>
       <div className="py-20 min-h-screen font-poppins">
-        {/* Header Title */}
+        {/* Header Tiale */}
         <section className="bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 py-16 text-center">
           <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg">
             HOW IT WORKS
