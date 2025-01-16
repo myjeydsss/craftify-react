@@ -1,12 +1,10 @@
-/// <reference types="vite/client" />
+import { createClient } from "@supabase/supabase-js";
 
-interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL: string;
-  readonly VITE_SUPABASE_ANON_KEY: string;
-  readonly REACT_APP_API_URL: string; // Add this line for REACT_APP_API_URL
-  // Add more environment variables as needed
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error("Missing Supabase URL or anonymous key.");
 }
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+export const supabase = createClient(supabaseUrl, supabaseKey);
