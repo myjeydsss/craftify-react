@@ -39,10 +39,15 @@ const Login: React.FC = () => {
         throw new Error("User ID not found after login.");
       }
 
-      const API_BASE_URL = import.meta.env.VITE_API_URL; // Correct for Vite // Get the backend URL from environment variables
-      const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
-            const { role } = response.data;
+      // Save userId in localStorage
+      localStorage.setItem("userId", userId);
 
+      // Fetch role based on userId
+      const API_BASE_URL = import.meta.env.VITE_API_URL; // Backend URL
+      const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
+      const { role } = response.data;
+
+      // Redirect user based on role
       if (role === "Artist") {
         navigate("/artist-dashboard");
       } else if (role === "Client") {

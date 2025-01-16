@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 8081; // Use Render's assigned port or fallback
 const allowedOrigins = [
   "http://localhost:5173", // Local frontend for testing
   "https://craftify-react-git-main-myjeydsss-projects.vercel.app", // Deployed Vercel frontend
+  "https://craftify-react.vercel.app/",
   "https://craftify-react.onrender.com",  // Render backend URL
 
 ];
@@ -39,6 +40,11 @@ const supabase = createClient(
 // Root endpoint
 app.get("/", (req, res) => {
   res.send("Supabase API is running...");
+});
+
+// Start the server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 // Register user
@@ -112,26 +118,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// User role endpoint
-app.get("/user-role/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    let { data: clientData } = await supabase.from("client").select("role").eq("user_id", userId).single();
-    if (clientData) return res.status(200).json({ role: clientData.role });
-
-    let { data: artistData } = await supabase.from("artist").select("role").eq("user_id", userId).single();
-    if (artistData) return res.status(200).json({ role: artistData.role });
-
-    let { data: adminData } = await supabase.from("admin").select("role").eq("user_id", userId).single();
-    if (adminData) return res.status(200).json({ role: adminData.role });
-
-    return res.status(404).json({ error: "User role not found." });
-  } catch (err) {
-    return res.status(500).json({ error: "Error fetching user role." });
-  }
-});
-
 // Handle user logout
 app.post("/logout", async (req, res) => {
   try {
@@ -143,7 +129,84 @@ app.post("/logout", async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+
+// Optimized Endpoint to Fetch User Role (NavBar)
+app.get("/user-role/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const roles = ["artist", "client", "admin"];
+    for (const role of roles) {
+      const { data, error } = await supabase
+        .from(role)
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+
+      if (data) {
+        return res.status(200).json({ role: data.role });
+      }
+    }
+    return res.status(404).json({ error: "User role not found." });
+  } catch (err) {
+    res.status(500).json({ error: "Server error fetching user role." });
+  }
 });
+
+// Get Artist Profile
+app.get("/artist-profile/:userId", async (req, res) => {
+  const { userId } = req.params; // This is the authenticated user_id
+  const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+
+  try {
+    // Query the artist table using the user_id
+    const { data, error } = await supabase
+      .from("artist")
+      .select("firstname, lastname, gender, date_of_birth, email, role, address, phone, profile_image")
+      .eq("user_id", userId) // Match user_id to fetch artist details
+      .single(); // Ensure we only fetch one row
+
+    if (error || !data) {
+      console.log("Artist profile not found for userId:", userId); // Log if no data found
+      return res.status(404).json({ error: "Artist profile not found." });
+    }
+
+    // Construct the full URL for the profile image
+    if (data.profile_image) {
+      data.profile_image = `${CDNURL}${userId}/${data.profile_image}`;
+    }
+
+    console.log("Fetched artist profile:", data); // Debugging: Log the artist data
+    res.status(200).json(data); // Send the artist profile data as response
+  } catch (err) {
+    console.error("Error fetching artist profile for userId:", userId, err); // Debug unexpected errors
+    res.status(500).json({ error: "Failed to fetch artist profile." });
+  }
+});
+
+// Get Artist Preferences
+app.get("/artist-preferences/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("artist_preferences")
+      .select(
+        "crafting, art_style_specialization, collaboration_type, preferred_medium, location_preference, crafting_techniques, budget_range, project_type, project_type_experience, preferred_project_duration, availability, client_type_preference, project_scale, portfolio_link, preferred_communication"
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !data) {
+      console.error("Preferences not found for userId:", userId);
+      return res.status(404).json({ error: "Preferences not found." });
+    }
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching preferences:", err);
+    res.status(500).json({ error: "Failed to fetch preferences." });
+  }
+});
+
+// PUT HERE THE EDIT PROFILE

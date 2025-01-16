@@ -10,6 +10,7 @@ import ArtistDashboard from "./pages/artist/ArtistDashboard";
 import AuthRoute from "./components/AuthRoute"; // Ensure AuthRoute is imported
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
+import ArtistProfile from "./pages/artist/ArtistProfile";
 
 const App = () => {
   
@@ -29,7 +30,13 @@ const App = () => {
 
                     {/* Protected routes */}
                     <Route element={<AuthRoute />}>
+                    
+                    {/* Artist routes */}
                         <Route path="/artist-dashboard" element={<ArtistDashboard />} />
+                        <Route path="/artist-profile" element={<ArtistProfile />} />
+
+
+
                         <Route path="/admin-dashboard" element={<AdminDashboard />} />
                         <Route path="/client-dashboard" element={<ClientDashboard />} />
                     </Route>
