@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import {
-  FaUserCircle,
-  FaPalette,
-  FaUser,
-  FaMapMarkerAlt,
-  FaEdit,
-} from "react-icons/fa";
+import { FaUserCircle, FaPalette, FaUser, FaMapMarkerAlt, FaEdit } from "react-icons/fa";
+import { useAuth } from "../../context/AuthProvider";
 
 interface ArtistProfileData {
   firstname: string;
   lastname: string;
+  bio: string;
   gender: string;
   date_of_birth: string;
   email: string;
@@ -44,38 +40,39 @@ const ArtistProfile: React.FC = () => {
   const [preferences, setPreferences] = useState<ArtistPreferences | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address">(
-    "profile"
-  );
+  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address">("profile");
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfileAndPreferences = async () => {
-      const API_BASE_URL = import.meta.env.VITE_API_URL;
-      const userId = localStorage.getItem("userId");
-
-      if (!userId) {
+      if (!user) {
         setError("User not logged in.");
         setLoading(false);
         return;
       }
 
+      const API_BASE_URL = import.meta.env.VITE_API_URL;
+
       try {
-        const profileResponse = await axios.get(`${API_BASE_URL}/artist-profile/${userId}`);
+        const [profileResponse, preferencesResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/artist-profile/${user.id}`),
+          axios.get(`${API_BASE_URL}/artist-preferences/${user.id}`),
+        ]);
+
         setArtistProfile(profileResponse.data);
 
-        const preferencesResponse = await axios.get(`${API_BASE_URL}/artist-preferences/${userId}`);
         const preferencesData = preferencesResponse.data;
-
         if (preferencesData.preferences === null) {
           setPreferences(null);
         } else {
+          // Now no need for JSON.parse because the data is already in proper array format
           setPreferences({
             ...preferencesData,
-            art_style_specialization: JSON.parse(preferencesData.art_style_specialization || "[]"),
-            preferred_medium: JSON.parse(preferencesData.preferred_medium || "[]"),
-            crafting_techniques: JSON.parse(preferencesData.crafting_techniques || "[]"),
-            preferred_communication: JSON.parse(preferencesData.preferred_communication || "[]"),
+            art_style_specialization: preferencesData.art_style_specialization || [],
+            preferred_medium: preferencesData.preferred_medium || [],
+            crafting_techniques: preferencesData.crafting_techniques || [],
+            preferred_communication: preferencesData.preferred_communication || [],
           });
         }
       } catch (err: any) {
@@ -87,7 +84,7 @@ const ArtistProfile: React.FC = () => {
     };
 
     fetchProfileAndPreferences();
-  }, []);
+  }, [user]);
 
   const handleEditClick = () => {
     navigate("/edit-artist-profile");
@@ -111,30 +108,20 @@ const ArtistProfile: React.FC = () => {
 
   const renderProfile = () => (
     <div className="space-y-4">
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">First Name:</span>
-        <span className="text-gray-700">{artistProfile?.firstname}</span>
-      </div>
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Last Name:</span>
-        <span className="text-gray-700">{artistProfile?.lastname}</span>
-      </div>
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Gender:</span>
-        <span className="text-gray-700">{artistProfile?.gender || "Not specified"}</span>
-      </div>
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Date Of Birth:</span>
-        <span className="text-gray-700">{artistProfile?.date_of_birth || "Not specified"}</span>
-      </div>
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Email:</span>
-        <span className="text-gray-700">{artistProfile?.email}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="font-medium text-gray-600">Role:</span>
-        <span className="text-gray-700">{artistProfile?.role}</span>
-      </div>
+      {[
+        { label: "Bio", value: artistProfile?.bio },
+        { label: "First Name", value: artistProfile?.firstname },
+        { label: "Last Name", value: artistProfile?.lastname },
+        { label: "Gender", value: artistProfile?.gender || "Not specified" },
+        { label: "Date Of Birth", value: artistProfile?.date_of_birth || "Not specified" },
+        { label: "Email", value: artistProfile?.email },
+        { label: "Role", value: artistProfile?.role },
+      ].map(({ label, value }) => (
+        <div key={label} className="flex justify-between border-b pb-2">
+          <span className="font-medium text-gray-600">{label}:</span>
+          <span className="text-gray-700">{value}</span>
+        </div>
+      ))}
       <button
         onClick={handleEditClick}
         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -148,142 +135,29 @@ const ArtistProfile: React.FC = () => {
     <div>
       {preferences ? (
         <div className="space-y-4">
-          {/* Crafting */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Crafting:</span>
-            <span className="text-gray-700">{preferences.crafting || "Not specified"}</span>
-          </div>
-  
-          {/* Art Style Specialization */}
-          <div className="border-b pb-2">
-            <h3 className="font-medium text-gray-600 mb-1">Art Style Specialization:</h3>
-            <div className="flex flex-wrap gap-2">
-              {preferences.art_style_specialization?.length ? (
-                preferences.art_style_specialization.map((style) => (
-                  <span key={style} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                    {style}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-700">Not specified</span>
-              )}
-            </div>
-          </div>
-  
-          {/* Collaboration Type */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Collaboration Type:</span>
-            <span className="text-gray-700">{preferences.collaboration_type || "Not specified"}</span>
-          </div>
-  
-          {/* Preferred Medium */}
-          <div className="border-b pb-2">
-            <h3 className="font-medium text-gray-600 mb-1">Preferred Medium:</h3>
-            <div className="flex flex-wrap gap-2">
-              {preferences.preferred_medium?.length ? (
-                preferences.preferred_medium.map((medium) => (
-                  <span key={medium} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                    {medium}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-700">Not specified</span>
-              )}
-            </div>
-          </div>
-  
-          {/* Location Preference */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Location Preference:</span>
-            <span className="text-gray-700">{preferences.location_preference || "Not specified"}</span>
-          </div>
-  
-          {/* Crafting Techniques */}
-          <div className="border-b pb-2">
-            <h3 className="font-medium text-gray-600 mb-1">Crafting Techniques:</h3>
-            <div className="flex flex-wrap gap-2">
-              {preferences.crafting_techniques?.length ? (
-                preferences.crafting_techniques.map((technique) => (
-                  <span key={technique} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                    {technique}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-700">Not specified</span>
-              )}
-            </div>
-          </div>
-  
-          {/* Budget Range */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Budget Range:</span>
-            <span className="text-gray-700">{preferences.budget_range || "Not specified"}</span>
-          </div>
-  
-          {/* Project Type */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Project Type:</span>
-            <span className="text-gray-700">{preferences.project_type || "Not specified"}</span>
-          </div>
-  
-          {/* Project Type Experience */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Project Type Experience:</span>
-            <span className="text-gray-700">{preferences.project_type_experience || "Not specified"}</span>
-          </div>
-  
-          {/* Preferred Project Duration */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Preferred Project Duration:</span>
-            <span className="text-gray-700">{preferences.preferred_project_duration || "Not specified"}</span>
-          </div>
-  
-          {/* Availability */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Availability:</span>
-            <span className="text-gray-700">{preferences.availability || "Not specified"}</span>
-          </div>
-  
-          {/* Client Type Preference */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Client Type Preference:</span>
-            <span className="text-gray-700">{preferences.client_type_preference || "Not specified"}</span>
-          </div>
-  
-          {/* Project Scale */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Project Scale:</span>
-            <span className="text-gray-700">{preferences.project_scale || "Not specified"}</span>
-          </div>
-  
-          {/* Portfolio Link */}
-          <div className="flex justify-between border-b pb-2">
-            <span className="font-medium text-gray-600">Portfolio Link:</span>
-            <a
-              href={preferences.portfolio_link || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 underline"
-            >
-              {preferences.portfolio_link || "No portfolio provided"}
-            </a>
-          </div>
-  
-          {/* Preferred Communication */}
-          <div className="border-b pb-2">
-            <h3 className="font-medium text-gray-600 mb-1">Preferred Communication:</h3>
-            <div className="flex flex-wrap gap-2">
-              {preferences.preferred_communication?.length ? (
-                preferences.preferred_communication.map((method) => (
-                  <span key={method} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                    {method}
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-700">Not specified</span>
-              )}
-            </div>
-          </div>
+          {Object.entries(preferences).map(([key, value]) =>
+            Array.isArray(value) ? (
+              <div key={key} className="border-b pb-2">
+                <h3 className="font-medium text-gray-600 mb-1 capitalize">{key.replace(/_/g, " ")}:</h3>
+                {value.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {value.map((item) => (
+                      <span key={item} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-700">Not specified</span>
+                )}
+              </div>
+            ) : (
+              <div key={key} className="flex justify-between border-b pb-2">
+                <span className="font-medium text-gray-600 capitalize">{key.replace(/_/g, " ")}:</span>
+                <span className="text-gray-700">{value || "Not specified"}</span>
+              </div>
+            )
+          )}
         </div>
       ) : (
         <div className="text-center text-gray-700">
@@ -301,14 +175,15 @@ const ArtistProfile: React.FC = () => {
 
   const renderAddress = () => (
     <div className="space-y-4">
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Address:</span>
-        <span className="text-gray-700">{artistProfile?.address || "Not provided"}</span>
-      </div>
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Contact Number:</span>
-        <span className="text-gray-700">{artistProfile?.phone || "Not provided"}</span>
-      </div>
+      {[
+        { label: "Address", value: artistProfile?.address || "Not provided" },
+        { label: "Contact Number", value: artistProfile?.phone || "Not provided" },
+      ].map(({ label, value }) => (
+        <div key={label} className="flex justify-between border-b pb-2">
+          <span className="font-medium text-gray-600">{label}:</span>
+          <span className="text-gray-700">{value}</span>
+        </div>
+      ))}
       <button
         onClick={handleEditClick}
         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"

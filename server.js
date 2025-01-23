@@ -152,7 +152,7 @@ app.get("/artist-profile/:userId", async (req, res) => {
     // Query the artist table using the user_id
     const { data, error } = await supabase
       .from("artist")
-      .select("firstname, lastname, gender, date_of_birth, email, role, address, phone, profile_image")
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
       .eq("user_id", userId) // Match user_id to fetch artist details
       .single(); // Ensure we only fetch one row
 
@@ -195,6 +195,7 @@ app.get("/artist-preferences/:userId", async (req, res) => {
       });
     }
 
+    // Return preferences as is (No need for JSON.parse here, as it's already stored as jsonb)
     res.status(200).json(data);
   } catch (err) {
     console.error("Error fetching preferences:", err);
@@ -202,38 +203,79 @@ app.get("/artist-preferences/:userId", async (req, res) => {
   }
 });
 
-// Update Artist Profile
+// Update Profile
 app.put("/artist-profile", async (req, res) => {
-  const { userId, firstname, lastname, bio, gender, date_of_birth, address, email, phone } = req.body;
+  const { userId, profile, preferences } = req.body;
 
-  // Validate required fields
   if (!userId) {
     return res.status(400).json({ error: "User ID is required." });
   }
 
   try {
-    // Update the artist profile
-    const { error } = await supabase
-      .from("artist")
-      .update({
-        firstname: firstname || null,
-        lastname: lastname || null,
-        bio: bio || null,
-        gender: gender || null,
-        date_of_birth: date_of_birth || null,
-        address: address || null,
-        email: email || null,
-        phone: phone || null,
-      })
-      .eq("user_id", userId);
+    // Update artist profile (only provided fields)
+    if (profile && Object.keys(profile).length > 0) {
+      const { error: profileError } = await supabase
+        .from("artist")
+        .update(profile) // Updates only provided fields
+        .eq("user_id", userId);
 
-    if (error) {
-      return res.status(500).json({ error: "Database update failed." });
+      if (profileError) {
+        console.error("Error updating artist profile:", profileError);
+        return res.status(500).json({ error: "Failed to update artist profile." });
+      }
     }
 
-    res.status(200).json({ message: "Artist profile updated successfully." });
-  } catch (err) {
-    res.status(500).json({ error: "An unexpected error occurred." });
+    // Update or Insert preferences (if provided)
+    if (preferences && Object.keys(preferences).length > 0) {
+      // Format preferences (this part is done in the frontend, just make sure they are passed correctly)
+      const formattedPreferences = {
+        ...preferences,
+        art_style_specialization: preferences.art_style_specialization || [],
+        preferred_medium: preferences.preferred_medium || [],
+        crafting_techniques: preferences.crafting_techniques || [],
+        preferred_communication: preferences.preferred_communication || [],
+      };
+
+      // Check if preferences already exist
+      const { data: existingPreferences, error: fetchError } = await supabase
+        .from("artist_preferences")
+        .select("preferences_id")
+        .eq("user_id", userId)
+        .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        console.error("Error fetching preferences:", fetchError);
+        return res.status(500).json({ error: "Failed to fetch preferences." });
+      }
+
+      if (existingPreferences) {
+        // Update existing preferences
+        const { error: updateError } = await supabase
+          .from("artist_preferences")
+          .update(formattedPreferences)
+          .eq("preferences_id", existingPreferences.preferences_id);
+
+        if (updateError) {
+          console.error("Error updating preferences:", updateError);
+          return res.status(500).json({ error: "Failed to update preferences." });
+        }
+      } else {
+        // Insert new preferences
+        const { error: insertError } = await supabase
+          .from("artist_preferences")
+          .insert({ user_id: userId, ...formattedPreferences });
+
+        if (insertError) {
+          console.error("Error inserting preferences:", insertError);
+          return res.status(500).json({ error: "Failed to insert preferences." });
+        }
+      }
+    }
+
+    res.status(200).json({ message: "Profile and preferences updated successfully." });
+  } catch (error) {
+    console.error("Unexpected error updating profile/preferences:", error);
+    res.status(500).json({ error: "Failed to update profile or preferences." });
   }
 });
 
