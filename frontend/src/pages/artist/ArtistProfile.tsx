@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import {
   FaUserCircle,
   FaPalette,
   FaUser,
   FaMapMarkerAlt,
+  FaEdit,
 } from "react-icons/fa";
 
 interface ArtistProfileData {
@@ -45,6 +47,7 @@ const ArtistProfile: React.FC = () => {
   const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address">(
     "profile"
   );
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfileAndPreferences = async () => {
@@ -64,13 +67,17 @@ const ArtistProfile: React.FC = () => {
         const preferencesResponse = await axios.get(`${API_BASE_URL}/artist-preferences/${userId}`);
         const preferencesData = preferencesResponse.data;
 
-        setPreferences({
-          ...preferencesData,
-          art_style_specialization: JSON.parse(preferencesData.art_style_specialization || "[]"),
-          preferred_medium: JSON.parse(preferencesData.preferred_medium || "[]"),
-          crafting_techniques: JSON.parse(preferencesData.crafting_techniques || "[]"),
-          preferred_communication: JSON.parse(preferencesData.preferred_communication || "[]"),
-        });
+        if (preferencesData.preferences === null) {
+          setPreferences(null);
+        } else {
+          setPreferences({
+            ...preferencesData,
+            art_style_specialization: JSON.parse(preferencesData.art_style_specialization || "[]"),
+            preferred_medium: JSON.parse(preferencesData.preferred_medium || "[]"),
+            crafting_techniques: JSON.parse(preferencesData.crafting_techniques || "[]"),
+            preferred_communication: JSON.parse(preferencesData.preferred_communication || "[]"),
+          });
+        }
       } catch (err: any) {
         console.error("Error fetching artist data:", err);
         setError(err.response?.data?.error || "Failed to fetch artist data.");
@@ -81,6 +88,10 @@ const ArtistProfile: React.FC = () => {
 
     fetchProfileAndPreferences();
   }, []);
+
+  const handleEditClick = () => {
+    navigate("/edit-artist-profile");
+  };
 
   if (loading) {
     return (
@@ -124,146 +135,167 @@ const ArtistProfile: React.FC = () => {
         <span className="font-medium text-gray-600">Role:</span>
         <span className="text-gray-700">{artistProfile?.role}</span>
       </div>
+      <button
+        onClick={handleEditClick}
+        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+      >
+        <FaEdit className="inline mr-2" /> Edit Profile
+      </button>
     </div>
   );
+
   const renderPreferences = () => (
-    <div className="space-y-4">
-      {/* Crafting */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Crafting:</span>
-        <span className="text-gray-700">{preferences?.crafting || "Not specified"}</span>
-      </div>
+    <div>
+      {preferences ? (
+        <div className="space-y-4">
+          {/* Crafting */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Crafting:</span>
+            <span className="text-gray-700">{preferences.crafting || "Not specified"}</span>
+          </div>
   
-      {/* Art Style Specialization */}
-      <div className="border-b pb-2">
-        <h3 className="font-medium text-gray-600 mb-1">Art Style Specialization:</h3>
-        <div className="flex flex-wrap gap-2">
-          {preferences?.art_style_specialization?.length ? (
-            preferences.art_style_specialization.map((style) => (
-              <span key={style} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                {style}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-700">Not specified</span>
-          )}
+          {/* Art Style Specialization */}
+          <div className="border-b pb-2">
+            <h3 className="font-medium text-gray-600 mb-1">Art Style Specialization:</h3>
+            <div className="flex flex-wrap gap-2">
+              {preferences.art_style_specialization?.length ? (
+                preferences.art_style_specialization.map((style) => (
+                  <span key={style} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
+                    {style}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-700">Not specified</span>
+              )}
+            </div>
+          </div>
+  
+          {/* Collaboration Type */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Collaboration Type:</span>
+            <span className="text-gray-700">{preferences.collaboration_type || "Not specified"}</span>
+          </div>
+  
+          {/* Preferred Medium */}
+          <div className="border-b pb-2">
+            <h3 className="font-medium text-gray-600 mb-1">Preferred Medium:</h3>
+            <div className="flex flex-wrap gap-2">
+              {preferences.preferred_medium?.length ? (
+                preferences.preferred_medium.map((medium) => (
+                  <span key={medium} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
+                    {medium}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-700">Not specified</span>
+              )}
+            </div>
+          </div>
+  
+          {/* Location Preference */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Location Preference:</span>
+            <span className="text-gray-700">{preferences.location_preference || "Not specified"}</span>
+          </div>
+  
+          {/* Crafting Techniques */}
+          <div className="border-b pb-2">
+            <h3 className="font-medium text-gray-600 mb-1">Crafting Techniques:</h3>
+            <div className="flex flex-wrap gap-2">
+              {preferences.crafting_techniques?.length ? (
+                preferences.crafting_techniques.map((technique) => (
+                  <span key={technique} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
+                    {technique}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-700">Not specified</span>
+              )}
+            </div>
+          </div>
+  
+          {/* Budget Range */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Budget Range:</span>
+            <span className="text-gray-700">{preferences.budget_range || "Not specified"}</span>
+          </div>
+  
+          {/* Project Type */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Project Type:</span>
+            <span className="text-gray-700">{preferences.project_type || "Not specified"}</span>
+          </div>
+  
+          {/* Project Type Experience */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Project Type Experience:</span>
+            <span className="text-gray-700">{preferences.project_type_experience || "Not specified"}</span>
+          </div>
+  
+          {/* Preferred Project Duration */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Preferred Project Duration:</span>
+            <span className="text-gray-700">{preferences.preferred_project_duration || "Not specified"}</span>
+          </div>
+  
+          {/* Availability */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Availability:</span>
+            <span className="text-gray-700">{preferences.availability || "Not specified"}</span>
+          </div>
+  
+          {/* Client Type Preference */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Client Type Preference:</span>
+            <span className="text-gray-700">{preferences.client_type_preference || "Not specified"}</span>
+          </div>
+  
+          {/* Project Scale */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Project Scale:</span>
+            <span className="text-gray-700">{preferences.project_scale || "Not specified"}</span>
+          </div>
+  
+          {/* Portfolio Link */}
+          <div className="flex justify-between border-b pb-2">
+            <span className="font-medium text-gray-600">Portfolio Link:</span>
+            <a
+              href={preferences.portfolio_link || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 underline"
+            >
+              {preferences.portfolio_link || "No portfolio provided"}
+            </a>
+          </div>
+  
+          {/* Preferred Communication */}
+          <div className="border-b pb-2">
+            <h3 className="font-medium text-gray-600 mb-1">Preferred Communication:</h3>
+            <div className="flex flex-wrap gap-2">
+              {preferences.preferred_communication?.length ? (
+                preferences.preferred_communication.map((method) => (
+                  <span key={method} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
+                    {method}
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-700">Not specified</span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-  
-      {/* Collaboration Type */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Collaboration Type:</span>
-        <span className="text-gray-700">{preferences?.collaboration_type || "Not specified"}</span>
-      </div>
-  
-      {/* Preferred Medium */}
-      <div className="border-b pb-2">
-        <h3 className="font-medium text-gray-600 mb-1">Preferred Medium:</h3>
-        <div className="flex flex-wrap gap-2">
-          {preferences?.preferred_medium?.length ? (
-            preferences.preferred_medium.map((medium) => (
-              <span key={medium} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                {medium}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-700">Not specified</span>
-          )}
+      ) : (
+        <div className="text-center text-gray-700">
+          <p className="text-lg">You haven't set up your preferences yet.</p>
         </div>
-      </div>
-  
-      {/* Location Preference */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Location Preference:</span>
-        <span className="text-gray-700">{preferences?.location_preference || "Not specified"}</span>
-      </div>
-  
-      {/* Crafting Techniques */}
-      <div className="border-b pb-2">
-        <h3 className="font-medium text-gray-600 mb-1">Crafting Techniques:</h3>
-        <div className="flex flex-wrap gap-2">
-          {preferences?.crafting_techniques?.length ? (
-            preferences.crafting_techniques.map((technique) => (
-              <span key={technique} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                {technique}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-700">Not specified</span>
-          )}
-        </div>
-      </div>
-  
-      {/* Budget Range */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Budget Range:</span>
-        <span className="text-gray-700">{preferences?.budget_range || "Not specified"}</span>
-      </div>
-  
-      {/* Project Type */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Project Type:</span>
-        <span className="text-gray-700">{preferences?.project_type || "Not specified"}</span>
-      </div>
-  
-      {/* Project Type Experience */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Project Type Experience:</span>
-        <span className="text-gray-700">{preferences?.project_type_experience || "Not specified"}</span>
-      </div>
-  
-      {/* Preferred Project Duration */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Preferred Project Duration:</span>
-        <span className="text-gray-700">{preferences?.preferred_project_duration || "Not specified"}</span>
-      </div>
-  
-      {/* Availability */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Availability:</span>
-        <span className="text-gray-700">{preferences?.availability || "Not specified"}</span>
-      </div>
-  
-      {/* Client Type Preference */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Client Type Preference:</span>
-        <span className="text-gray-700">{preferences?.client_type_preference || "Not specified"}</span>
-      </div>
-  
-      {/* Project Scale */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Project Scale:</span>
-        <span className="text-gray-700">{preferences?.project_scale || "Not specified"}</span>
-      </div>
-  
-      {/* Portfolio Link */}
-      <div className="flex justify-between border-b pb-2">
-        <span className="font-medium text-gray-600">Portfolio Link:</span>
-        <a
-          href={preferences?.portfolio_link || "#"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-500 underline"
-        >
-          {preferences?.portfolio_link || "No portfolio provided"}
-        </a>
-      </div>
-  
-      {/* Preferred Communication */}
-      <div className="border-b pb-2">
-        <h3 className="font-medium text-gray-600 mb-1">Preferred Communication:</h3>
-        <div className="flex flex-wrap gap-2">
-          {preferences?.preferred_communication?.length ? (
-            preferences.preferred_communication.map((method) => (
-              <span key={method} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                {method}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-700">Not specified</span>
-          )}
-        </div>
-      </div>
+      )}
+      <button
+        onClick={handleEditClick}
+        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+      >
+        <FaEdit className="inline mr-2" /> Edit Preferences
+      </button>
     </div>
   );
 
@@ -277,6 +309,12 @@ const ArtistProfile: React.FC = () => {
         <span className="font-medium text-gray-600">Contact Number:</span>
         <span className="text-gray-700">{artistProfile?.phone || "Not provided"}</span>
       </div>
+      <button
+        onClick={handleEditClick}
+        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+      >
+        <FaEdit className="inline mr-2" /> Edit Address & Contact
+      </button>
     </div>
   );
 
@@ -296,7 +334,9 @@ const ArtistProfile: React.FC = () => {
                 <FaUserCircle className="text-gray-300" size={72} />
               )}
             </div>
-            <h2 className="text-xl font-semibold">{artistProfile?.firstname} {artistProfile?.lastname}</h2>
+            <h2 className="text-xl font-semibold">
+              {artistProfile?.firstname} {artistProfile?.lastname}
+            </h2>
             <p className="text-sm text-gray-500">{artistProfile?.email}</p>
           </div>
           <nav className="space-y-4">

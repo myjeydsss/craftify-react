@@ -39,10 +39,7 @@ const Login: React.FC = () => {
         throw new Error("User ID not found after login.");
       }
 
-      // Save userId in localStorage
-      localStorage.setItem("userId", userId);
-
-      // Fetch role based on userId
+      // Fetch role based on userId directly from the backend
       const API_BASE_URL = import.meta.env.VITE_API_URL; // Backend URL
       const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
       const { role } = response.data;

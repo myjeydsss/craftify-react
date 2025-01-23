@@ -17,14 +17,8 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS policy error: Origin not allowed."));
-      }
-    },
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Include PUT
     credentials: true,
   })
 );
@@ -42,10 +36,6 @@ app.get("/", (req, res) => {
   res.send("Supabase API is running...");
 });
 
-// Start the server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
 
 // Register user
 app.post("/register", async (req, res) => {
@@ -198,8 +188,11 @@ app.get("/artist-preferences/:userId", async (req, res) => {
       .single();
 
     if (error || !data) {
-      console.error("Preferences not found for userId:", userId);
-      return res.status(404).json({ error: "Preferences not found." });
+      console.warn(`Preferences not found for userId: ${userId}`);
+      return res.status(200).json({
+        message: "You haven't set up your preferences yet.",
+        preferences: null,
+      });
     }
 
     res.status(200).json(data);
@@ -209,4 +202,43 @@ app.get("/artist-preferences/:userId", async (req, res) => {
   }
 });
 
-// PUT HERE THE EDIT PROFILE
+// Update Artist Profile
+app.put("/artist-profile", async (req, res) => {
+  const { userId, firstname, lastname, bio, gender, date_of_birth, address, email, phone } = req.body;
+
+  // Validate required fields
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
+  try {
+    // Update the artist profile
+    const { error } = await supabase
+      .from("artist")
+      .update({
+        firstname: firstname || null,
+        lastname: lastname || null,
+        bio: bio || null,
+        gender: gender || null,
+        date_of_birth: date_of_birth || null,
+        address: address || null,
+        email: email || null,
+        phone: phone || null,
+      })
+      .eq("user_id", userId);
+
+    if (error) {
+      return res.status(500).json({ error: "Database update failed." });
+    }
+
+    res.status(200).json({ message: "Artist profile updated successfully." });
+  } catch (err) {
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+
+
+// Start the server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});

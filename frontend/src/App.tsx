@@ -11,6 +11,7 @@ import AuthRoute from "./components/AuthRoute"; // Ensure AuthRoute is imported
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ArtistProfile from "./pages/artist/ArtistProfile";
+import EditArtistProfile from "./pages/artist/EditArtistProfile";
 
 const App = () => {
   
@@ -34,6 +35,7 @@ const App = () => {
                     {/* Artist routes */}
                         <Route path="/artist-dashboard" element={<ArtistDashboard />} />
                         <Route path="/artist-profile" element={<ArtistProfile />} />
+                        <Route path="/edit-artist-profile" element={<EditArtistProfile />} />
 
 
 
