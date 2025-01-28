@@ -113,7 +113,8 @@ const NavBar: React.FC = () => {
       return (
         <div className="flex space-x-4">
           <Link to="/admin-dashboard" className={`${isActive("/admin-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
-          <Link to="/user-tag-table" className={`${isActive("/user-tag-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>User & Tag Table</Link>
+          <Link to="/users-table" className={`${isActive("/users-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Users Table</Link>
+          <Link to="/tags-table" className={`${isActive("/tags-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Tags Table</Link>
           <Link to="/arts-table" className={`${isActive("/arts-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Arts Table</Link>
           <Link to="/verification" className={`${isActive("/verification") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Verification</Link>
         </div>

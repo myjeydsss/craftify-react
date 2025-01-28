@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { FaUserCircle, FaPalette, FaUser, FaMapMarkerAlt, FaEdit } from "react-icons/fa";
+import { FaUserCircle, FaPalette, FaUser, FaMapMarkerAlt, FaEdit, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 
 interface ArtistProfileData {
@@ -15,6 +15,8 @@ interface ArtistProfileData {
   profile_image?: string;
   address?: string;
   phone?: string;
+  verification_id?: string | null;
+  status?: string;
 }
 
 interface ArtistPreferences {
@@ -90,6 +92,10 @@ const ArtistProfile: React.FC = () => {
     navigate("/edit-artist-profile");
   };
 
+  const handleVerificationClick = () => {
+    navigate("/artist-verification");
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -122,6 +128,8 @@ const ArtistProfile: React.FC = () => {
           <span className="text-gray-700">{value}</span>
         </div>
       ))}
+
+
       <button
         onClick={handleEditClick}
         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -213,6 +221,28 @@ const ArtistProfile: React.FC = () => {
               {artistProfile?.firstname} {artistProfile?.lastname}
             </h2>
             <p className="text-sm text-gray-500">{artistProfile?.email}</p>
+  
+            {/* Verification Button */}
+            <div className="mt-4">
+  {artistProfile?.verification_id ? (
+    artistProfile?.status === "pending" ? (
+      <div className="flex items-center justify-center gap-2 text-yellow-600 font-medium">
+        <FaTimesCircle className="text-yellow-600" /> Verification Pending
+      </div>
+    ) : (
+      <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
+        <FaCheckCircle /> Verified Artist
+      </div>
+    )
+  ) : (
+    <button
+      onClick={handleVerificationClick}
+      className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
+    >
+      <FaTimesCircle className="text-blue-600" /> Get Verified Now
+    </button>
+  )}
+</div>
           </div>
           <nav className="space-y-4">
             <button

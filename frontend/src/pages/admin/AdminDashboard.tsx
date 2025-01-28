@@ -15,7 +15,7 @@ const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-100 p-6 font-poppins">
       {/* Header */}
       <header className="bg-white shadow-md p-6 rounded-md flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-red-500">Artist Dashboard</h1>
+        <h1 className="text-3xl font-bold text-red-500">Admin Dashboard</h1>
         <button
           onClick={handleLogout}
           className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition"

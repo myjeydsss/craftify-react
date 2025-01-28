@@ -2,23 +2,27 @@ require("dotenv").config({ path: ".env.local" });
 const express = require("express");
 const cors = require("cors");
 const { createClient } = require("@supabase/supabase-js");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
+
 
 const app = express();
-const PORT = process.env.PORT || 8081; // Use Render's assigned port or fallback to 8081 for local testing
+const PORT = process.env.PORT || 8081;
 
 // Middleware
 const allowedOrigins = [
-  "http://localhost:5173", // Local frontend for testing
-  "https://craftify-react-git-main-myjeydsss-projects.vercel.app", // Deployed Vercel frontend
+  "http://localhost:5173",
+  "https://craftify-react-git-main-myjeydsss-projects.vercel.app",
   "https://craftify-react.vercel.app",
-  "https://craftify-react.onrender.com",  // Render backend URL
-
+  "https://craftify-react.onrender.com",
 ];
 
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Include PUT
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
 );
@@ -37,7 +41,105 @@ app.get("/", (req, res) => {
 });
 
 
-// Register user
+// Storage settings
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Start the server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+
+
+// ****** ARTIST UPLOAD PROFILE IMAGE ******
+// Ensure the uploads directory exists
+const UPLOADS_DIR = path.join(__dirname, "uploads/artist-profile");
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+// Serve static files for uploaded images
+app.use("/uploads", express.static(UPLOADS_DIR));
+
+// Profile Image Upload Endpoint
+app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res) => {
+  const { userId } = req.params;
+
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
+
+  try {
+    const originalFileName = req.file.originalname;
+    const storageFilePath = `${Date.now()}-${originalFileName}`;
+
+    console.log("Uploading file:", storageFilePath);
+
+    // Upload file to Supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("artist-profile")
+      .upload(`${userId}/${storageFilePath}`, req.file.buffer, {
+        contentType: req.file.mimetype,
+        cacheControl: "3600",
+      });
+
+    if (uploadError) {
+      console.error("Supabase storage upload error:", uploadError);
+      return res.status(500).json({ error: "Failed to upload image to Supabase." });
+    }
+
+    console.log("File uploaded to Supabase successfully:", `${userId}/${storageFilePath}`);
+
+    // Fetch old profile image
+    const { data: artistData, error: fetchError } = await supabase
+      .from("artist")
+      .select("profile_image")
+      .eq("user_id", userId)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("Error fetching artist profile:", fetchError);
+      throw fetchError;
+    }
+
+    const oldProfileImage = artistData?.profile_image;
+
+    // Delete the old profile image if it exists
+    if (oldProfileImage) {
+      const { error: deleteError } = await supabase.storage
+        .from("artist-profile")
+        .remove([`${userId}/${oldProfileImage}`]);
+
+      if (deleteError) {
+        console.error("Error deleting old profile image:", deleteError);
+      } else {
+        console.log("Old profile image deleted successfully.");
+      }
+    }
+
+    // Update the artist profile in the database with the new file path
+    const { error: updateError } = await supabase
+      .from("artist")
+      .update({ profile_image: storageFilePath })
+      .eq("user_id", userId);
+
+    if (updateError) {
+      console.error("Error updating artist profile:", updateError);
+      throw updateError;
+    }
+
+    console.log("Artist profile updated successfully.");
+    res.status(200).json({ fileName: storageFilePath });
+  } catch (err) {
+    console.error("Unexpected error during upload:", err);
+    res.status(500).json({ error: "An unexpected error occurred during file upload." });
+  }
+});
+// ****** ARTIST UPLOAD PROFILE IMAGE END... ******
+
+
+// ****** REGISTER USER ****** 
 app.post("/register", async (req, res) => {
   const { email, password, firstName, lastName, username, role } = req.body;
 
@@ -82,8 +184,9 @@ app.post("/register", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ****** REGISTER USER END... ****** 
 
-// Login endpoint
+// ****** LOGIN USER ****** 
 app.post("/login", async (req, res) => {
   const { identifier, password } = req.body;
 
@@ -118,9 +221,10 @@ app.post("/logout", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ****** LOGIN USER END... ****** 
 
 
-// Optimized Endpoint to Fetch User Role (NavBar)
+// ****** NAVBAR ENDPOINT ******
 app.get("/user-role/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -142,34 +246,49 @@ app.get("/user-role/:userId", async (req, res) => {
     res.status(500).json({ error: "Server error fetching user role." });
   }
 });
+// ****** NAVBAR ENDPOINT END... ******
 
+
+// ****** ARTIST PROFILE ENDPOINT ****** 
 // Get Artist Profile
 app.get("/artist-profile/:userId", async (req, res) => {
-  const { userId } = req.params; // This is the authenticated user_id
+  const { userId } = req.params;
   const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
 
   try {
-    // Query the artist table using the user_id
-    const { data, error } = await supabase
+    const { data: artistData, error: artistError } = await supabase
       .from("artist")
-      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
-      .eq("user_id", userId) // Match user_id to fetch artist details
-      .single(); // Ensure we only fetch one row
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image, verification_id")
+      .eq("user_id", userId)
+      .single();
 
-    if (error || !data) {
-      console.log("Artist profile not found for userId:", userId); // Log if no data found
+    if (artistError || !artistData) {
+      console.error("Error fetching artist profile:", artistError);
       return res.status(404).json({ error: "Artist profile not found." });
     }
 
-    // Construct the full URL for the profile image
-    if (data.profile_image) {
-      data.profile_image = `${CDNURL}${userId}/${data.profile_image}`;
+    if (artistData.profile_image) {
+      artistData.profile_image = `${CDNURL}${userId}/${artistData.profile_image}`;
     }
 
-    console.log("Fetched artist profile:", data); // Debugging: Log the artist data
-    res.status(200).json(data); // Send the artist profile data as response
+    // Fetch the verification status if verification_id exists
+    if (artistData.verification_id) {
+      const { data: verificationData, error: verificationError } = await supabase
+        .from("artist_verification")
+        .select("status")
+        .eq("verification_id", artistData.verification_id)
+        .single();
+
+      if (verificationError) {
+        console.error("Error fetching verification status:", verificationError);
+      } else {
+        artistData.status = verificationData?.status || null;
+      }
+    }
+
+    res.status(200).json(artistData);
   } catch (err) {
-    console.error("Error fetching artist profile for userId:", userId, err); // Debug unexpected errors
+    console.error("Error fetching artist profile:", err);
     res.status(500).json({ error: "Failed to fetch artist profile." });
   }
 });
@@ -203,7 +322,7 @@ app.get("/artist-preferences/:userId", async (req, res) => {
   }
 });
 
-// Update Profile
+// Profile Update Endpoint
 app.put("/artist-profile", async (req, res) => {
   const { userId, profile, preferences } = req.body;
 
@@ -212,11 +331,10 @@ app.put("/artist-profile", async (req, res) => {
   }
 
   try {
-    // Update artist profile (only provided fields)
     if (profile && Object.keys(profile).length > 0) {
       const { error: profileError } = await supabase
         .from("artist")
-        .update(profile) // Updates only provided fields
+        .update(profile)
         .eq("user_id", userId);
 
       if (profileError) {
@@ -225,18 +343,7 @@ app.put("/artist-profile", async (req, res) => {
       }
     }
 
-    // Update or Insert preferences (if provided)
     if (preferences && Object.keys(preferences).length > 0) {
-      // Format preferences (this part is done in the frontend, just make sure they are passed correctly)
-      const formattedPreferences = {
-        ...preferences,
-        art_style_specialization: preferences.art_style_specialization || [],
-        preferred_medium: preferences.preferred_medium || [],
-        crafting_techniques: preferences.crafting_techniques || [],
-        preferred_communication: preferences.preferred_communication || [],
-      };
-
-      // Check if preferences already exist
       const { data: existingPreferences, error: fetchError } = await supabase
         .from("artist_preferences")
         .select("preferences_id")
@@ -249,10 +356,9 @@ app.put("/artist-profile", async (req, res) => {
       }
 
       if (existingPreferences) {
-        // Update existing preferences
         const { error: updateError } = await supabase
           .from("artist_preferences")
-          .update(formattedPreferences)
+          .update(preferences)
           .eq("preferences_id", existingPreferences.preferences_id);
 
         if (updateError) {
@@ -260,10 +366,9 @@ app.put("/artist-profile", async (req, res) => {
           return res.status(500).json({ error: "Failed to update preferences." });
         }
       } else {
-        // Insert new preferences
         const { error: insertError } = await supabase
           .from("artist_preferences")
-          .insert({ user_id: userId, ...formattedPreferences });
+          .insert({ user_id: userId, ...preferences });
 
         if (insertError) {
           console.error("Error inserting preferences:", insertError);
@@ -273,14 +378,634 @@ app.put("/artist-profile", async (req, res) => {
     }
 
     res.status(200).json({ message: "Profile and preferences updated successfully." });
-  } catch (error) {
-    console.error("Unexpected error updating profile/preferences:", error);
+  } catch (err) {
+    console.error("Unexpected error updating profile/preferences:", err);
     res.status(500).json({ error: "Failed to update profile or preferences." });
   }
 });
+// ****** ARTIST PROFILE ENDPOINT END... ******
 
 
-// Start the server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+// ****** ARTIST UPLOAD VERIFICATION ******
+// Artist Verification Upload Endpoint
+app.post(
+  "/artist-verification/:userId",
+  upload.fields([{ name: "document" }, { name: "valid_id" }]),
+  async (req, res) => {
+    const { userId } = req.params;
+    const files = req.files;
+
+    if (!userId || !files || !files.document || !files.valid_id) {
+      return res.status(400).json({ error: "User ID, portfolio, and valid ID are required." });
+    }
+
+    try {
+      // Upload portfolio to Supabase storage
+      const documentFile = files.document[0];
+      const documentFileName = `${Date.now()}-${documentFile.originalname}`;
+      const documentPath = `portfolio/${userId}/${documentFileName}`;
+
+      const { error: documentUploadError } = await supabase.storage
+        .from("artist-verification")
+        .upload(documentPath, documentFile.buffer, {
+          contentType: documentFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (documentUploadError) {
+        console.error("Error uploading portfolio:", documentUploadError);
+        return res.status(500).json({ error: "Failed to upload portfolio." });
+      }
+
+      // Upload valid ID to Supabase storage
+      const validIdFile = files.valid_id[0];
+      const validIdFileName = `${Date.now()}-${validIdFile.originalname}`;
+      const validIdPath = `valid_id/${userId}/${validIdFileName}`;
+
+      const { error: validIdUploadError } = await supabase.storage
+        .from("artist-verification")
+        .upload(validIdPath, validIdFile.buffer, {
+          contentType: validIdFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (validIdUploadError) {
+        console.error("Error uploading valid ID:", validIdUploadError);
+        return res.status(500).json({ error: "Failed to upload valid ID." });
+      }
+
+      console.log("Files uploaded successfully to distinct folders.");
+
+      // Generate a valid UUID for verification_id
+      const verificationId = uuidv4();
+
+      // Insert verification request into the `artist_verification` table
+      const { error: verificationError } = await supabase
+        .from("artist_verification")
+        .insert({
+          verification_id: verificationId,
+          user_id: userId,
+          document_url: documentPath, // Path for the portfolio
+          valid_id: validIdPath, // Path for the valid ID
+          status: "pending",
+          created_at: new Date(),
+        });
+
+      if (verificationError) {
+        console.error(
+          "Error inserting verification request into artist_verification table:",
+          verificationError
+        );
+        return res
+          .status(500)
+          .json({ error: "Failed to save verification request to the database." });
+      }
+
+      console.log("Verification request inserted successfully into artist_verification table.");
+
+      // Update the `artist` table with the new verification ID
+      const { error: artistUpdateError } = await supabase
+        .from("artist")
+        .update({ verification_id: verificationId })
+        .eq("user_id", userId);
+
+      if (artistUpdateError) {
+        console.error("Error updating artist table with verification ID:", artistUpdateError);
+        return res.status(500).json({ error: "Failed to update artist verification ID." });
+      }
+
+      console.log("Artist table updated successfully with verification ID.");
+
+      res.status(200).json({
+        success: true,
+        message: "Verification request submitted successfully.",
+      });
+    } catch (err) {
+      console.error("Unexpected error in verification endpoint:", err);
+      res
+        .status(500)
+        .json({ error: "An unexpected error occurred during verification." });
+    }
+  }
+);
+// ****** ARTIST UPLOAD VERIFICATION END... ******
+
+
+// ****** ADMIN USER TABLE ******
+// Fetch Artists
+app.get("/admin/artists", async (req, res) => {
+  try {
+    const { data: artistData, error: artistError } = await supabase
+      .from("artist")
+      .select("user_id, firstname, lastname, username, email, address, role");
+
+    if (artistError) throw artistError;
+
+    const { data: verifiedUsers, error: verificationError } = await supabase
+      .from("artist_verification")
+      .select("user_id, status")
+      .eq("status", "approved");
+
+    if (verificationError) throw verificationError;
+
+    const artists = artistData.map((artist) => ({
+      id: artist.user_id,
+      name: `${artist.firstname} ${artist.lastname}`,
+      username: artist.username,
+      email: artist.email,
+      address: artist.address,
+      role: artist.role,
+      isVerified: verifiedUsers.some((verified) => verified.user_id === artist.user_id),
+    }));
+
+    res.status(200).json(artists);
+  } catch (error) {
+    console.error("Error fetching artists:", error);
+    res.status(500).json({ error: "Failed to fetch artists." });
+  }
 });
+
+// Fetch Clients
+app.get("/admin/clients", async (req, res) => {
+  try {
+    const { data: clientData, error } = await supabase
+      .from("client")
+      .select("user_id, firstname, lastname, username, email, address, role");
+
+    if (error) throw error;
+
+    const clients = clientData.map((client) => ({
+      id: client.user_id,
+      name: `${client.firstname} ${client.lastname}`,
+      username: client.username,
+      email: client.email,
+      address: client.address,
+      role: client.role,
+    }));
+
+    res.status(200).json(clients);
+  } catch (error) {
+    console.error("Error fetching clients:", error);
+    res.status(500).json({ error: "Failed to fetch clients." });
+  }
+});
+// ****** ADMIN USER TABLE END... ******
+
+
+// ****** ADMIN TAG TABLE ******
+// Get all tags
+app.get("/tags", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("tags").select("*");
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching tags:", err);
+    res.status(500).json({ error: "Failed to fetch tags" });
+  }
+});
+
+// Add a new tag
+app.post("/tags", async (req, res) => {
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: "Tag name is required" });
+  }
+
+  try {
+    // Check if the tag already exists
+    const { data: existingTags } = await supabase
+      .from("tags")
+      .select("*")
+      .eq("name", name);
+
+    if (existingTags.length > 0) {
+      return res.status(409).json({ error: "Tag already exists" });
+    }
+
+    // Insert the new tag
+    const { data, error } = await supabase.from("tags").insert({ name }).single();
+    if (error) throw error;
+
+    res.status(201).json(data);
+  } catch (err) {
+    console.error("Error adding tag:", err);
+    res.status(500).json({ error: "Failed to add tag" });
+  }
+});
+
+// Update a tag
+app.put("/tags/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: "Tag name is required" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("tags")
+      .update({ name })
+      .eq("id", id);
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error updating tag:", err);
+    res.status(500).json({ error: "Failed to update tag" });
+  }
+});
+
+// Delete a tag
+app.delete("/tags/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data, error } = await supabase.from("tags").delete().eq("id", id);
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error deleting tag:", err);
+    res.status(500).json({ error: "Failed to delete tag" });
+  }
+});
+// ****** ADMIN TAG TABLE END... ******
+
+
+// ****** ARTIST ARTS TABLE ******
+// Fetch all arts for a user
+app.get("/api/arts/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data: arts, error } = await supabase
+      .from("arts")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    // Fetch tags for all arts
+    const { data: artTags, error: artTagsError } = await supabase
+      .from("art_tags")
+      .select("art_id, tag_id, tags (name)")
+      .in("art_id", arts.map((art) => art.art_id));
+
+    if (artTagsError) return res.status(400).json({ error: artTagsError.message });
+
+    // Add tags to arts
+    const artsWithTags = arts.map((art) => ({
+      ...art,
+      tags: artTags
+        .filter((tag) => tag.art_id === art.art_id)
+        .map((tag) => tag.tags.name),
+    }));
+
+    res.status(200).json(artsWithTags);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch arts." });
+  }
+});
+
+// Fetch all tags
+app.get("/api/tags", async (req, res) => {
+  try {
+    const { data: tags, error } = await supabase.from("tags").select("*");
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(200).json(tags);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch tags." });
+  }
+});
+
+// Delete an art
+app.delete("/api/arts/:artId", async (req, res) => {
+  const { artId } = req.params;
+
+  try {
+    // Begin transaction for atomic deletion
+    const supabaseTransaction = supabase;
+
+    // Step 1: Delete all related tags from `art_tags`
+    const { error: tagsDeleteError } = await supabaseTransaction
+      .from("art_tags")
+      .delete()
+      .eq("art_id", artId);
+
+    if (tagsDeleteError) {
+      console.error("Error deleting related tags:", tagsDeleteError);
+      return res.status(400).json({ error: "Failed to delete related tags." });
+    }
+
+    // Step 2: Delete the art itself
+    const { error: artDeleteError } = await supabaseTransaction
+      .from("arts")
+      .delete()
+      .eq("art_id", artId);
+
+    if (artDeleteError) {
+      console.error("Error deleting art:", artDeleteError);
+      return res.status(400).json({ error: "Failed to delete the art." });
+    }
+
+    // Step 3: Respond to the client with success
+    res.status(200).json({ message: "Art deleted successfully." });
+  } catch (err) {
+    console.error("Unexpected error during deletion:", err);
+    res.status(500).json({ error: "An unexpected error occurred while deleting the art." });
+  }
+});
+
+// ****** UPDATE ART ******
+app.put("/api/arts/:artId", async (req, res) => {
+  const { artId } = req.params;
+  const {
+    title,
+    description,
+    price,
+    location,
+    art_style,
+    medium,
+    subject,
+    tags,
+  } = req.body;
+
+  try {
+    // Update the art details in the database
+    const { error: updateError } = await supabase
+      .from("arts")
+      .update({
+        title,
+        description,
+        price: price ? parseFloat(price) : null,
+        location,
+        art_style,
+        medium,
+        subject,
+      })
+      .eq("art_id", artId);
+
+    if (updateError) {
+      console.error("Error updating art details:", updateError);
+      return res.status(400).json({ error: updateError.message });
+    }
+
+    // Safely parse tags and update the art_tags table
+    if (tags) {
+      let tagList = [];
+      try {
+        tagList = JSON.parse(tags); // Attempt to parse tags as JSON
+        if (!Array.isArray(tagList)) {
+          throw new Error("Tags must be an array.");
+        }
+      } catch (parseError) {
+        console.error("Error parsing tags:", parseError);
+        return res.status(400).json({ error: "Invalid tags format. Must be a JSON array." });
+      }
+
+      // Delete old tags
+      const { error: deleteTagsError } = await supabase
+        .from("art_tags")
+        .delete()
+        .eq("art_id", artId);
+
+      if (deleteTagsError) {
+        console.error("Error deleting old tags:", deleteTagsError);
+        return res.status(400).json({ error: deleteTagsError.message });
+      }
+
+      // Insert new tags
+      for (const tagId of tagList) {
+        const { error: insertTagError } = await supabase
+          .from("art_tags")
+          .insert({ art_id: artId, tag_id: tagId });
+
+        if (insertTagError) {
+          console.error("Error inserting new tags:", insertTagError);
+          return res.status(400).json({ error: insertTagError.message });
+        }
+      }
+    }
+
+    console.log("Art updated successfully.");
+    res.status(200).json({ message: "Art updated successfully." });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "An unexpected error occurred while updating the art." });
+  }
+});
+
+/// Fetch a single art
+app.get("/api/art/:artId", async (req, res) => {
+  const { artId } = req.params;
+
+  try {
+    // Fetch art details
+    const { data: art, error } = await supabase
+      .from("arts")
+      .select("*")
+      .eq("art_id", artId)
+      .single();
+
+    if (error || !art) return res.status(404).json({ error: "Art not found." });
+
+    // Fetch tags for the art
+    const { data: artTags, error: tagError } = await supabase
+      .from("art_tags")
+      .select("tag_id, tags (name)")
+      .eq("art_id", artId);
+
+    if (tagError) return res.status(400).json({ error: tagError.message });
+
+    // Map tags into an array of tag IDs and names
+    const tags = artTags.map((tag) => ({
+      id: tag.tag_id,
+      name: tag.tags.name,
+    }));
+
+    res.status(200).json({ ...art, tags });
+  } catch (err) {
+    console.error("Error fetching art:", err);
+    res.status(500).json({ error: "Failed to fetch art details." });
+  }
+});
+// ****** ARTIST ARTS TABLE END... ******
+
+
+// ****** ARTIST POST ARTS ******
+// Fetch all tags
+app.get("/api/tags", async (req, res) => {
+  try {
+    const { data: tags, error } = await supabase.from("tags").select("*");
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(200).json(tags);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch tags." });
+  }
+});
+
+// Upload art (it works already)
+app.post("/api/upload-art", upload.single("file"), async (req, res) => {
+  const {
+    title,
+    description,
+    price,
+    location,
+    art_style,
+    medium,
+    subject,
+    userId,
+    tags,
+  } = req.body;
+
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
+
+  try {
+    const originalFileName = file.originalname;
+    const storageFilePath = `${userId}/${Date.now()}-${originalFileName}`;
+
+    console.log("Uploading file:", storageFilePath);
+
+    // Upload file to Supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("artist-arts")
+      .upload(storageFilePath, file.buffer, {
+        contentType: file.mimetype,
+        cacheControl: "3600",
+      });
+
+    if (uploadError) {
+      console.error("Supabase storage upload error:", uploadError);
+      return res.status(500).json({ error: "Failed to upload image to Supabase." });
+    }
+
+    console.log("File uploaded to Supabase successfully:", storageFilePath);
+
+    // Generate the public URL for the uploaded file
+    const { data: publicUrlData, error: publicUrlError } = supabase.storage
+      .from("artist-arts")
+      .getPublicUrl(storageFilePath);
+
+    if (publicUrlError) {
+      console.error("Error generating public URL:", publicUrlError);
+      return res.status(500).json({ error: "Failed to generate public URL for image." });
+    }
+
+    const publicURL = publicUrlData.publicUrl;
+    console.log("Public URL generated successfully:", publicURL);
+
+    // Fetch the artist_id using the provided userId
+    const { data: artistData, error: artistError } = await supabase
+      .from("artist")
+      .select("artist_id")
+      .eq("user_id", userId)
+      .single();
+
+    if (artistError || !artistData) {
+      console.error("Artist Fetch Error:", artistError);
+      return res.status(400).json({ error: "Failed to fetch artist ID." });
+    }
+
+    const artistId = artistData.artist_id;
+
+    // Insert the new art into the "arts" table
+    const { data: insertedArt, error: insertError } = await supabase
+      .from("arts")
+      .insert({
+        user_id: userId,
+        artist_id: artistId, // Store the artist_id
+        title,
+        description,
+        price: parseFloat(price),
+        location,
+        art_style,
+        medium,
+        subject,
+        image_url: publicURL, // Store the public URL in the "image_url" column
+        created_at: new Date(),
+      })
+      .select();
+
+    if (insertError) {
+      console.error("Insert Error:", insertError);
+      return res.status(400).json({ error: insertError.message });
+    }
+
+    const newArtId = insertedArt[0].art_id;
+
+    // Insert the associated tags into the "art_tags" table
+    const tagList = JSON.parse(tags);
+    for (const tagId of tagList) {
+      const { error: tagInsertError } = await supabase
+        .from("art_tags")
+        .insert({ art_id: newArtId, tag_id: tagId });
+
+      if (tagInsertError) {
+        console.error("Tag Insert Error:", tagInsertError);
+        return res.status(400).json({ error: tagInsertError.message });
+      }
+    }
+
+    console.log("Art uploaded successfully with image URL and artist ID.");
+    res.status(201).json({ message: "Art uploaded successfully." });
+  } catch (err) {
+    console.error("Unexpected Error:", err);
+    res.status(500).json({ error: "Failed to upload art." });
+  }
+});
+// ****** ARTIST POST ARTS END... ******
+
+
+// ****** ADMIN ARTS TABLE ******
+
+// Fetch all arts for admin with tags
+app.get("/api/arts", async (req, res) => {
+  try {
+    const { data: arts, error } = await supabase
+      .from("arts")
+      .select(`
+        art_id,
+        artist:artist(artist_id, firstname, lastname),
+        title,
+        description,
+        price,
+        location,
+        image_url,
+        art_style,
+        medium,
+        subject,
+        created_at,
+        updated_at
+      `);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    const { data: artTags, error: tagError } = await supabase
+      .from("art_tags")
+      .select("art_id, tags (name)");
+
+    if (tagError) return res.status(400).json({ error: tagError.message });
+
+    const artsWithTags = arts.map((art) => ({
+      ...art,
+      tags: artTags
+        .filter((tag) => tag.art_id === art.art_id)
+        .map((tag) => tag.tags.name),
+    }));
+
+    res.status(200).json(artsWithTags);
+  } catch (err) {
+    console.error("Error fetching arts:", err);
+    res.status(500).json({ error: "Failed to fetch arts." });
+  }
+});
+
+// ****** ADMIN ARTS TABLE END.... ******
+
