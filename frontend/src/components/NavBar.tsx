@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FaUser, FaSignInAlt, FaUserPlus } from "react-icons/fa"; // Icons for login and register
+import { FaUser, FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthProvider";
 import axios from "axios";
@@ -9,6 +9,7 @@ const NavBar: React.FC = () => {
   const { user, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
+  const [cartCount, setCartCount] = useState<number>(0); // Cart count state
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const NavBar: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Fetch user role
   const fetchUserRole = async () => {
     if (user) {
       try {
@@ -28,8 +30,23 @@ const NavBar: React.FC = () => {
     }
   };
 
+  // Fetch cart count
+  const fetchCartCount = async () => {
+    if (user) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/cart/count/${user.id}`);
+        setCartCount(response.data.count);
+      } catch (error) {
+        console.error("Error fetching cart count:", error);
+        setCartCount(0);
+      }
+    }
+  };
+
+  // Toggle dropdown
   const toggleDropdown = () => setDropdownOpen((prev) => !prev);
 
+  // Handle outside click to close dropdown
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -40,10 +57,13 @@ const NavBar: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  // Fetch user role and cart count when user changes
   useEffect(() => {
     fetchUserRole();
+    fetchCartCount();
   }, [user]);
 
+  // Handle logout
   const handleLogout = async () => {
     try {
       await axios.post(`${API_BASE_URL}/logout`);
@@ -54,35 +74,16 @@ const NavBar: React.FC = () => {
     }
   };
 
+  // Render navigation links based on user role
   const renderNavLinks = () => {
     if (!user) {
       return (
         <div className="absolute inset-x-0 flex justify-center">
           <div className="flex space-x-6">
-            <Link
-              to="/"
-              className={`${isActive("/") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/explore"
-              className={`${isActive("/explore") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}
-            >
-              Explore
-            </Link>
-            <Link
-              to="/about-us"
-              className={`${isActive("/about-us") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}
-            >
-              About Us
-            </Link>
-            <Link
-              to="/how-it-works"
-              className={`${isActive("/how-it-works") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}
-            >
-              How It Works
-            </Link>
+            <Link to="/" className={`${isActive("/") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
+            <Link to="/explore" className={`${isActive("/explore") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Explore</Link>
+            <Link to="/about-us" className={`${isActive("/about-us") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>About Us</Link>
+            <Link to="/how-it-works" className={`${isActive("/how-it-works") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>How It Works</Link>
           </div>
         </div>
       );
@@ -136,30 +137,67 @@ const NavBar: React.FC = () => {
           {/* Navigation Links */}
           {renderNavLinks()}
 
-          {/* Profile Dropdown */}
+          {/* Right Icons */}
           {user ? (
-            <div ref={dropdownRef} className="relative">
-              <button onClick={toggleDropdown} className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
-                <FaUser size={20} />
-              </button>
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                  <Link to={`/${role?.toLowerCase()}-profile`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Account</Link>
-                  <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
-                </div>
+            <div className="flex items-center space-x-6">
+              {(role === "Artist" || role === "Client") && (
+                <Link to="/cart" className="relative text-black px-3 hover:text-gray-700">
+                  <FaShoppingCart size={20} />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
               )}
+              <Link to="/notifications" className="text-black hover:text-gray-700">
+                <FaBell size={20} />
+              </Link>
+              <div ref={dropdownRef} className="relative">
+                <button
+                  onClick={toggleDropdown}
+                  className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  <FaUser size={20} />
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                    <Link
+                      to={`/${role?.toLowerCase()}-profile`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Account
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div ref={dropdownRef} className="relative">
-              <button onClick={toggleDropdown} className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+              <button
+                onClick={toggleDropdown}
+                className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+              >
                 <FaUser size={20} />
               </button>
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                  <Link to="/login" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
                     <FaSignInAlt className="mr-2" /> Login
                   </Link>
-                  <Link to="/register" className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                  <Link
+                    to="/register"
+                    className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
                     <FaUserPlus className="mr-2" /> Register
                   </Link>
                 </div>

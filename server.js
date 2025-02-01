@@ -40,7 +40,6 @@ app.get("/", (req, res) => {
   res.send("Supabase API is running...");
 });
 
-
 // Storage settings
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -49,6 +48,138 @@ const upload = multer({ storage });
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+
+// ****** REGISTER USER ****** 
+app.post("/register", async (req, res) => {
+  const { email, password, firstName, lastName, username, role } = req.body;
+
+  // Validate required fields
+  if (!email || !password || !firstName || !lastName || !username || !role) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  try {
+    // Create the user in Supabase Auth
+    const { data, error } = await supabase.auth.signUp({ email, password });
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    const user = data.user;
+    if (!user) {
+      return res.status(400).json({ error: "User registration failed." });
+    }
+
+    // Determine the table based on the role
+    const table = role === "Artist" ? "artist" : "client";
+
+    // Insert additional user details into the appropriate table
+    const { error: insertError } = await supabase.from(table).insert({
+      user_id: user.id,
+      firstname: firstName,
+      lastname: lastName,
+      email,
+      username,
+      role,
+      bio: "", // Default value for bio
+    });
+
+    if (insertError) {
+      return res.status(500).json({ error: insertError.message });
+    }
+
+    res.status(201).json({ message: "User registered successfully!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ****** REGISTER USER END... ****** 
+
+// ****** LOGIN USER ****** 
+app.post("/login", async (req, res) => {
+  const { identifier, password } = req.body;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: "Email/username and password are required." });
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: identifier,
+      password,
+    });
+
+    if (error || !data.user) {
+      return res.status(401).json({ error: error?.message || "Invalid credentials." });
+    }
+
+    const userId = data.user.id;
+    return res.status(200).json({ userId });
+  } catch (err) {
+    res.status(500).json({ error: "Login failed. Please try again later." });
+  }
+});
+// ****** LOGIN USER END... ****** 
+
+
+
+// ****** NAVBAR ENDPOINT ******
+// User Role Base Endpoint
+app.get("/user-role/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const roles = ["artist", "client", "admin"];
+    for (const role of roles) {
+      const { data, error } = await supabase
+        .from(role)
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+
+      if (data) {
+        return res.status(200).json({ role: data.role });
+      }
+    }
+    return res.status(404).json({ error: "User role not found." });
+  } catch (err) {
+    res.status(500).json({ error: "Server error fetching user role." });
+  }
+});
+
+// User Cart Count
+app.get("/cart/count/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { count, error } = await supabase
+      .from("cart")
+      .select("*", { count: "exact" })
+      .eq("user_id", userId);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(200).json({ count });
+  } catch (err) {
+    console.error("Error fetching cart count:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Handle user logout
+app.post("/logout", async (req, res) => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    res.status(200).json({ message: "Logout successful." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ****** NAVBAR ENDPOINT END... ******
 
 
 
@@ -137,117 +268,6 @@ app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res
   }
 });
 // ****** ARTIST UPLOAD PROFILE IMAGE END... ******
-
-
-// ****** REGISTER USER ****** 
-app.post("/register", async (req, res) => {
-  const { email, password, firstName, lastName, username, role } = req.body;
-
-  // Validate required fields
-  if (!email || !password || !firstName || !lastName || !username || !role) {
-    return res.status(400).json({ error: "All fields are required." });
-  }
-
-  try {
-    // Create the user in Supabase Auth
-    const { data, error } = await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    const user = data.user;
-    if (!user) {
-      return res.status(400).json({ error: "User registration failed." });
-    }
-
-    // Determine the table based on the role
-    const table = role === "Artist" ? "artist" : "client";
-
-    // Insert additional user details into the appropriate table
-    const { error: insertError } = await supabase.from(table).insert({
-      user_id: user.id,
-      firstname: firstName,
-      lastname: lastName,
-      email,
-      username,
-      role,
-      bio: "", // Default value for bio
-    });
-
-    if (insertError) {
-      return res.status(500).json({ error: insertError.message });
-    }
-
-    res.status(201).json({ message: "User registered successfully!" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// ****** REGISTER USER END... ****** 
-
-// ****** LOGIN USER ****** 
-app.post("/login", async (req, res) => {
-  const { identifier, password } = req.body;
-
-  if (!identifier || !password) {
-    return res.status(400).json({ error: "Email/username and password are required." });
-  }
-
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: identifier,
-      password,
-    });
-
-    if (error || !data.user) {
-      return res.status(401).json({ error: error?.message || "Invalid credentials." });
-    }
-
-    const userId = data.user.id;
-    return res.status(200).json({ userId });
-  } catch (err) {
-    res.status(500).json({ error: "Login failed. Please try again later." });
-  }
-});
-
-// Handle user logout
-app.post("/logout", async (req, res) => {
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    res.status(200).json({ message: "Logout successful." });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// ****** LOGIN USER END... ****** 
-
-
-// ****** NAVBAR ENDPOINT ******
-app.get("/user-role/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const roles = ["artist", "client", "admin"];
-    for (const role of roles) {
-      const { data, error } = await supabase
-        .from(role)
-        .select("role")
-        .eq("user_id", userId)
-        .single();
-
-      if (data) {
-        return res.status(200).json({ role: data.role });
-      }
-    }
-    return res.status(404).json({ error: "User role not found." });
-  } catch (err) {
-    res.status(500).json({ error: "Server error fetching user role." });
-  }
-});
-// ****** NAVBAR ENDPOINT END... ******
-
 
 // ****** ARTIST PROFILE ENDPOINT ****** 
 // Get Artist Profile
@@ -385,7 +405,6 @@ app.put("/artist-profile", async (req, res) => {
 });
 // ****** ARTIST PROFILE ENDPOINT END... ******
 
-
 // ****** ARTIST UPLOAD VERIFICATION ******
 // Artist Verification Upload Endpoint
 app.post(
@@ -489,149 +508,6 @@ app.post(
   }
 );
 // ****** ARTIST UPLOAD VERIFICATION END... ******
-
-
-// ****** ADMIN USER TABLE ******
-// Fetch Artists
-app.get("/admin/artists", async (req, res) => {
-  try {
-    const { data: artistData, error: artistError } = await supabase
-      .from("artist")
-      .select("user_id, firstname, lastname, username, email, address, role");
-
-    if (artistError) throw artistError;
-
-    const { data: verifiedUsers, error: verificationError } = await supabase
-      .from("artist_verification")
-      .select("user_id, status")
-      .eq("status", "approved");
-
-    if (verificationError) throw verificationError;
-
-    const artists = artistData.map((artist) => ({
-      id: artist.user_id,
-      name: `${artist.firstname} ${artist.lastname}`,
-      username: artist.username,
-      email: artist.email,
-      address: artist.address,
-      role: artist.role,
-      isVerified: verifiedUsers.some((verified) => verified.user_id === artist.user_id),
-    }));
-
-    res.status(200).json(artists);
-  } catch (error) {
-    console.error("Error fetching artists:", error);
-    res.status(500).json({ error: "Failed to fetch artists." });
-  }
-});
-
-// Fetch Clients
-app.get("/admin/clients", async (req, res) => {
-  try {
-    const { data: clientData, error } = await supabase
-      .from("client")
-      .select("user_id, firstname, lastname, username, email, address, role");
-
-    if (error) throw error;
-
-    const clients = clientData.map((client) => ({
-      id: client.user_id,
-      name: `${client.firstname} ${client.lastname}`,
-      username: client.username,
-      email: client.email,
-      address: client.address,
-      role: client.role,
-    }));
-
-    res.status(200).json(clients);
-  } catch (error) {
-    console.error("Error fetching clients:", error);
-    res.status(500).json({ error: "Failed to fetch clients." });
-  }
-});
-// ****** ADMIN USER TABLE END... ******
-
-
-// ****** ADMIN TAG TABLE ******
-// Get all tags
-app.get("/tags", async (req, res) => {
-  try {
-    const { data, error } = await supabase.from("tags").select("*");
-    if (error) throw error;
-    res.status(200).json(data);
-  } catch (err) {
-    console.error("Error fetching tags:", err);
-    res.status(500).json({ error: "Failed to fetch tags" });
-  }
-});
-
-// Add a new tag
-app.post("/tags", async (req, res) => {
-  const { name } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ error: "Tag name is required" });
-  }
-
-  try {
-    // Check if the tag already exists
-    const { data: existingTags } = await supabase
-      .from("tags")
-      .select("*")
-      .eq("name", name);
-
-    if (existingTags.length > 0) {
-      return res.status(409).json({ error: "Tag already exists" });
-    }
-
-    // Insert the new tag
-    const { data, error } = await supabase.from("tags").insert({ name }).single();
-    if (error) throw error;
-
-    res.status(201).json(data);
-  } catch (err) {
-    console.error("Error adding tag:", err);
-    res.status(500).json({ error: "Failed to add tag" });
-  }
-});
-
-// Update a tag
-app.put("/tags/:id", async (req, res) => {
-  const { id } = req.params;
-  const { name } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ error: "Tag name is required" });
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("tags")
-      .update({ name })
-      .eq("id", id);
-    if (error) throw error;
-    res.status(200).json(data);
-  } catch (err) {
-    console.error("Error updating tag:", err);
-    res.status(500).json({ error: "Failed to update tag" });
-  }
-});
-
-// Delete a tag
-app.delete("/tags/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const { data, error } = await supabase.from("tags").delete().eq("id", id);
-    if (error) throw error;
-    res.status(200).json(data);
-  } catch (err) {
-    console.error("Error deleting tag:", err);
-    res.status(500).json({ error: "Failed to delete tag" });
-  }
-});
-// ****** ADMIN TAG TABLE END... ******
-
 
 // ****** ARTIST ARTS TABLE ******
 // Fetch all arts for a user
@@ -963,6 +839,150 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
 // ****** ARTIST POST ARTS END... ******
 
 
+
+// ****** ADMIN USER TABLE ******
+// Fetch Artists
+app.get("/admin/artists", async (req, res) => {
+  try {
+    const { data: artistData, error: artistError } = await supabase
+      .from("artist")
+      .select("user_id, firstname, lastname, username, email, address, role");
+
+    if (artistError) throw artistError;
+
+    const { data: verifiedUsers, error: verificationError } = await supabase
+      .from("artist_verification")
+      .select("user_id, status")
+      .eq("status", "approved");
+
+    if (verificationError) throw verificationError;
+
+    const artists = artistData.map((artist) => ({
+      id: artist.user_id,
+      name: `${artist.firstname} ${artist.lastname}`,
+      username: artist.username,
+      email: artist.email,
+      address: artist.address,
+      role: artist.role,
+      isVerified: verifiedUsers.some((verified) => verified.user_id === artist.user_id),
+    }));
+
+    res.status(200).json(artists);
+  } catch (error) {
+    console.error("Error fetching artists:", error);
+    res.status(500).json({ error: "Failed to fetch artists." });
+  }
+});
+
+// Fetch Clients
+app.get("/admin/clients", async (req, res) => {
+  try {
+    const { data: clientData, error } = await supabase
+      .from("client")
+      .select("user_id, firstname, lastname, username, email, address, role");
+
+    if (error) throw error;
+
+    const clients = clientData.map((client) => ({
+      id: client.user_id,
+      name: `${client.firstname} ${client.lastname}`,
+      username: client.username,
+      email: client.email,
+      address: client.address,
+      role: client.role,
+    }));
+
+    res.status(200).json(clients);
+  } catch (error) {
+    console.error("Error fetching clients:", error);
+    res.status(500).json({ error: "Failed to fetch clients." });
+  }
+});
+// ****** ADMIN USER TABLE END... ******
+
+
+// ****** ADMIN TAG TABLE ******
+// Get all tags
+app.get("/tags", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("tags").select("*");
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching tags:", err);
+    res.status(500).json({ error: "Failed to fetch tags" });
+  }
+});
+
+// Add a new tag
+app.post("/tags", async (req, res) => {
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: "Tag name is required" });
+  }
+
+  try {
+    // Check if the tag already exists
+    const { data: existingTags } = await supabase
+      .from("tags")
+      .select("*")
+      .eq("name", name);
+
+    if (existingTags.length > 0) {
+      return res.status(409).json({ error: "Tag already exists" });
+    }
+
+    // Insert the new tag
+    const { data, error } = await supabase.from("tags").insert({ name }).single();
+    if (error) throw error;
+
+    res.status(201).json(data);
+  } catch (err) {
+    console.error("Error adding tag:", err);
+    res.status(500).json({ error: "Failed to add tag" });
+  }
+});
+
+// Update a tag
+app.put("/tags/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: "Tag name is required" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("tags")
+      .update({ name })
+      .eq("id", id);
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error updating tag:", err);
+    res.status(500).json({ error: "Failed to update tag" });
+  }
+});
+
+// Delete a tag
+app.delete("/tags/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data, error } = await supabase.from("tags").delete().eq("id", id);
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error deleting tag:", err);
+    res.status(500).json({ error: "Failed to delete tag" });
+  }
+});
+// ****** ADMIN TAG TABLE END... ******
+
+
+
 // ****** ADMIN ARTS TABLE ******
 
 // Fetch all arts for admin with tags
@@ -985,14 +1005,21 @@ app.get("/api/arts", async (req, res) => {
         updated_at
       `);
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (error) {
+      console.error("Error fetching arts:", error);
+      return res.status(400).json({ error: error.message });
+    }
 
-    const { data: artTags, error: tagError } = await supabase
+    const { data: artTags, error: tagsError } = await supabase
       .from("art_tags")
       .select("art_id, tags (name)");
 
-    if (tagError) return res.status(400).json({ error: tagError.message });
+    if (tagsError) {
+      console.error("Error fetching tags:", tagsError);
+      return res.status(400).json({ error: tagsError.message });
+    }
 
+    // Combine arts with their tags
     const artsWithTags = arts.map((art) => ({
       ...art,
       tags: artTags
@@ -1002,10 +1029,364 @@ app.get("/api/arts", async (req, res) => {
 
     res.status(200).json(artsWithTags);
   } catch (err) {
-    console.error("Error fetching arts:", err);
+    console.error("Unexpected error fetching arts:", err);
     res.status(500).json({ error: "Failed to fetch arts." });
   }
 });
 
 // ****** ADMIN ARTS TABLE END.... ******
+
+
+// ****** BROWSE ARTIST ****** CURRENTLY WORKING (no view profile)
+// API to fetch all artists
+app.get("/artists", async (req, res) => {
+  const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+
+  try {
+    const { data: artistsData, error: artistsError } = await supabase
+      .from("artist")
+      .select(`
+        user_id,
+        firstname,
+        lastname,
+        bio,
+        gender,
+        date_of_birth,
+        email,
+        role,
+        address,
+        phone,
+        profile_image,
+        verification_id
+      `);
+
+    if (artistsError) {
+      console.error("Error fetching artists:", artistsError);
+      return res.status(500).json({ error: "Failed to fetch artists." });
+    }
+
+    // Format artist data and fetch verification statuses
+    const formattedArtists = await Promise.all(
+      artistsData.map(async (artist) => {
+        if (artist.profile_image) {
+          artist.profile_image = `${CDNURL}${artist.user_id}/${artist.profile_image}`;
+        }
+
+        if (artist.verification_id) {
+          const { data: verificationData, error: verificationError } = await supabase
+            .from("artist_verification")
+            .select("status")
+            .eq("verification_id", artist.verification_id)
+            .single();
+
+          if (verificationError) {
+            console.error(
+              `Error fetching verification status for user ${artist.user_id}:`,
+              verificationError
+            );
+            artist.status = null;
+          } else {
+            artist.status = verificationData?.status || null;
+          }
+        } else {
+          artist.status = null;
+        }
+
+        return artist;
+      })
+    );
+
+    res.status(200).json(formattedArtists);
+  } catch (err) {
+    console.error("Unexpected error fetching artists:", err);
+    res.status(500).json({ error: "Unexpected server error." });
+  }
+});
+
+// ****** BROWSE ARTIST END... ****** CURRENTLY WORKING
+
+
+// ****** BROWSE ARTS ****** CURRENTLY WORKING
+
+// Fetch all arts
+app.get('/arts', async (req, res) => {
+  try {
+    const { data: arts, error } = await supabase
+      .from('arts')
+      .select(`
+        art_id,
+        title,
+        description,
+        price,
+        image_url,
+        artist (
+          firstname,
+          lastname
+        ),
+        art_tags (
+          tags (id, name)
+        )
+      `);
+
+    if (error) {
+      console.error('Error fetching arts:', error);
+      return res.status(500).json({ error: 'Failed to fetch arts.' });
+    }
+
+    // Format the arts data to extract tag names
+    const formattedArts = arts.map((art) => ({
+      ...art,
+      tags: art.art_tags.map((tagRelation) => ({
+        id: tagRelation.tags.id,
+        name: tagRelation.tags.name,
+      })),
+    }));
+
+    res.status(200).json(formattedArts);
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    res.status(500).json({ error: 'Unexpected server error.' });
+  }
+});
+
+// WISHLIST FUNCTION
+// Fetch Wishlist
+app.get('/wishlist', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('wishlist')
+      .select('art_id');
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch wishlist.' });
+    }
+
+    res.status(200).json(data.map((item) => item.art_id));
+  } catch (err) {
+    res.status(500).json({ error: 'Unexpected server error.' });
+  }
+});
+
+// Add to Wishlist
+app.post('/wishlist', async (req, res) => {
+  const { userId, artId, action } = req.body;
+
+  // Validate request payload
+  if (!userId || !artId || !action) {
+    return res.status(400).json({ error: 'User ID, Art ID, and action are required.' });
+  }
+
+  try {
+    if (action === 'add') {
+      // Insert both user_id and art_id into the table
+      const { error } = await supabase
+        .from('wishlist')
+        .insert([{ user_id: userId, art_id: artId }]);
+
+      if (error) {
+        console.error("Error adding to wishlist:", error);
+        return res.status(500).json({ error: 'Failed to add to wishlist.' });
+      }
+
+      return res.status(200).json({ message: 'Added to wishlist.' });
+    } else if (action === 'remove') {
+      // Remove based on user_id and art_id
+      const { error } = await supabase
+        .from('wishlist')
+        .delete()
+        .eq('user_id', userId)
+        .eq('art_id', artId);
+
+      if (error) {
+        console.error("Error removing from wishlist:", error);
+        return res.status(500).json({ error: 'Failed to remove from wishlist.' });
+      }
+
+      return res.status(200).json({ message: 'Removed from wishlist.' });
+    }
+  } catch (err) {
+    console.error("Unexpected server error:", err);
+    return res.status(500).json({ error: 'Unexpected server error.' });
+  }
+});
+// WISHLIST FUNCTION END
+
+// ARTDETAIL FUNCTION - FINAL CLEAN VERSION
+app.get('/art/:artId', async (req, res) => {
+  const { artId } = req.params;
+  const CDN_URL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+
+  try {
+    // Fetch art details with artist and tags relations
+    const { data, error } = await supabase
+      .from('arts')
+      .select(
+        `
+        art_id, 
+        title, 
+        description, 
+        price, 
+        image_url, 
+        subject,
+        quantity,
+        medium, 
+        created_at,
+        art_style,
+        artist:artist_id (
+          user_id,
+          firstname, 
+          lastname, 
+          address,
+          email,
+          bio, 
+          phone,
+          profile_image
+        ),
+        art_tags (
+          tags (
+            id, 
+            name
+          )
+        )
+        `
+      )
+      .eq('art_id', artId)
+      .single(); // Expecting a single result
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Art not found.' });
+    }
+
+    // Construct the full URL for the artist's profile image if available
+    if (data.artist?.profile_image) {
+      data.artist.profile_image = `${CDN_URL}${data.artist.user_id}/${data.artist.profile_image}`;
+    }
+
+    // Transform the nested tags structure
+    const artDetails = {
+      ...data,
+      tags: data.art_tags ? data.art_tags.map((tagRelation) => tagRelation.tags) : [],
+    };
+
+    res.status(200).json(artDetails);
+  } catch (err) {
+    console.error("Error fetching art details:", err);
+    res.status(500).json({ error: 'Failed to fetch art details.' });
+  }
+});
+// ARTDETAIL FUNCTION END...
+
+// ****** BROWSE ARTS END... ****** ALMOST DONE
+
+
+// ****** NAVBAR CART FUNCTION ****** CURRENTLY WORKING
+
+// Fetch cart items for a user
+app.get("/cart/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from("cart")
+      .select("*, arts (title, image_url, price)")
+      .eq("user_id", userId);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching cart items:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Add item to cart
+app.post("/cart", async (req, res) => {
+  const { userId, artId, quantity } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("cart")
+      .insert([{ user_id: userId, art_id: artId, quantity }]);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(201).json({ message: "Item added to cart", data });
+  } catch (err) {
+    console.error("Error adding item to cart:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Remove item from cart
+app.delete("/cart/:userId/:artId", async (req, res) => {
+  const { userId, artId } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from("cart")
+      .delete()
+      .eq("user_id", userId)
+      .eq("art_id", artId);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(200).json({ message: "Item removed from cart" });
+  } catch (err) {
+    console.error("Error removing item from cart:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ****** NAVBAR CART FUNCTION END... ****** CURRENTLY WORKING
+
+
+
+
+
+// ****** PAYMENT ORDER (PHOEBE START HERE) ****** CURRENTLY WORKING
+
+// Fetch user details for pre-filling shipping info
+app.get("/user/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Check if user exists in the "artist" table
+    let { data: artistData, error: artistError } = await supabase
+      .from("artist")
+      .select("firstname, lastname, phone, address")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (artistError) {
+      console.error("Supabase artist query error:", artistError.message);
+    }
+
+    if (artistData) {
+      return res.status(200).json(artistData);
+    }
+
+    // If not found in "artist", check in the "client" table
+    let { data: clientData, error: clientError } = await supabase
+      .from("client")
+      .select("firstname, lastname, phone, address")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (clientError) {
+      console.error("Supabase client query error:", clientError.message);
+    }
+
+    if (clientData) {
+      return res.status(200).json(clientData);
+    }
+
+    // If user is not found in either table
+    return res.status(404).json({ error: "User not found." });
+  } catch (err) {
+    console.error("Error fetching user details:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 

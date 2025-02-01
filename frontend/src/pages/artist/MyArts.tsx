@@ -130,6 +130,7 @@ const MyArts: React.FC = () => {
           Upload Your Art
         </Link>
       </div>
+      
       {selectedArt && (
         <Modal show={showModal} onClose={() => setShowModal(false)}>
           <div className="p-6 space-y-6 max-h-[85vh] overflow-y-auto">

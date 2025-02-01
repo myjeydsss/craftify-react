@@ -19,6 +19,11 @@ import TagTable from "./pages/admin/TagTable";
 import PostArts from "./pages/artist/PostArts";
 import EditArtPage from "./pages/artist/EditArtPage";
 import ArtsTable from "./pages/admin/ArtsTable";
+import BrowseArtist from "./pages/BrowseArtist";
+import BrowseArts from "./pages/BrowseArts";
+import ArtDetail from "./pages/ArtDetail";
+import Cart from "./pages/payment order/Cart";
+import Checkout from "./pages/payment order/Checkout";
 
 const App = () => {
   
@@ -48,15 +53,34 @@ const App = () => {
                         <Route path="/artist-post-arts" element={<PostArts />} />
                         <Route path="/edit-art/:artId" element={<EditArtPage />} />
 
-                    {/* Admin routes */}
 
+                    {/* Admin routes */}
                         <Route path="/admin-dashboard" element={<AdminDashboard />} />
                         <Route path="/users-table" element={<UserTable />} />
                         <Route path="/tags-table" element={<TagTable />} />
                         <Route path="/arts-table" element={<ArtsTable />} />
 
 
+                    {/* Client routes */}
                         <Route path="/client-dashboard" element={<ClientDashboard />} />
+
+
+                    {/* Other routes */}
+                    <Route path="/browse-artists" element={<BrowseArtist />} />
+                    <Route path="/browse-arts" element={<BrowseArts />} />
+                    <Route path="/art/:artId" element={<ArtDetail />} />
+
+                    {/* Other routes */}
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    
+
+
+
+
+
+
+
                     </Route>
                 </Routes>
             </div>
