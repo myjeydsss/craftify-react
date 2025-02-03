@@ -843,6 +843,66 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
 });
 // ****** ARTIST POST ARTS END... ******
 
+// ****** CLIENT PROFILE ENDPOINTS ******
+
+// Get Client Profile
+app.get("/client-profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
+
+  try {
+    const { data: clientData, error } = await supabase
+      .from("client")
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !clientData) {
+      return res.status(404).json({ error: "Client profile not found." });
+    }
+
+    // If profile_image exists, prepend CDN URL
+    if (clientData.profile_image) {
+      clientData.profile_image = `${CDNURL}${userId}/${clientData.profile_image}`;
+    }
+
+    res.status(200).json(clientData);
+  } catch (err) {
+    console.error("Error fetching client profile:", err);
+    res.status(500).json({ error: "Failed to fetch client profile." });
+  }
+});
+
+// Get Client Preferences
+app.get("/client-preferences/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("client_preferences")
+      .select(
+        "preferred_art_style, project_requirements, budget_range, location_requirement, timeline, artist_experience_level, communication_preferences, project_type"
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !data) {
+      console.warn(`Preferences not found for userId: ${userId}`);
+      return res.status(200).json({
+        message: "You haven't set up your preferences yet.",
+        preferences: null,
+      });
+    }
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching client preferences:", err);
+    res.status(500).json({ error: "Failed to fetch preferences." });
+  }
+});
+
+// ****** CLIENT PROFULE ENDPOINT END... *******
+
 
 
 // ****** ADMIN USER TABLE ******
@@ -1108,6 +1168,36 @@ app.get("/artists", async (req, res) => {
   }
 });
 
+// GET VIEW ARTIST PROFILE 
+app.get("/view-artist-preferences/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("artist_preferences")
+      .select(
+        "crafting, art_style_specialization, collaboration_type, preferred_medium, location_preference, crafting_techniques, budget_range, project_type, project_type_experience, preferred_project_duration, availability, client_type_preference, project_scale, portfolio_link, preferred_communication"
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !data) {
+      console.warn(`Preferences not found for userId: ${userId}`);
+      return res.status(200).json({
+        message: "User haven't set up preferences yet.",
+        preferences: null,
+      });
+    }
+
+    // Return preferences as is (No need for JSON.parse here, as it's already stored as jsonb)
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching preferences:", err);
+    res.status(500).json({ error: "Failed to fetch preferences." });
+  }
+});
+// GET VIEW ARTIST PROFILE END...
+
 // ****** BROWSE ARTIST END... ****** CURRENTLY WORKING
 
 
@@ -1155,12 +1245,20 @@ app.get('/arts', async (req, res) => {
 });
 
 // WISHLIST FUNCTION
-// Fetch Wishlist
-app.get('/wishlist', async (req, res) => {
+
+// Fetch Wishlist for the Logged-in User
+app.get('/wishlist/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required.' });
+  }
+
   try {
     const { data, error } = await supabase
       .from('wishlist')
-      .select('art_id');
+      .select('art_id')
+      .eq('user_id', userId); // Fetch only the wishlist for the logged-in user
 
     if (error) {
       return res.status(500).json({ error: 'Failed to fetch wishlist.' });
@@ -1212,6 +1310,33 @@ app.post('/wishlist', async (req, res) => {
   } catch (err) {
     console.error("Unexpected server error:", err);
     return res.status(500).json({ error: 'Unexpected server error.' });
+  }
+});
+
+// DELETE endpoint to clear the entire wishlist for a user
+app.delete('/wishlist/:userId/all', async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
+  try {
+    // Delete all wishlist entries for the user
+    const { error } = await supabase
+      .from("wishlist")
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error clearing wishlist:", error);
+      return res.status(500).json({ error: "Failed to clear wishlist." });
+    }
+
+    res.json({ message: "Wishlist cleared successfully." });
+  } catch (err) {
+    console.error("Unexpected error clearing wishlist:", err);
+    res.status(500).json({ error: "Server error while clearing wishlist." });
   }
 });
 // WISHLIST FUNCTION END
@@ -1279,9 +1404,9 @@ app.get('/art/:artId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch art details.' });
   }
 });
-// ARTDETAIL FUNCTION END...
+// ART DETAIL END...
 
-// ****** BROWSE ARTS END... ****** ALMOST DONE
+// ****** BROWSE ARTS END... ****** (to be polish)
 
 
 // ****** NAVBAR CART FUNCTION ****** CURRENTLY WORKING
@@ -1465,7 +1590,7 @@ app.post('/create-checkout-session', async (req, res) => {
                         ],
                         payment_method_types: ['card', 'gcash'],
                         success_url: 'http://localhost:5173/success', // Update with your success URL
-                        cancel_url: 'http://localhost:5173/cancel' // Update with your cancel URL
+                        cancel_url: 'http://localhost:5173/checkout' // Update with your cancel URL
                     }
                 }
             },

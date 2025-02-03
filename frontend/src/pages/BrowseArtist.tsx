@@ -71,7 +71,7 @@ const BrowseArtist: React.FC = () => {
   const handlePageChange = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const breakpointColumnsObj = {
-    default: 3,
+    default: 4,
     1100: 3,
     700: 2,
     500: 1,

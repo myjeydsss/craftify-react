@@ -7,7 +7,7 @@ import HowItWorks from "./pages/HowItWorks";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import ArtistDashboard from "./pages/artist/ArtistDashboard";
-import AuthRoute from "./components/AuthRoute"; // Ensure AuthRoute is imported
+import AuthRoute from "./components/AuthRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ArtistProfile from "./pages/artist/ArtistProfile";
@@ -24,6 +24,8 @@ import BrowseArts from "./pages/BrowseArts";
 import ArtDetail from "./pages/ArtDetail";
 import Cart from "./pages/payment order/Cart";
 import Checkout from "./pages/payment order/Checkout";
+import ViewProfileArtist from "./pages/ViewProfileArtist";
+import ClientProfile from "./pages/client/ClientProfile";
 
 const App = () => {
   
@@ -63,14 +65,18 @@ const App = () => {
 
                     {/* Client routes */}
                         <Route path="/client-dashboard" element={<ClientDashboard />} />
+                        <Route path="/client-profile" element={<ClientProfile />} />
+
 
 
                     {/* Other routes */}
                     <Route path="/browse-artists" element={<BrowseArtist />} />
+                    <Route path="/profile/artist/:userId" element={<ViewProfileArtist />} />
                     <Route path="/browse-arts" element={<BrowseArts />} />
                     <Route path="/art/:artId" element={<ArtDetail />} />
 
-                    {/* Other routes */}
+
+                    {/* Payment routes */}
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/checkout" element={<Checkout />} />
                     
