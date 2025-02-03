@@ -90,7 +90,33 @@ const Checkout: React.FC = () => {
         </button>
       </div>
     );
-  }
+    }
+
+    // Payment Handle 
+    const handlePayment = async () => {
+        try {
+            const totalAmount = calculateTotalPrice() * 100; // Convert to cents
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
+                amount: totalAmount,
+                currency: 'PHP',
+                description: 'Purchase from Craftify', // Update with your description
+                email: 'test@email.com', // Replace with actual customer email
+                name: 'testname' // Replace with actual customer name
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const checkoutUrl = response.data;
+
+            // Redirect to PayMongo checkout page
+            window.location.href = checkoutUrl;
+        } catch (error) {
+            console.error('Error creating checkout session:', error);
+            setError('Failed to initiate payment. Please try again.');
+        }
+    };
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-16">
@@ -195,7 +221,7 @@ const Checkout: React.FC = () => {
 
         {/* Proceed Button */}
         <button
-          onClick={() => alert("Proceeding to payment...")}
+          onClick={handlePayment}
           className="mt-8 w-full bg-blue-600 text-white text-lg font-medium py-3 px-8 rounded-lg shadow hover:bg-blue-700"
         >
           Proceed to Payment

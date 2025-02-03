@@ -6,6 +6,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
+const axios = require("axios");
 
 
 const app = express();
@@ -34,6 +35,10 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_API_KEY
 );
+
+// Paymongo setup
+const Paymongo = require('paymongo');
+const paymongo = new Paymongo(process.env.VITE_PAYMONGO_SECRET_KEY);
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -1386,6 +1391,102 @@ app.get("/user/:userId", async (req, res) => {
     console.error("Error fetching user details:", err);
     res.status(500).json({ error: "Internal server error." });
   }
+});
+
+// Paymongo payment intent
+app.post('/create-payment-intent', async (req, res) => {
+    const { amount, currency } = req.body;
+
+    try {
+        const response = await axios.post(
+            `${process.env.VITE_PAYMONGO_URL}/payment_intents`,
+            {
+                data: {
+                    attributes: {
+                        amount,
+                        payment_method_allowed: ["qrph",
+                            "card",
+                            "dob",
+                            "paymaya",
+                            "billease",
+                            "gcash",
+                            "grab_pay"],
+                        payment_method_options: {
+                            card: {
+                                request_three_d_secure: 'any'
+                            }
+                        },
+                        currency
+                    }
+                }
+            },
+            {
+                headers: {
+                    Authorization: `Basic ${Buffer.from(process.env.VITE_PAYMONGO_SECRET_KEY).toString('base64')}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        res.status(200).json(response.data.data.attributes.client_key);
+    } catch (error) {
+        if (error.response) {
+            console.error('Error creating payment intent:', error.response.data);
+            res.status(500).json({ error: 'Failed to create payment intent' });
+        } else {
+            console.error('Error creating payment intent:', error.message);
+            res.status(500).json({ error: 'Failed to create payment intent' });
+        }
+    }
+});
+
+//Paymongo checkout session 
+app.post('/create-checkout-session', async (req, res) => {
+    const { amount, currency, description, email, name } = req.body;
+
+    try {
+        const response = await axios.post(
+            'https://api.paymongo.com/v1/checkout_sessions',
+            {
+                data: {
+                    attributes: {
+                        billing: {
+                            email,
+                            name,
+                        },
+                        line_items: [
+                            {
+                                amount,
+                                currency,
+                                description,
+                                name,
+                                quantity: 1,
+                            },
+                        ],
+                        payment_method_types: ['card', 'gcash'],
+                        success_url: 'http://localhost:5173/success', // Update with your success URL
+                        cancel_url: 'http://localhost:5173/cancel' // Update with your cancel URL
+                    }
+                }
+            },
+            {
+                headers: {
+                    Authorization: `Basic ${Buffer.from(process.env.VITE_PAYMONGO_SECRET_KEY + ':').toString('base64')}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        res.status(200).json(response.data.data.attributes.checkout_url);
+    } catch (error) {
+        if (error.response) {
+            console.error('Error creating checkout session:', error.response.data);
+            res.status(500).json({ error: 'Failed to create checkout session' });
+        } else {
+            console.error('Error creating checkout session:', error.message);
+            res.status(500).json({ error: 'Failed to create checkout session' });
+        }
+    }
 });
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
