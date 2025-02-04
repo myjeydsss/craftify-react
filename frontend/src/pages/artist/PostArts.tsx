@@ -61,10 +61,18 @@ const PostArts: React.FC = () => {
     setError(null);
 
     try {
+      // Ensure the price is a positive number
+      const price = parseFloat(data.price);
+      if (isNaN(price) || price <= 0) {
+        alert("Please enter a valid price.");
+        setUploading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("title", data.title);
       formData.append("description", data.description);
-      formData.append("price", data.price);
+      formData.append("price", price.toFixed(2)); // Ensure the price is formatted correctly
       formData.append("location", data.location);
       formData.append("art_style", data.art_style);
       formData.append("medium", data.medium);
@@ -75,23 +83,29 @@ const PostArts: React.FC = () => {
         formData.append("file", imageFile);
       }
 
-      await axios.post(`${API_BASE_URL}/api/upload-art`, formData);
+      const response = await axios.post(`${API_BASE_URL}/api/upload-art`, formData);
 
-      reset();
-      setImageFile(null);
-      setImagePreview(null);
-      setSelectedTags([]);
+      if (response.status === 201) {
+        alert("Art posted successfully!");
+        reset();
+        setImageFile(null);
+        setImagePreview(null);
+        setSelectedTags([]);
 
-      Swal.fire({
-        icon: "success",
-        title: "Art uploaded successfully!",
-        text: "You will be redirected to your arts page.",
-      });
+        Swal.fire({
+          icon: "success",
+          title: "Art uploaded successfully!",
+          text: "You will be redirected to your arts page.",
+        });
 
-      setTimeout(() => navigate("/artist-arts"), 2000);
+        setTimeout(() => navigate("/artist-arts"), 2000);
+      } else {
+        alert("Failed to post art. Please try again.");
+      }
     } catch (err) {
       setError("Failed to upload art. Please try again.");
       console.error("Error uploading art:", err);
+      alert("An error occurred while posting the art. Please try again.");
     } finally {
       setUploading(false);
     }

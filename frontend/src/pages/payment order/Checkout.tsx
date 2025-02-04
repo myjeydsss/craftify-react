@@ -32,22 +32,22 @@ const Checkout: React.FC = () => {
       navigate("/login");
       return;
     }
-  
+
     // Get selected items from cart state
     const selectedItems: CartItem[] = location.state?.selectedItems || [];
     if (selectedItems.length === 0) {
       navigate("/cart");
       return;
     }
-  
+
     setCartItems(selectedItems);
     setLoading(false);
-  
+
     // Fetch user details for pre-filling shipping info
     const fetchUserDetails = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/user/${user.id}`);
-        
+
         if (response.status === 200) {
           setShippingInfo({
             fullname: `${response.data.firstname} ${response.data.lastname}`,
@@ -60,15 +60,23 @@ const Checkout: React.FC = () => {
         setError("Could not fetch user details. Please check your profile.");
       }
     };
-  
+
     fetchUserDetails();
   }, [user, navigate, location]);
 
-  const calculateTotalPrice = () =>
+  const calculateSubtotal = () =>
     cartItems.reduce(
       (total, item) => total + parseFloat(item.arts.price) * item.quantity,
       0
     );
+
+  const calculateTax = (subtotal: number) => subtotal * 0.05;
+
+  const calculateTotalPrice = () => {
+    const subtotal = calculateSubtotal();
+    const tax = calculateTax(subtotal);
+    return subtotal + tax;
+  };
 
   if (loading) {
     return <div className="text-center py-16 text-gray-600">Loading...</div>;
@@ -90,33 +98,33 @@ const Checkout: React.FC = () => {
         </button>
       </div>
     );
-    }
+  }
 
-    // Payment Handle 
-    const handlePayment = async () => {
-        try {
-            const totalAmount = calculateTotalPrice() * 100; // Convert to cents
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
-                amount: totalAmount,
-                currency: 'PHP',
-                description: 'Purchase from Craftify', // Update with your description
-                email: 'test@email.com', // Replace with actual customer email
-                name: 'testname' // Replace with actual customer name
-            }, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const checkoutUrl = response.data;
-
-            // Redirect to PayMongo checkout page
-            window.location.href = checkoutUrl;
-        } catch (error) {
-            console.error('Error creating checkout session:', error);
-            setError('Failed to initiate payment. Please try again.');
+  // Payment Handle 
+  const handlePayment = async () => {
+    try {
+      const totalAmount = calculateTotalPrice() * 100; // Convert to cents
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
+        amount: totalAmount,
+        currency: 'PHP',
+        description: 'Purchase from Craftify', // Update with your description
+        email: 'test@email.com', // Replace with actual customer email
+        name: 'testname' // Replace with actual customer name
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
         }
-    };
+      });
+
+      const checkoutUrl = response.data;
+
+      // Redirect to PayMongo checkout page
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      setError('Failed to initiate payment. Please try again.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-16">
@@ -210,6 +218,18 @@ const Checkout: React.FC = () => {
             ))}
           </div>
           <div className="mt-6 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900">Subtotal:</h3>
+              <p className="text-xl font-bold text-gray-900">
+                ₱{calculateSubtotal().toLocaleString()}
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900">Tax (5%):</h3>
+              <p className="text-xl font-bold text-gray-900">
+                ₱{calculateTax(calculateSubtotal()).toLocaleString()}
+              </p>
+            </div>
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-900">Total:</h3>
               <p className="text-xl font-bold text-orange-500">
