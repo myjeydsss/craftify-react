@@ -11,7 +11,9 @@ import AuthRoute from "./components/AuthRoute"; // Ensure AuthRoute is imported
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ArtistProfile from "./pages/artist/ArtistProfile";
+import ClientProfile from "./pages/client/ClientProfile";
 import EditArtistProfile from "./pages/artist/EditArtistProfile";
+import EditClientProfile from "./pages/client/EditClientProfile";
 import ArtistVerification from "./pages/artist/ArtistVerification";
 import MyArts from "./pages/artist/MyArts";
 import UserTable from "./pages/admin/UserTable";
@@ -63,6 +65,8 @@ const App = () => {
 
                     {/* Client routes */}
                         <Route path="/client-dashboard" element={<ClientDashboard />} />
+                        <Route path="/client-profile" element={<ClientProfile />} />
+                        <Route path="/edit-client-profile" element={<EditClientProfile />} />
 
 
                     {/* Other routes */}

@@ -1344,8 +1344,125 @@ app.delete("/cart/:userId/:artId", async (req, res) => {
 
 // ****** NAVBAR CART FUNCTION END... ****** CURRENTLY WORKING
 
+// ****** Client Side ******** CURRENTLY WORKING
+// Get Client Profile
+app.get("/client-profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
 
+  try {
+    const { data: clientData, error: clientError } = await supabase
+      .from("client")
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
+      .eq("user_id", userId)
+      .single();
 
+    if (clientError || !clientData) {
+      console.error("Error fetching client profile:", clientError);
+      return res.status(404).json({ error: "Client profile not found." });
+    }
+
+    if (clientData.profile_image) {
+      clientData.profile_image = `${CDNURL}${userId}/${clientData.profile_image}`;
+    }
+
+    res.status(200).json(clientData);
+  } catch (err) {
+    console.error("Error fetching client profile:", err);
+    res.status(500).json({ error: "Failed to fetch client profile." });
+  }
+});
+
+// Get Client Preferences
+app.get("/client-preferences/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("client_preferences")
+      .select(
+        "preferred_art_style, project_requirements, budget_range, location_requirement, timeline, artist_experience_level, communication_preferences, project_type"
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !data) {
+      console.warn(`Preferences not found for userId: ${userId}`);
+      return res.status(200).json({
+        message: "You haven't set up your preferences yet.",
+        preferences: null,
+      });
+    }
+
+    // Return preferences as is (No need for JSON.parse here, as it's already stored as jsonb)
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching preferences:", err);
+    res.status(500).json({ error: "Failed to fetch preferences." });
+  }
+});
+
+// Profile Update Endpoint
+app.put("/client-profile", async (req, res) => {
+  const { userId, profile, preferences } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
+  try {
+    if (profile && Object.keys(profile).length > 0) {
+      const { error: profileError } = await supabase
+        .from("client")
+        .update(profile)
+        .eq("user_id", userId);
+
+      if (profileError) {
+        console.error("Error updating client profile:", profileError);
+        return res.status(500).json({ error: "Failed to update client profile." });
+      }
+    }
+
+    if (preferences && Object.keys(preferences).length > 0) {
+      const { data: existingPreferences, error: fetchError } = await supabase
+        .from("client_preferences")
+        .select("preferences_id")
+        .eq("user_id", userId)
+        .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        console.error("Error fetching preferences:", fetchError);
+        return res.status(500).json({ error: "Failed to fetch preferences." });
+      }
+
+      if (existingPreferences) {
+        const { error: updateError } = await supabase
+          .from("client_preferences")
+          .update(preferences)
+          .eq("preferences_id", existingPreferences.preferences_id);
+
+        if (updateError) {
+          console.error("Error updating preferences:", updateError);
+          return res.status(500).json({ error: "Failed to update preferences." });
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from("client_preferences")
+          .insert({ user_id: userId, ...preferences });
+
+        if (insertError) {
+          console.error("Error inserting preferences:", insertError);
+          return res.status(500).json({ error: "Failed to insert preferences." });
+        }
+      }
+    }
+
+    res.status(200).json({ message: "Profile and preferences updated successfully." });
+  } catch (err) {
+    console.error("Unexpected error updating profile/preferences:", err);
+    res.status(500).json({ error: "Failed to update profile or preferences." });
+  }
+});
 
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) ****** CURRENTLY WORKING
