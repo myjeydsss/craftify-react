@@ -11,7 +11,6 @@ import AuthRoute from "./components/AuthRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ArtistProfile from "./pages/artist/ArtistProfile";
-import ClientProfile from "./pages/client/ClientProfile";
 import EditArtistProfile from "./pages/artist/EditArtistProfile";
 import EditClientProfile from "./pages/client/EditClientProfile";
 import ArtistVerification from "./pages/artist/ArtistVerification";
@@ -68,11 +67,7 @@ const App = () => {
                     {/* Client routes */}
                         <Route path="/client-dashboard" element={<ClientDashboard />} />
                         <Route path="/client-profile" element={<ClientProfile />} />
-<<<<<<< HEAD
                         <Route path="/edit-client-profile" element={<EditClientProfile />} />
-=======
-
->>>>>>> 5a57bd6fdf4056b144bd7347823c949eebbe71d3
 
 
                     {/* Other routes */}
@@ -80,7 +75,7 @@ const App = () => {
                     <Route path="/profile/artist/:userId" element={<ViewProfileArtist />} />
                     <Route path="/browse-arts" element={<BrowseArts />} />
                     <Route path="/art/:artId" element={<ArtDetail />} />
-
+ 
 
                     {/* Payment routes */}
                     <Route path="/cart" element={<Cart />} />
