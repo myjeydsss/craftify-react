@@ -52,7 +52,7 @@ const ArtDetail: React.FC = () => {
 
         if (user) {
           const wishlistResponse = await axios.get<string[]>(
-            `${import.meta.env.VITE_API_URL}/wishlist`
+            `${import.meta.env.VITE_API_URL}/wishlist/${user.id}`
           );
           setWishlist(wishlistResponse.data.includes(artId || ""));
         }

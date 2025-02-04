@@ -114,6 +114,7 @@ const ArtistProfile: React.FC = () => {
 
   const renderProfile = () => (
     <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-700">Profile Information</h2>
       {[
         { label: "Bio", value: artistProfile?.bio },
         { label: "First Name", value: artistProfile?.firstname },
@@ -143,6 +144,7 @@ const ArtistProfile: React.FC = () => {
     <div>
       {preferences ? (
         <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-700">Artist Preferences</h2>
           {Object.entries(preferences).map(([key, value]) =>
             Array.isArray(value) ? (
               <div key={key} className="border-b pb-2">
@@ -183,6 +185,7 @@ const ArtistProfile: React.FC = () => {
 
   const renderAddress = () => (
     <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-700">Address & Contact</h2>
       {[
         { label: "Address", value: artistProfile?.address || "Not provided" },
         { label: "Contact Number", value: artistProfile?.phone || "Not provided" },
@@ -244,33 +247,41 @@ const ArtistProfile: React.FC = () => {
   )}
 </div>
           </div>
-          <nav className="space-y-4">
-            <button
-              onClick={() => setActiveSection("profile")}
-              className={`flex items-center space-x-2 w-full ${
-                activeSection === "profile" ? "text-blue-600 font-semibold" : "text-gray-700"
-              }`}
-            >
-              <FaUser /> <span>Profile</span>
-            </button>
-            <button
-              onClick={() => setActiveSection("preferences")}
-              className={`flex items-center space-x-2 w-full ${
-                activeSection === "preferences" ? "text-blue-600 font-semibold" : "text-gray-700"
-              }`}
-            >
-              <FaPalette /> <span>Preferences</span>
-            </button>
-            <button
-              onClick={() => setActiveSection("address")}
-              className={`flex items-center space-x-2 w-full ${
-                activeSection === "address" ? "text-blue-600 font-semibold" : "text-gray-700"
-              }`}
-            >
-              <FaMapMarkerAlt /> <span>Address & Contact</span>
-            </button>
-          </nav>
-        </aside>
+          {/* Navigation Links */}
+                    <nav className="space-y-4">
+                      <button
+                        onClick={() => setActiveSection("profile")}
+                        className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                          activeSection === "profile"
+                            ? "bg-blue-600 text-white font-semibold"
+                            : "text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        <FaUser /> <span>Profile</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveSection("preferences")}
+                        className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                          activeSection === "preferences"
+                            ? "bg-blue-600 text-white font-semibold"
+                            : "text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        <FaPalette /> <span>Preferences</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveSection("address")}
+                        className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                          activeSection === "address"
+                            ? "bg-blue-600 text-white font-semibold"
+                            : "text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        <FaMapMarkerAlt /> <span>Address & Contact</span>
+                      </button>
+                    </nav>
+                  </aside>
+                  
         <main className="flex-1 p-6 bg-white shadow-lg rounded-lg">
           {activeSection === "profile"
             ? renderProfile()

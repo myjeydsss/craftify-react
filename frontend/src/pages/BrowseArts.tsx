@@ -6,6 +6,7 @@ import {
   FaChevronUp,
   FaSearch,
   FaHeart,
+  FaFilter,
 } from "react-icons/fa";
 import { useAuth } from "../context/AuthProvider";
 import { useNavigate } from "react-router-dom"; // Import navigation hook
@@ -67,6 +68,8 @@ const BrowseArts: React.FC = () => {
 
   const [sortOption, setSortOption] = useState<string>("");
 
+  const [filterVisible, setFilterVisible] = useState<boolean>(false);
+
   const handleArtClick = (artId: string) => {
     navigate(`/art/${artId}`); // Redirect to ArtDetail page with artId as a parameter
   };
@@ -104,12 +107,11 @@ const BrowseArts: React.FC = () => {
         setLoading(false);
       }
     };
-
     const fetchWishlist = async () => {
+      if (!user) return; // Ensure user is logged in
+      
       try {
-        const response = await axios.get<string[]>(
-          `${import.meta.env.VITE_API_URL}/wishlist`
-        );
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}`); // Fetch wishlist using userId
         setWishlist(response.data);
       } catch (err) {
         console.error("Error fetching wishlist:", err);
@@ -118,7 +120,7 @@ const BrowseArts: React.FC = () => {
 
     fetchArtsAndTags();
     fetchWishlist();
-  }, []);
+  }, [user]);
 
   const handleWishlistToggle = async (artId: string) => {
     if (!user) {
@@ -129,9 +131,8 @@ const BrowseArts: React.FC = () => {
     try {
       const action = wishlist.includes(artId) ? "remove" : "add";
   
-      // Pass userId in the payload
       await axios.post(`${import.meta.env.VITE_API_URL}/wishlist`, {
-        userId: user.id, // Ensure user.id is passed here
+        userId: user.id, // Use the logged-in user's ID
         artId,
         action,
       });
@@ -190,13 +191,6 @@ const BrowseArts: React.FC = () => {
     setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
   };
 
-  const clearFilters = () => {
-    setSelectedPriceRange("");
-    setSelectedStyles([]);
-    setSelectedMediums([]);
-    setSelectedTags([]);
-  };
-
   const handlePageChange = (pageNumber: number) => setCurrentPage(pageNumber);
 
   if (loading) {
@@ -218,171 +212,197 @@ const BrowseArts: React.FC = () => {
         </header>
         <hr className="border-gray-300 mb-6" />
 
-        {/* Search and Sort */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative w-full max-w-lg">
-            <input
-              type="text"
-              placeholder="Search arts by title, artist, or tag..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full p-3 pl-10 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-            <FaSearch className="absolute left-3 top-3 text-gray-500" />
-          </div>
-          <div className="flex space-x-4">
-            <button
-              className={`px-4 py-2 rounded-lg ${
-                sortOption === "latest" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700"
-              }`}
-              onClick={() => setSortOption("latest")}
-            >
-              Latest
-            </button>
-            <button
-              className={`px-4 py-2 rounded-lg ${
-                sortOption === "cheapest" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700"
-              }`}
-              onClick={() => setSortOption("cheapest")}
-            >
-              Cheapest
-            </button>
-          </div>
-        </div>
+       {/* Search and Sort */}
+<div className="flex justify-between items-center mb-6">
+  {/* Filter Toggle Button */}
+  <button
+    onClick={() => setFilterVisible(!filterVisible)}
+    className="px-4 py-2 flex items-center space-x-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+  >
+    <FaFilter />
+    <span>{filterVisible ? "Hide Filters" : "Show Filters"}</span>
+  </button>
+
+  {/* Search Bar */}
+  <div className="relative w-full max-w-lg mx-4"> 
+    <input
+      type="text"
+      placeholder="Search arts by title, artist, or tag..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="w-full p-3 pl-10 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+    />
+    <FaSearch className="absolute left-3 top-3 text-gray-500" />
+  </div>
+
+  {/* Sort Options */}
+  {/* Sort Options */}
+<div className="flex space-x-4">
+  <button
+    className={`px-4 py-2 rounded-lg ${
+      sortOption === "latest" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700"
+    }`}
+    onClick={() => setSortOption(sortOption === "latest" ? "" : "latest")}
+  >
+    Latest
+  </button>
+  <button
+    className={`px-4 py-2 rounded-lg ${
+      sortOption === "cheapest" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700"
+    }`}
+    onClick={() => setSortOption(sortOption === "cheapest" ? "" : "cheapest")}
+  >
+    Cheapest
+  </button>
+</div>
+</div>
 
         <div className="flex">
-          {/* Filter Sidebar */}
-          <aside className="w-64 p-4 bg-white border-r shadow-md rounded-lg">
-            <h2 className="text-lg font-bold mb-4">Filters</h2>
-            <button
-              onClick={clearFilters}
-              className="text-blue-600 underline mb-4 hover:text-blue-800"
-            >
-              Clear All Filters
-            </button>
+         {/* Filter Sidebar (Visible only when filterVisible is true) */}
+{filterVisible && (
+  <aside className="w-64 p-4 bg-white border-r shadow-md rounded-lg transition-all duration-300">
+    <h2 className="text-lg font-bold mb-4">Filters</h2>
+    
+    {/* Clear Filters Button */}
+    <button
+      onClick={() => {
+        setSelectedPriceRange("");
+        setSelectedStyles([]);
+        setSelectedMediums([]);
+        setSelectedTags([]);
+      }}
+      className="text-blue-600 underline mb-4 hover:text-blue-800"
+    >
+      Clear All Filters
+    </button>
 
-            {/* Price Filter */}
-            <div className="mb-6">
-              <h3
-                className="flex justify-between items-center cursor-pointer text-gray-700"
-                onClick={() => handleFilterToggle("price")}
-              >
-                Price Range {openFilters.price ? <FaChevronUp /> : <FaChevronDown />}
-              </h3>
-              {openFilters.price && (
-                <div className="mt-2">
-                  {priceRanges.map((range) => (
-                    <label key={range.value} className="block mb-2">
-                      <input
-                        type="radio"
-                        name="priceRange"
-                        checked={selectedPriceRange === range.value}
-                        onChange={() => setSelectedPriceRange(range.value)}
-                        className="mr-2"
-                      />
-                      {range.label}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
+    {/* Price Filter */}
+    <div className="mb-6">
+      <h3
+        className="flex justify-between items-center cursor-pointer text-gray-700"
+        onClick={() => handleFilterToggle("price")}
+      >
+        Price Range {openFilters.price ? <FaChevronUp /> : <FaChevronDown />}
+      </h3>
+      {openFilters.price && (
+        <div className="mt-2">
+          {priceRanges.map((range) => (
+            <label key={range.value} className="block mb-2">
+              <input
+                type="radio"
+                name="priceRange"
+                checked={selectedPriceRange === range.value}
+                onChange={() => setSelectedPriceRange(range.value)}
+                className="mr-2"
+              />
+              {range.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
 
-            {/* Style Filter */}
-            <div className="mb-6">
-              <h3
-                className="flex justify-between items-center cursor-pointer text-gray-700"
-                onClick={() => handleFilterToggle("style")}
-              >
-                Art Style {openFilters.style ? <FaChevronUp /> : <FaChevronDown />}
-              </h3>
-              {openFilters.style && (
-                <div className="mt-2">
-                  {artStyles.map((style) => (
-                    <label key={style} className="block mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedStyles.includes(style)}
-                        onChange={() => handleCheckboxChange(setSelectedStyles, style)}
-                        className="mr-2"
-                      />
-                      {style}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
+    {/* Style Filter */}
+    <div className="mb-6">
+      <h3
+        className="flex justify-between items-center cursor-pointer text-gray-700"
+        onClick={() => handleFilterToggle("style")}
+      >
+        Art Style {openFilters.style ? <FaChevronUp /> : <FaChevronDown />}
+      </h3>
+      {openFilters.style && (
+        <div className="mt-2">
+          {artStyles.map((style) => (
+            <label key={style} className="block mb-2">
+              <input
+                type="checkbox"
+                checked={selectedStyles.includes(style)}
+                onChange={() => handleCheckboxChange(setSelectedStyles, style)}
+                className="mr-2"
+              />
+              {style}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
 
-            {/* Medium Filter */}
-            <div className="mb-6">
-              <h3
-                className="flex justify-between items-center cursor-pointer text-gray-700"
-                onClick={() => handleFilterToggle("medium")}
-              >
-                Medium {openFilters.medium ? <FaChevronUp /> : <FaChevronDown />}
-              </h3>
-              {openFilters.medium && (
-                <div className="mt-2">
-                  {mediums.map((medium) => (
-                    <label key={medium} className="block mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedMediums.includes(medium)}
-                        onChange={() => handleCheckboxChange(setSelectedMediums, medium)}
-                        className="mr-2"
-                      />
-                      {medium}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
+    {/* Medium Filter */}
+    <div className="mb-6">
+      <h3
+        className="flex justify-between items-center cursor-pointer text-gray-700"
+        onClick={() => handleFilterToggle("medium")}
+      >
+        Medium {openFilters.medium ? <FaChevronUp /> : <FaChevronDown />}
+      </h3>
+      {openFilters.medium && (
+        <div className="mt-2">
+          {mediums.map((medium) => (
+            <label key={medium} className="block mb-2">
+              <input
+                type="checkbox"
+                checked={selectedMediums.includes(medium)}
+                onChange={() => handleCheckboxChange(setSelectedMediums, medium)}
+                className="mr-2"
+              />
+              {medium}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
 
-            {/* Tags Filter */}
-            <div className="mb-6">
-              <h3
-                className="flex justify-between items-center cursor-pointer text-gray-700"
-                onClick={() => handleFilterToggle("tags")}
-              >
-                Tags {openFilters.tags ? <FaChevronUp /> : <FaChevronDown />}
-              </h3>
-              {openFilters.tags && (
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {tags.map((tag) => (
-                    <label key={tag.id} className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedTags.includes(tag.name)}
-                        onChange={() => handleCheckboxChange(setSelectedTags, tag.name)}
-                        className="mr-2"
-                      />
-                      {tag.name}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          </aside>
+    {/* Tags Filter */}
+    <div className="mb-6">
+      <h3
+        className="flex justify-between items-center cursor-pointer text-gray-700"
+        onClick={() => handleFilterToggle("tags")}
+      >
+        Tags {openFilters.tags ? <FaChevronUp /> : <FaChevronDown />}
+      </h3>
+      {openFilters.tags && (
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          {tags.map((tag) => (
+            <label key={tag.id} className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                checked={selectedTags.includes(tag.name)}
+                onChange={() => handleCheckboxChange(setSelectedTags, tag.name)}
+                className="mr-2"
+              />
+              {tag.name}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  </aside>
+)}
 
-          {/* Arts Display */}
-<div className="flex-1 ml-6">
+        {/* Arts Display */}
+<div className={`flex-1 transition-all duration-300 ${filterVisible ? "ml-6" : "w-full"}`}>
   <Masonry
     breakpointCols={breakpointColumnsObj}
     className="my-masonry-grid"
     columnClassName="my-masonry-grid_column"
   >
     {paginatedArts.map((art) => (
-          <div
-            key={art.art_id}
-            className="relative bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-            onClick={() => handleArtClick(art.art_id)} // Add click handler
-          >
+      <div
+        key={art.art_id}
+        className="relative bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+        onClick={() => handleArtClick(art.art_id)}
+      >
         {/* Image Section */}
-        <div className="relative">
+        <div className="relative flex items-center justify-center bg-gray-100">
           {art.image_url ? (
             <img
               src={art.image_url}
               alt={art.title}
-              className="w-full h-64 object-cover"
+              className="w-full"
+              style={{
+                objectFit: "contain",
+                maxHeight: art.image_url.includes('portrait') ? "500px" : "300px",
+              }}
             />
           ) : (
             <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
@@ -390,9 +410,12 @@ const BrowseArts: React.FC = () => {
             </div>
           )}
 
-          {/* Wishlist Button - Positioned correctly */}
+          {/* Wishlist Button */}
           <button
-            onClick={() => handleWishlistToggle(art.art_id)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering parent click
+              handleWishlistToggle(art.art_id);
+            }}
             className={`absolute top-3 right-3 bg-white p-2 rounded-full shadow-md transition ${
               wishlist.includes(art.art_id) ? "text-red-500" : "text-gray-400 hover:text-red-500"
             }`}
@@ -404,7 +427,7 @@ const BrowseArts: React.FC = () => {
         {/* Art Details */}
         <div className="p-4">
           <h3 className="text-xl font-semibold text-gray-900">{art.title}</h3>
-          <p className="text-gray-600 text-sm mb-2">{art.description || "No description"}</p>
+          <p className="text-gray-600 text-sm mb-2">{art.description || "No description available"}</p>
           <p className="text-sm font-medium text-gray-800">
             {art.artist
               ? `${art.artist.firstname} ${art.artist.lastname}`
@@ -414,7 +437,7 @@ const BrowseArts: React.FC = () => {
             ₱{parseFloat(art.price).toLocaleString()}
           </p>
 
-          {/* Display Tags */}
+          {/* Tags */}
           {art.tags && art.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {art.tags.map((tag) => (
