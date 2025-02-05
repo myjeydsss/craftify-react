@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { FaUserCircle, FaPalette, FaUser, FaMapMarkerAlt, FaEdit, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import {
+  FaUserCircle,
+  FaPalette,
+  FaUser,
+  FaMapMarkerAlt,
+  FaEdit,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaHeart,
+  FaTrash,
+} from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 
 interface ArtistProfileData {
@@ -37,12 +47,24 @@ interface ArtistPreferences {
   preferred_communication: string[];
 }
 
+interface WishlistItem {
+  art_id: string;
+  title: string;
+  image_url: string;
+  artist: {
+    firstname: string;
+    lastname: string;
+  };
+  price: string;
+}
+
 const ArtistProfile: React.FC = () => {
   const [artistProfile, setArtistProfile] = useState<ArtistProfileData | null>(null);
   const [preferences, setPreferences] = useState<ArtistPreferences | null>(null);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address">("profile");
+  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address" | "wishlist">("profile");
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -57,9 +79,10 @@ const ArtistProfile: React.FC = () => {
       const API_BASE_URL = import.meta.env.VITE_API_URL;
 
       try {
-        const [profileResponse, preferencesResponse] = await Promise.all([
+        const [profileResponse, preferencesResponse, wishlistResponse] = await Promise.all([
           axios.get(`${API_BASE_URL}/artist-profile/${user.id}`),
           axios.get(`${API_BASE_URL}/artist-preferences/${user.id}`),
+          axios.get(`${API_BASE_URL}/wishlist/${user.id}`),
         ]);
 
         setArtistProfile(profileResponse.data);
@@ -68,7 +91,6 @@ const ArtistProfile: React.FC = () => {
         if (preferencesData.preferences === null) {
           setPreferences(null);
         } else {
-          // Now no need for JSON.parse because the data is already in proper array format
           setPreferences({
             ...preferencesData,
             art_style_specialization: preferencesData.art_style_specialization || [],
@@ -77,6 +99,16 @@ const ArtistProfile: React.FC = () => {
             preferred_communication: preferencesData.preferred_communication || [],
           });
         }
+
+        // Fetch wishlist items
+        const wishlistIds = wishlistResponse.data;
+        const wishlistItems = await Promise.all(
+          wishlistIds.map(async (artId: string) => {
+            const artResponse = await axios.get(`${API_BASE_URL}/art/${artId}`);
+            return artResponse.data;
+          })
+        );
+        setWishlist(wishlistItems);
       } catch (err: any) {
         console.error("Error fetching artist data:", err);
         setError(err.response?.data?.error || "Failed to fetch artist data.");
@@ -94,6 +126,28 @@ const ArtistProfile: React.FC = () => {
 
   const handleVerificationClick = () => {
     navigate("/artist-verification");
+  };
+
+  const handleArtClick = (artId: string) => {
+    navigate(`/art/${artId}`);
+  };
+
+  const handleDeleteAllWishlist = async () => {
+    if (!user) {
+      alert("Please log in to manage your wishlist.");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete all items from your wishlist?")) return;
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`);
+      setWishlist([]);
+      alert("Wishlist cleared successfully!");
+    } catch (err) {
+      console.error("Error clearing wishlist:", err);
+      alert("Failed to clear wishlist. Please try again.");
+    }
   };
 
   if (loading) {
@@ -114,7 +168,7 @@ const ArtistProfile: React.FC = () => {
 
   const renderProfile = () => (
     <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-700">Profile Information</h2>
+      <h2 className="text-lg font-semibold text-gray-700">Profile Information</h2>
       {[
         { label: "Bio", value: artistProfile?.bio },
         { label: "First Name", value: artistProfile?.firstname },
@@ -130,7 +184,6 @@ const ArtistProfile: React.FC = () => {
         </div>
       ))}
 
-
       <button
         onClick={handleEditClick}
         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -144,7 +197,7 @@ const ArtistProfile: React.FC = () => {
     <div>
       {preferences ? (
         <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-700">Artist Preferences</h2>
+          <h2 className="text-lg font-semibold text-gray-700">Artist Preferences</h2>
           {Object.entries(preferences).map(([key, value]) =>
             Array.isArray(value) ? (
               <div key={key} className="border-b pb-2">
@@ -185,7 +238,7 @@ const ArtistProfile: React.FC = () => {
 
   const renderAddress = () => (
     <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-700">Address & Contact</h2>
+      <h2 className="text-lg font-semibold text-gray-700">Address & Contact</h2>
       {[
         { label: "Address", value: artistProfile?.address || "Not provided" },
         { label: "Contact Number", value: artistProfile?.phone || "Not provided" },
@@ -201,6 +254,46 @@ const ArtistProfile: React.FC = () => {
       >
         <FaEdit className="inline mr-2" /> Edit Address & Contact
       </button>
+    </div>
+  );
+
+  const renderWishlist = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-gray-700">Wishlist</h2>
+        {wishlist.length > 0 && (
+          <button
+            onClick={handleDeleteAllWishlist}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+          >
+            <FaTrash className="mr-2" /> Delete All
+          </button>
+        )}
+      </div>
+      {wishlist.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {wishlist.map((item) => (
+            <div
+              key={item.art_id}
+              className="bg-white border rounded-lg shadow hover:shadow-md transition p-4 cursor-pointer"
+              onClick={() => handleArtClick(item.art_id)}
+            >
+              <img
+                src={item.image_url || "https://via.placeholder.com/150"}
+                alt={item.title}
+                className="w-full h-48 object-cover rounded-md mb-2"
+              />
+              <h3 className="text-lg font-semibold text-gray-800">{item.title}</h3>
+              <p className="text-sm text-gray-600">
+                {item.artist ? `${item.artist.firstname} ${item.artist.lastname}` : "Unknown Artist"}
+              </p>
+              <p className="text-sm font-bold text-orange-600 mt-2">₱{item.price}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-700">Your wishlist is currently empty.</p>
+      )}
     </div>
   );
 
@@ -224,70 +317,83 @@ const ArtistProfile: React.FC = () => {
               {artistProfile?.firstname} {artistProfile?.lastname}
             </h2>
             <p className="text-sm text-gray-500">{artistProfile?.email}</p>
-  
+
             {/* Verification Button */}
             <div className="mt-4">
-  {artistProfile?.verification_id ? (
-    artistProfile?.status === "pending" ? (
-      <div className="flex items-center justify-center gap-2 text-yellow-600 font-medium">
-        <FaTimesCircle className="text-yellow-600" /> Verification Pending
-      </div>
-    ) : (
-      <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
-        <FaCheckCircle /> Verified Artist
-      </div>
-    )
-  ) : (
-    <button
-      onClick={handleVerificationClick}
-      className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
-    >
-      <FaTimesCircle className="text-blue-600" /> Get Verified Now
-    </button>
-  )}
-</div>
+              {artistProfile?.verification_id ? (
+                artistProfile?.status === "pending" ? (
+                  <div className="flex items-center justify-center gap-2 text-yellow-600 font-medium">
+                    <FaTimesCircle className="text-yellow-600" /> Verification Pending
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
+                    <FaCheckCircle /> Verified Artist
+                  </div>
+                )
+              ) : (
+                <button
+                  onClick={handleVerificationClick}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
+                >
+                  <FaTimesCircle className="text-blue-600" /> Get Verified Now
+                </button>
+              )}
+            </div>
           </div>
+
           {/* Navigation Links */}
-                    <nav className="space-y-4">
-                      <button
-                        onClick={() => setActiveSection("profile")}
-                        className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
-                          activeSection === "profile"
-                            ? "bg-blue-600 text-white font-semibold"
-                            : "text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        <FaUser /> <span>Profile</span>
-                      </button>
-                      <button
-                        onClick={() => setActiveSection("preferences")}
-                        className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
-                          activeSection === "preferences"
-                            ? "bg-blue-600 text-white font-semibold"
-                            : "text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        <FaPalette /> <span>Preferences</span>
-                      </button>
-                      <button
-                        onClick={() => setActiveSection("address")}
-                        className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
-                          activeSection === "address"
-                            ? "bg-blue-600 text-white font-semibold"
-                            : "text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        <FaMapMarkerAlt /> <span>Address & Contact</span>
-                      </button>
-                    </nav>
-                  </aside>
-                  
+          <nav className="space-y-4">
+            <button
+              onClick={() => setActiveSection("profile")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "profile"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaUser /> <span>Profile</span>
+            </button>
+            <button
+              onClick={() => setActiveSection("preferences")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "preferences"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaPalette /> <span>Preferences</span>
+            </button>
+            <button
+              onClick={() => setActiveSection("address")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "address"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaMapMarkerAlt /> <span>Address & Contact</span>
+            </button>
+            <button
+              onClick={() => setActiveSection("wishlist")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "wishlist"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaHeart /> <span>Wishlist</span>
+            </button>
+          </nav>
+        </aside>
+
         <main className="flex-1 p-6 bg-white shadow-lg rounded-lg">
           {activeSection === "profile"
             ? renderProfile()
             : activeSection === "preferences"
             ? renderPreferences()
-            : renderAddress()}
+            : activeSection === "address"
+            ? renderAddress()
+            : renderWishlist()}
         </main>
       </div>
     </div>

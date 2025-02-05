@@ -19,14 +19,14 @@ interface ClientProfile {
 }
 
 interface Preferences {
-    preferred_art_style: string[];
-    project_requirements: string;
-    budget_range: string;
-    location_requirement: string;
-    timeline: string;
-    artist_experience_level: string;
-    communication_preferences: string[];
-    project_type: string[];
+  preferred_art_style: string[];
+  project_requirements: string;
+  budget_range: string;
+  location_requirement: string;
+  timeline: string;
+  artist_experience_level: string;
+  communication_preferences: string[];
+  project_type: string[];
 }
 
 const EditClientProfile: React.FC = () => {
@@ -59,19 +59,26 @@ const EditClientProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {
       try {
-        const profileResponse = await axios.get(`${API_BASE_URL}/client-profile/${user.id}`);
-        const preferencesResponse = await axios.get(`${API_BASE_URL}/client-preferences/${user.id}`);
+        setLoading(true);
+        setError(null);
 
+        // Fetch client profile
+        const profileResponse = await axios.get(`${API_BASE_URL}/client-profile/${user.id}`);
         setClientProfile(profileResponse.data);
+
+        // Fetch client preferences
+        const preferencesResponse = await axios.get(`${API_BASE_URL}/client-preferences/${user.id}`);
         setPreferences(preferencesResponse.data);
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
+      } catch (err) {
+        console.error("Failed to fetch profile or preferences:", err);
+        setError("Failed to load profile or preferences. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -85,9 +92,21 @@ const EditClientProfile: React.FC = () => {
     setClientProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePreferencesChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handlePreferencesChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setPreferences((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const togglePreference = (field: keyof Preferences, value: string) => {
+    setPreferences((prev) => {
+      const currentValues = Array.isArray(prev[field]) ? prev[field] : [];
+      const updatedValues = currentValues.includes(value)
+        ? currentValues.filter((item) => item !== value)
+        : [...currentValues, value];
+      return { ...prev, [field]: updatedValues };
+    });
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,9 +144,15 @@ const EditClientProfile: React.FC = () => {
 
     try {
       let uploadedImage = clientProfile.profile_image;
+
       if (imageFile) {
         const newImage = await uploadImage();
         if (newImage) uploadedImage = newImage;
+      }
+
+      // Ensure only the filename is sent, not the full CDN URL
+      if (uploadedImage.startsWith("http")) {
+        uploadedImage = uploadedImage.split("/").pop() || uploadedImage;
       }
 
       const payload = {
@@ -140,6 +165,7 @@ const EditClientProfile: React.FC = () => {
       navigate("/client-profile");
     } catch (error) {
       console.error("Failed to save profile:", error);
+      setError("Failed to save profile. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -149,45 +175,41 @@ const EditClientProfile: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    <form
-      onSubmit={handleSave}
-      className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6"
-    >
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-3xl font-semibold text-gray-800">
-          My Profile
-        </h2>
-      </div>
+      {error && <div className="text-red-500 text-center mb-4">{error}</div>}
+      <form onSubmit={handleSave} className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <h2 className="text-3xl font-semibold text-gray-800">My Profile</h2>
+        </div>
 
-      {/* Profile Picture Upload Section */}
-      <div className="relative mx-auto w-40 h-40">
-        {imagePreview || clientProfile.profile_image ? (
-          <img
-            src={imagePreview || `${clientProfile.profile_image}`}
-            alt="Profile"
-            className="rounded-full w-full h-full object-cover border-4 border-gray-200 shadow"
+        {/* Profile Picture Upload Section */}
+        <div className="relative mx-auto w-40 h-40">
+          {imagePreview || clientProfile.profile_image ? (
+            <img
+              src={imagePreview || `${clientProfile.profile_image}`}
+              alt="Profile"
+              className="rounded-full w-full h-full object-cover border-4 border-gray-200 shadow"
+            />
+          ) : (
+            <div className="flex items-center justify-center bg-gray-100 rounded-full w-full h-full border-4 border-gray-200 shadow">
+              <FaUserCircle className="text-gray-300 w-24 h-24" />
+            </div>
+          )}
+          <label
+            htmlFor="image-upload"
+            className="absolute bottom-2 right-2 bg-blue-600 text-white rounded-full p-2 shadow cursor-pointer hover:bg-blue-700"
+          >
+            <FaPlus />
+          </label>
+          <input
+            id="image-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
           />
-        ) : (
-          <div className="flex items-center justify-center bg-gray-100 rounded-full w-full h-full border-4 border-gray-200 shadow">
-            <FaUserCircle className="text-gray-300 w-24 h-24" />
-          </div>
-        )}
-        <label
-          htmlFor="image-upload"
-          className="absolute bottom-2 right-2 bg-blue-600 text-white rounded-full p-2 shadow cursor-pointer hover:bg-blue-700"
-        >
-          <FaPlus />
-        </label>
-        <input
-          id="image-upload"
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="hidden"
-        />
-      </div>
-  
+        </div>
+
         {/* Profile Details Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -270,140 +292,160 @@ const EditClientProfile: React.FC = () => {
             />
           </div>
         </div>
-  
-   {/* Preferences Section */}
-<div>
-  <h3 className="text-2xl font-semibold text-gray-800 mb-4">Preferences</h3>
-  <div className="space-y-6">
-    {/* Preferred Art Style */}
-    <div>
-      <label className="text-gray-700">Preferred Art Style</label>
-      <select
-        name="Preferred_art_style"
-        value={preferences.preferred_art_style}
-        onChange={handlePreferencesChange}
-        className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="">Select...</option>
-        <option value="Realistic Art / Portraits">Realistic Art / Portraits</option>
-        <option value="Digital Art & Illustrations">Digital Art & Illustrations</option>
-        <option value="Sculptures & Statues">Sculptures & Statues</option>
-        <option value="Nature & Landscapes">Nature & Landscapes</option>
-        <option value="Nature & Landscapes">Craft & Handmade Art</option>
-        <option value="Nature & Landscapes">Portraits & People</option>
-        <option value="Nature & Landscapes">Minimalist & Modern</option>
-        <option value="Nature & Landscapes">Flexible / Open to All Style</option>
-        <option value="Nature & Landscapes">Abstract & Conceptual</option>
-      </select>
-    </div>
 
-    {/* Project Requirements */}
-    <div>
-      <label className="text-gray-700">Project Requirements </label>
-        <textarea
-            name="project_requirements"
-            value={preferences.project_requirements}
-            onChange={handlePreferencesChange}
-            className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300" />
-    </div>
-
-    {/* Budget Range */}
-    <div>
-      <label className="text-gray-700">Budget Range</label>
-      <select
-        name="budget_range"
-        value={preferences.budget_range}
-        onChange={handlePreferencesChange}
-        className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="">Select...</option>
-        <option value="1-500">₱1 - ₱500</option>
-        <option value="500-1000">₱500 - ₱1000</option>
-        <option value="1000+">₱1,000+</option>
-      </select>
-    </div>
-
-    {/* Location Requirement */}
-    <div>
-      <label className="text-gray-700">Location Requirement</label>
-      <select
-        name="location_preference"
-        value={preferences.location_requirement}
-        onChange={handlePreferencesChange}
-        className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="">Select...</option>
-        <option value="Local">Local</option>
-        <option value="Regional">Regional</option>
-        <option value="Global">Global</option>
-      </select>
-    </div>
-
-        {/* Timeline */}
+        {/* Preferences Section */}
         <div>
-      <label className="text-gray-700"> Timeline </label>
-      <select
-        name="timeline"
-        value={preferences.timeline}
-        onChange={handlePreferencesChange}
-        className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="">Select...</option>
-        <option value="medium-term">Medium-Term (1-3 Months)</option>
-        <option value="short-term">Short-Term (1-2 Weeks)</option>
-        <option value="long-term">Long-Term (6-12 Months)</option>
-      </select>
-    </div>
+          <h3 className="text-2xl font-semibold text-gray-800 mb-4">Preferences</h3>
+          <div className="space-y-6">
+            {/* Preferred Art Style */}
+            <div>
+              <label className="text-gray-700">Preferred Art Style</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {[
+                  "Realistic Art / Portraits",
+                  "Digital Art & Illustrations",
+                  "Sculptures & Statues",
+                  "Nature & Landscapes",
+                  "Craft & Handmade Art",
+                  "Portraits & People",
+                  "Minimalist & Modern",
+                  "Flexible / Open to All Style",
+                  "Abstract & Conceptual",
+                ].map((style) => (
+                  <button
+                    type="button"
+                    key={style}
+                    onClick={() => togglePreference("preferred_art_style", style)}
+                    className={`px-4 py-2 rounded-lg border ${
+                      preferences.preferred_art_style.includes(style)
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "border-gray-300 text-gray-700"
+                    } hover:bg-blue-500 hover:text-white`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Artist Experience Level */}
-        <div>
-      <label className="text-gray-700"> Artist Experience Level </label>
-      <select
-        name="artist_experience_level"
-        value={preferences.artist_experience_level}
-        onChange={handlePreferencesChange}
-        className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="">Select...</option>
-        <option value="open-to-all">Open to All</option>
-        <option value="beginner-friendly">Beginner Friendly</option>
-      </select>
-    </div>
+            {/* Project Requirements */}
+            <div>
+              <label className="text-gray-700">Project Requirements</label>
+              <textarea
+                name="project_requirements"
+                value={preferences.project_requirements}
+                onChange={handlePreferencesChange}
+                className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+              />
+            </div>
 
-    {/* Communication Preferences */}
-    <div>
-      <label className="text-gray-700">Communication Preferences</label>
-      <select
-        name="communication_preferences"
-        value={preferences.communication_preferences}
-        onChange={handlePreferencesChange}
-        className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="">Select...</option>
-        <option value="In-app Messaging">In-app Messaging</option>
-        <option value="Flexible Communication">Flexible Communication</option>
-      </select>
-    </div>
+            {/* Budget Range */}
+            <div>
+              <label className="text-gray-700">Budget Range</label>
+              <select
+                name="budget_range"
+                value={preferences.budget_range}
+                onChange={handlePreferencesChange}
+                className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+              >
+                <option value="">Select...</option>
+                <option value="1-500">₱1 - ₱500</option>
+                <option value="500-1000">₱500 - ₱1000</option>
+                <option value="1000+">₱1,000+</option>
+              </select>
+            </div>
 
-    {/* Project Type */}
-    <div>
-      <label className="text-gray-700">Project Type</label>
-      <select
-        name="project_type"
-        value={preferences.project_type}
-        onChange={handlePreferencesChange}
-        className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="">Select...</option>
-        <option value="Personal">Personal</option>
-        <option value="Corporate">Corporate</option>
-        <option value="Public Display">Public Display</option>
-        <option value="Gift">Gift</option>
-      </select>
-    </div>
-  </div>
-</div>
-  
+            {/* Location Requirement */}
+            <div>
+              <label className="text-gray-700">Location Requirement</label>
+              <select
+                name="location_requirement"
+                value={preferences.location_requirement}
+                onChange={handlePreferencesChange}
+                className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+              >
+                <option value="">Select...</option>
+                <option value="Local">Local</option>
+                <option value="Regional">Regional</option>
+                <option value="Global">Global</option>
+              </select>
+            </div>
+
+            {/* Timeline */}
+            <div>
+              <label className="text-gray-700">Timeline</label>
+              <select
+                name="timeline"
+                value={preferences.timeline}
+                onChange={handlePreferencesChange}
+                className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+              >
+                <option value="">Select...</option>
+                <option value="short-term">Short-Term (1-2 Weeks)</option>
+                <option value="medium-term">Medium-Term (1-3 Months)</option>
+                <option value="long-term">Long-Term (6-12 Months)</option>
+              </select>
+            </div>
+
+            {/* Artist Experience Level */}
+            <div>
+              <label className="text-gray-700">Artist Experience Level</label>
+              <select
+                name="artist_experience_level"
+                value={preferences.artist_experience_level}
+                onChange={handlePreferencesChange}
+                className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+              >
+                <option value="">Select...</option>
+                <option value="beginner-friendly">Beginner Friendly</option>
+                <option value="open-to-all">Open to All</option>
+              </select>
+            </div>
+
+            {/* Communication Preferences */}
+            <div>
+              <label className="text-gray-700">Communication Preferences</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {["In-app Messaging", "Flexible Communication"].map((method) => (
+                  <button
+                    type="button"
+                    key={method}
+                    onClick={() => togglePreference("communication_preferences", method)}
+                    className={`px-4 py-2 rounded-lg border ${
+                      preferences.communication_preferences.includes(method)
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "border-gray-300 text-gray-700"
+                    } hover:bg-blue-500 hover:text-white`}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Project Type */}
+            <div>
+              <label className="text-gray-700">Project Type</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {["Personal", "Corporate", "Public Display", "Gift"].map((type) => (
+                  <button
+                    type="button"
+                    key={type}
+                    onClick={() => togglePreference("project_type", type)}
+                    className={`px-4 py-2 rounded-lg border ${
+                      preferences.project_type.includes(type)
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "border-gray-300 text-gray-700"
+                    } hover:bg-blue-500 hover:text-white`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Save Button */}
         <div className="text-center">
           <button
@@ -413,11 +455,11 @@ const EditClientProfile: React.FC = () => {
             Save Changes
           </button>
           <Link
-    to="/artist-profile"
-    className="px-6 py-2 ml-4 bg-gray-500 text-white rounded-lg shadow hover:bg-gray-600 transition duration-200"
-  >
-    Cancel
-  </Link>
+            to="/client-profile"
+            className="px-6 py-2 ml-4 bg-gray-500 text-white rounded-lg shadow hover:bg-gray-600 transition duration-200"
+          >
+            Cancel
+          </Link>
         </div>
       </form>
     </div>

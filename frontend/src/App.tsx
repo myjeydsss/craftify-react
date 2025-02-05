@@ -27,6 +27,8 @@ import Cart from "./pages/payment order/Cart";
 import Checkout from "./pages/payment order/Checkout";
 import ViewProfileArtist from "./pages/ViewProfileArtist";
 import ClientProfile from "./pages/client/ClientProfile";
+import BrowseClient from "./pages/BrowseClient";
+import ViewProfileClient from "./pages/ViewProfileClient";
 
 const App = () => {
   
@@ -75,6 +77,11 @@ const App = () => {
                     <Route path="/profile/artist/:userId" element={<ViewProfileArtist />} />
                     <Route path="/browse-arts" element={<BrowseArts />} />
                     <Route path="/art/:artId" element={<ArtDetail />} />
+
+                    <Route path="/browse-clients" element={<BrowseClient />} />
+                    <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
+
+
  
 
                     {/* Payment routes */}

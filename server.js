@@ -5,8 +5,8 @@ const { createClient } = require("@supabase/supabase-js");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const { v4: uuidv4 } = require("uuid");
 const axios = require("axios");
+const { galeShapley } = require("./utils/galeShapley");
 
 
 const app = express();
@@ -274,8 +274,97 @@ app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res
 });
 // ****** ARTIST UPLOAD PROFILE IMAGE END... ******
 
+
+// ****** CLIENT UPLOAD PROFILE IMAGE ******
+// Ensure the uploads directory exists
+const CLIENT_UPLOADS_DIR = path.join(__dirname, "uploads/client-profile");
+if (!fs.existsSync(CLIENT_UPLOADS_DIR)) {
+  fs.mkdirSync(CLIENT_UPLOADS_DIR, { recursive: true });
+}
+
+// Serve static files for uploaded images
+app.use("/uploads/client-profile", express.static(CLIENT_UPLOADS_DIR));
+
+// Profile Image Upload Endpoint
+app.post("/upload-client-profile-image/:userId", upload.single("file"), async (req, res) => {
+  const { userId } = req.params;
+
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
+
+  try {
+    const originalFileName = req.file.originalname;
+    const storageFilePath = `${Date.now()}-${originalFileName}`;
+
+    console.log("Uploading file:", storageFilePath);
+
+    // Upload file to Supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("client-profile")
+      .upload(`${userId}/${storageFilePath}`, req.file.buffer, {
+        contentType: req.file.mimetype,
+        cacheControl: "3600",
+      });
+
+    if (uploadError) {
+      console.error("Supabase storage upload error:", uploadError);
+      return res.status(500).json({ error: "Failed to upload image to Supabase." });
+    }
+
+    console.log("File uploaded to Supabase successfully:", `${userId}/${storageFilePath}`);
+
+    // Fetch old profile image
+    const { data: clientData, error: fetchError } = await supabase
+      .from("client")
+      .select("profile_image")
+      .eq("user_id", userId)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("Error fetching client profile:", fetchError);
+      throw fetchError;
+    }
+
+    const oldProfileImage = clientData?.profile_image;
+
+    // Delete the old profile image if it exists
+    if (oldProfileImage) {
+      const { error: deleteError } = await supabase.storage
+        .from("client-profile")
+        .remove([`${userId}/${oldProfileImage}`]);
+
+      if (deleteError) {
+        console.error("Error deleting old profile image:", deleteError);
+      } else {
+        console.log("Old profile image deleted successfully.");
+      }
+    }
+
+    // Update the client profile in the database with the new file path
+    const { error: updateError } = await supabase
+      .from("client")
+      .update({ profile_image: storageFilePath })
+      .eq("user_id", userId);
+
+    if (updateError) {
+      console.error("Error updating client profile:", updateError);
+      throw updateError;
+    }
+
+    console.log("Client profile updated successfully.");
+    res.status(200).json({ fileName: storageFilePath });
+  } catch (err) {
+    console.error("Unexpected error during upload:", err);
+    res.status(500).json({ error: "An unexpected error occurred during file upload." });
+  }
+});
+// ****** CLIENT UPLOAD PROFILE IMAGE END... ******
+
+
 // ****** ARTIST PROFILE ENDPOINT ****** 
 // Get Artist Profile
+// Backend: Always return JSON
 app.get("/artist-profile/:userId", async (req, res) => {
   const { userId } = req.params;
   const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
@@ -292,11 +381,7 @@ app.get("/artist-profile/:userId", async (req, res) => {
       return res.status(404).json({ error: "Artist profile not found." });
     }
 
-    if (artistData.profile_image) {
-      artistData.profile_image = `${CDNURL}${userId}/${artistData.profile_image}`;
-    }
-
-    // Fetch the verification status if verification_id exists
+      // Fetch the verification status if verification_id exists
     if (artistData.verification_id) {
       const { data: verificationData, error: verificationError } = await supabase
         .from("artist_verification")
@@ -309,6 +394,11 @@ app.get("/artist-profile/:userId", async (req, res) => {
       } else {
         artistData.status = verificationData?.status || null;
       }
+    }
+
+    // Append CDN URL only when sending the response, not when storing
+    if (artistData.profile_image) {
+      artistData.profile_image = `${CDNURL}${userId}/${artistData.profile_image}`;
     }
 
     res.status(200).json(artistData);
@@ -333,21 +423,72 @@ app.get("/artist-preferences/:userId", async (req, res) => {
 
     if (error || !data) {
       console.warn(`Preferences not found for userId: ${userId}`);
-      return res.status(200).json({
-        message: "You haven't set up your preferences yet.",
-        preferences: null,
-      });
+      return res.status(200).json({ preferences: null }); // Return JSON
     }
 
-    // Return preferences as is (No need for JSON.parse here, as it's already stored as jsonb)
-    res.status(200).json(data);
+    res.status(200).json(data); // Return JSON
   } catch (err) {
     console.error("Error fetching preferences:", err);
-    res.status(500).json({ error: "Failed to fetch preferences." });
+    res.status(500).json({ error: "Failed to fetch preferences." }); // Return JSON
   }
 });
 
-// Profile Update Endpoint
+// Endpoint to create default preferences for an artist
+app.post("/artist-preferences/create-default", async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
+  try {
+    // Check if preferences already exist
+    const { data: existingPreferences, error: fetchError } = await supabase
+      .from("artist_preferences")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (existingPreferences) {
+      return res.status(200).json({ message: "Preferences already exist." });
+    }
+
+    // Create default preferences
+    const defaultPreferences = {
+      user_id: userId,
+      crafting: "",
+      art_style_specialization: [],
+      collaboration_type: "",
+      preferred_medium: [],
+      location_preference: "",
+      crafting_techniques: [],
+      budget_range: "",
+      project_type: "",
+      project_type_experience: "",
+      preferred_project_duration: "",
+      availability: "",
+      client_type_preference: "",
+      project_scale: "",
+      portfolio_link: "",
+      preferred_communication: [],
+    };
+
+    const { error: insertError } = await supabase
+      .from("artist_preferences")
+      .insert(defaultPreferences);
+
+    if (insertError) {
+      console.error("Error creating default preferences:", insertError);
+      return res.status(500).json({ error: "Failed to create default preferences." });
+    }
+
+    res.status(201).json({ message: "Default preferences created successfully." });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+
 app.put("/artist-profile", async (req, res) => {
   const { userId, profile, preferences } = req.body;
 
@@ -356,35 +497,74 @@ app.put("/artist-profile", async (req, res) => {
   }
 
   try {
-    if (profile && Object.keys(profile).length > 0) {
-      const { error: profileError } = await supabase
-        .from("artist")
-        .update(profile)
-        .eq("user_id", userId);
+    // ✅ Fetch the existing profile
+    const { data: existingProfile, error: fetchProfileError } = await supabase
+      .from("artist")
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image") // Removed 'status' and 'verification_id'
+      .eq("user_id", userId)
+      .single();
 
-      if (profileError) {
-        console.error("Error updating artist profile:", profileError);
-        return res.status(500).json({ error: "Failed to update artist profile." });
-      }
+    if (fetchProfileError || !existingProfile) {
+      console.error("Error fetching existing profile:", fetchProfileError);
+      return res.status(500).json({ error: "Failed to fetch existing profile." });
     }
 
+    // ✅ Ensure profile_image is stored as filename, not full URL
+    let updatedProfileImage = existingProfile.profile_image;
+    if (profile.profile_image) {
+      updatedProfileImage = profile.profile_image.includes("http")
+        ? existingProfile.profile_image // Ignore if it's a full URL
+        : profile.profile_image; // Store only filename
+    }
+
+    // ✅ Prepare the update payload (Explicitly allowed fields only)
+    const updatedProfile = {
+      firstname: profile.firstname ?? existingProfile.firstname,
+      lastname: profile.lastname ?? existingProfile.lastname,
+      bio: profile.bio ?? existingProfile.bio,
+      gender: profile.gender ?? existingProfile.gender,
+      date_of_birth: profile.date_of_birth ?? existingProfile.date_of_birth,
+      email: profile.email ?? existingProfile.email,
+      role: profile.role ?? existingProfile.role,
+      address: profile.address ?? existingProfile.address,
+      phone: profile.phone ?? existingProfile.phone,
+      profile_image: updatedProfileImage, // Ensure consistency
+    };
+
+    // ✅ Update the profile in the database
+    const { error: profileError } = await supabase
+      .from("artist")
+      .update(updatedProfile)
+      .eq("user_id", userId);
+
+    if (profileError) {
+      console.error("Error updating artist profile:", profileError);
+      return res.status(500).json({ error: "Failed to update artist profile." });
+    }
+
+    // ✅ Handle preferences (if provided)
     if (preferences && Object.keys(preferences).length > 0) {
-      const { data: existingPreferences, error: fetchError } = await supabase
+      const { data: existingPreferences, error: fetchPreferencesError } = await supabase
         .from("artist_preferences")
-        .select("preferences_id")
+        .select("*")
         .eq("user_id", userId)
         .single();
 
-      if (fetchError && fetchError.code !== "PGRST116") {
-        console.error("Error fetching preferences:", fetchError);
-        return res.status(500).json({ error: "Failed to fetch preferences." });
+      if (fetchPreferencesError && fetchPreferencesError.code !== "PGRST116") {
+        console.error("Error fetching existing preferences:", fetchPreferencesError);
+        return res.status(500).json({ error: "Failed to fetch existing preferences." });
       }
+
+      const updatedPreferences = {
+        ...(existingPreferences || {}), // Use existing preferences or an empty object
+        ...preferences,
+      };
 
       if (existingPreferences) {
         const { error: updateError } = await supabase
           .from("artist_preferences")
-          .update(preferences)
-          .eq("preferences_id", existingPreferences.preferences_id);
+          .update(updatedPreferences)
+          .eq("user_id", userId);
 
         if (updateError) {
           console.error("Error updating preferences:", updateError);
@@ -393,7 +573,7 @@ app.put("/artist-profile", async (req, res) => {
       } else {
         const { error: insertError } = await supabase
           .from("artist_preferences")
-          .insert({ user_id: userId, ...preferences });
+          .insert({ user_id: userId, ...updatedPreferences });
 
         if (insertError) {
           console.error("Error inserting preferences:", insertError);
@@ -405,113 +585,9 @@ app.put("/artist-profile", async (req, res) => {
     res.status(200).json({ message: "Profile and preferences updated successfully." });
   } catch (err) {
     console.error("Unexpected error updating profile/preferences:", err);
-    res.status(500).json({ error: "Failed to update profile or preferences." });
+    res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
-// ****** ARTIST PROFILE ENDPOINT END... ******
-
-// ****** ARTIST UPLOAD VERIFICATION ******
-// Artist Verification Upload Endpoint
-app.post(
-  "/artist-verification/:userId",
-  upload.fields([{ name: "document" }, { name: "valid_id" }]),
-  async (req, res) => {
-    const { userId } = req.params;
-    const files = req.files;
-
-    if (!userId || !files || !files.document || !files.valid_id) {
-      return res.status(400).json({ error: "User ID, portfolio, and valid ID are required." });
-    }
-
-    try {
-      // Upload portfolio to Supabase storage
-      const documentFile = files.document[0];
-      const documentFileName = `${Date.now()}-${documentFile.originalname}`;
-      const documentPath = `portfolio/${userId}/${documentFileName}`;
-
-      const { error: documentUploadError } = await supabase.storage
-        .from("artist-verification")
-        .upload(documentPath, documentFile.buffer, {
-          contentType: documentFile.mimetype,
-          cacheControl: "3600",
-        });
-
-      if (documentUploadError) {
-        console.error("Error uploading portfolio:", documentUploadError);
-        return res.status(500).json({ error: "Failed to upload portfolio." });
-      }
-
-      // Upload valid ID to Supabase storage
-      const validIdFile = files.valid_id[0];
-      const validIdFileName = `${Date.now()}-${validIdFile.originalname}`;
-      const validIdPath = `valid_id/${userId}/${validIdFileName}`;
-
-      const { error: validIdUploadError } = await supabase.storage
-        .from("artist-verification")
-        .upload(validIdPath, validIdFile.buffer, {
-          contentType: validIdFile.mimetype,
-          cacheControl: "3600",
-        });
-
-      if (validIdUploadError) {
-        console.error("Error uploading valid ID:", validIdUploadError);
-        return res.status(500).json({ error: "Failed to upload valid ID." });
-      }
-
-      console.log("Files uploaded successfully to distinct folders.");
-
-      // Generate a valid UUID for verification_id
-      const verificationId = uuidv4();
-
-      // Insert verification request into the `artist_verification` table
-      const { error: verificationError } = await supabase
-        .from("artist_verification")
-        .insert({
-          verification_id: verificationId,
-          user_id: userId,
-          document_url: documentPath, // Path for the portfolio
-          valid_id: validIdPath, // Path for the valid ID
-          status: "pending",
-          created_at: new Date(),
-        });
-
-      if (verificationError) {
-        console.error(
-          "Error inserting verification request into artist_verification table:",
-          verificationError
-        );
-        return res
-          .status(500)
-          .json({ error: "Failed to save verification request to the database." });
-      }
-
-      console.log("Verification request inserted successfully into artist_verification table.");
-
-      // Update the `artist` table with the new verification ID
-      const { error: artistUpdateError } = await supabase
-        .from("artist")
-        .update({ verification_id: verificationId })
-        .eq("user_id", userId);
-
-      if (artistUpdateError) {
-        console.error("Error updating artist table with verification ID:", artistUpdateError);
-        return res.status(500).json({ error: "Failed to update artist verification ID." });
-      }
-
-      console.log("Artist table updated successfully with verification ID.");
-
-      res.status(200).json({
-        success: true,
-        message: "Verification request submitted successfully.",
-      });
-    } catch (err) {
-      console.error("Unexpected error in verification endpoint:", err);
-      res
-        .status(500)
-        .json({ error: "An unexpected error occurred during verification." });
-    }
-  }
-);
 // ****** ARTIST UPLOAD VERIFICATION END... ******
 
 // ****** ARTIST ARTS TABLE ******
@@ -901,6 +977,159 @@ app.get("/client-preferences/:userId", async (req, res) => {
   }
 });
 
+
+// ****** UPDATE CLIENT PROFILE ******
+app.put("/client-profile", async (req, res) => {
+  const { userId, profile, preferences } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
+  try {
+    // Fetch the existing profile
+    const { data: existingProfile, error: fetchProfileError } = await supabase
+      .from("client")
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
+      .eq("user_id", userId)
+      .single();
+
+    if (fetchProfileError || !existingProfile) {
+      console.error("Error fetching existing profile:", fetchProfileError);
+      return res.status(500).json({ error: "Failed to fetch existing profile." });
+    }
+
+    // Ensure profile_image is stored as filename, not full URL
+    let updatedProfileImage = existingProfile.profile_image;
+    if (profile.profile_image) {
+      updatedProfileImage = profile.profile_image.includes("http")
+        ? existingProfile.profile_image // Ignore if it's a full URL
+        : profile.profile_image; // Store only filename
+    }
+
+    // Prepare the update payload
+    const updatedProfile = {
+      firstname: profile.firstname ?? existingProfile.firstname,
+      lastname: profile.lastname ?? existingProfile.lastname,
+      bio: profile.bio ?? existingProfile.bio,
+      gender: profile.gender ?? existingProfile.gender,
+      date_of_birth: profile.date_of_birth ?? existingProfile.date_of_birth,
+      email: profile.email ?? existingProfile.email,
+      role: profile.role ?? existingProfile.role,
+      address: profile.address ?? existingProfile.address,
+      phone: profile.phone ?? existingProfile.phone,
+      profile_image: updatedProfileImage, // Ensure consistency
+    };
+
+    // Update the profile in the database
+    const { error: profileError } = await supabase
+      .from("client")
+      .update(updatedProfile)
+      .eq("user_id", userId);
+
+    if (profileError) {
+      console.error("Error updating client profile:", profileError);
+      return res.status(500).json({ error: "Failed to update client profile." });
+    }
+
+    // Handle preferences (if provided)
+    if (preferences && Object.keys(preferences).length > 0) {
+      const { data: existingPreferences, error: fetchPreferencesError } = await supabase
+        .from("client_preferences")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (fetchPreferencesError && fetchPreferencesError.code !== "PGRST116") {
+        console.error("Error fetching existing preferences:", fetchPreferencesError);
+        return res.status(500).json({ error: "Failed to fetch existing preferences." });
+      }
+
+      const updatedPreferences = {
+        ...(existingPreferences || {}), // Use existing preferences or an empty object
+        ...preferences,
+      };
+
+      if (existingPreferences) {
+        const { error: updateError } = await supabase
+          .from("client_preferences")
+          .update(updatedPreferences)
+          .eq("user_id", userId);
+
+        if (updateError) {
+          console.error("Error updating preferences:", updateError);
+          return res.status(500).json({ error: "Failed to update preferences." });
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from("client_preferences")
+          .insert({ user_id: userId, ...updatedPreferences });
+
+        if (insertError) {
+          console.error("Error inserting preferences:", insertError);
+          return res.status(500).json({ error: "Failed to insert preferences." });
+        }
+      }
+    }
+
+    res.status(200).json({ message: "Profile and preferences updated successfully." });
+  } catch (err) {
+    console.error("Unexpected error updating profile/preferences:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+// ****** UPDATE CLIENT PROFILE END... ******
+
+// ****** CREATE DEFAULT CLIENT PREFERENCES ******
+app.post("/client-preferences/create-default", async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
+  try {
+    // Check if preferences already exist
+    const { data: existingPreferences, error: fetchError } = await supabase
+      .from("client_preferences")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (existingPreferences) {
+      return res.status(200).json({ message: "Preferences already exist." });
+    }
+
+    // Create default preferences
+    const defaultPreferences = {
+      user_id: userId,
+      preferred_art_style: [],
+      project_requirements: "",
+      budget_range: "",
+      location_requirement: "",
+      timeline: "",
+      artist_experience_level: "",
+      communication_preferences: [],
+      project_type: [],
+    };
+
+    const { error: insertError } = await supabase
+      .from("client_preferences")
+      .insert(defaultPreferences);
+
+    if (insertError) {
+      console.error("Error creating default preferences:", insertError);
+      return res.status(500).json({ error: "Failed to create default preferences." });
+    }
+
+    res.status(201).json({ message: "Default preferences created successfully." });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+// ****** CREATE DEFAULT CLIENT PREFERENCES END... ******
+
 // ****** CLIENT PROFULE ENDPOINT END... *******
 
 
@@ -1047,9 +1276,7 @@ app.delete("/tags/:id", async (req, res) => {
 // ****** ADMIN TAG TABLE END... ******
 
 
-
 // ****** ADMIN ARTS TABLE ******
-
 // Fetch all arts for admin with tags
 app.get("/api/arts", async (req, res) => {
   try {
@@ -1098,11 +1325,10 @@ app.get("/api/arts", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch arts." });
   }
 });
-
 // ****** ADMIN ARTS TABLE END.... ******
 
 
-// ****** BROWSE ARTIST ****** CURRENTLY WORKING (no view profile)
+// ****** BROWSE ARTIST ****** CURRENTLY WORKING
 // API to fetch all artists
 app.get("/artists", async (req, res) => {
   const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
@@ -1197,12 +1423,54 @@ app.get("/view-artist-preferences/:userId", async (req, res) => {
   }
 });
 // GET VIEW ARTIST PROFILE END...
-
 // ****** BROWSE ARTIST END... ****** CURRENTLY WORKING
 
 
-// ****** BROWSE ARTS ****** CURRENTLY WORKING
+// ****** BROWSE CLIENT ****** CURRENTLY WORKING
+// API to fetch all clients
+app.get("/clients", async (req, res) => {
+  const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
 
+  try {
+    const { data: clientsData, error: clientsError } = await supabase
+      .from("client")
+      .select(`
+        user_id,
+        firstname,
+        lastname,
+        bio,
+        gender,
+        date_of_birth,
+        email,
+        role,
+        address,
+        phone,
+        profile_image
+      `);
+
+    if (clientsError) {
+      console.error("Error fetching clients:", clientsError);
+      return res.status(500).json({ error: "Failed to fetch clients." });
+    }
+
+    // Format client data
+    const formattedClients = clientsData.map(client => {
+      if (client.profile_image) {
+        client.profile_image = `${CDNURL}${client.user_id}/${client.profile_image}`;
+      }
+      return client;
+    });
+
+    res.status(200).json(formattedClients);
+  } catch (err) {
+    console.error("Unexpected error fetching clients:", err);
+    res.status(500).json({ error: "Unexpected server error." });
+  }
+});
+// ****** BROWSE CLIENT END ******
+
+
+// ****** BROWSE ARTS ****** CURRENTLY WORKING
 // Fetch all arts
 app.get('/arts', async (req, res) => {
   try {
@@ -1405,12 +1673,10 @@ app.get('/art/:artId', async (req, res) => {
   }
 });
 // ART DETAIL END...
-
 // ****** BROWSE ARTS END... ****** (to be polish)
 
 
 // ****** NAVBAR CART FUNCTION ****** CURRENTLY WORKING
-
 // Fetch cart items for a user
 app.get("/cart/:userId", async (req, res) => {
   const { userId } = req.params;
@@ -1466,132 +1732,10 @@ app.delete("/cart/:userId/:artId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
 // ****** NAVBAR CART FUNCTION END... ****** CURRENTLY WORKING
-
-// ****** Client Side ******** CURRENTLY WORKING
-// Get Client Profile
-app.get("/client-profile/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
-
-  try {
-    const { data: clientData, error: clientError } = await supabase
-      .from("client")
-      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
-      .eq("user_id", userId)
-      .single();
-
-    if (clientError || !clientData) {
-      console.error("Error fetching client profile:", clientError);
-      return res.status(404).json({ error: "Client profile not found." });
-    }
-
-    if (clientData.profile_image) {
-      clientData.profile_image = `${CDNURL}${userId}/${clientData.profile_image}`;
-    }
-
-    res.status(200).json(clientData);
-  } catch (err) {
-    console.error("Error fetching client profile:", err);
-    res.status(500).json({ error: "Failed to fetch client profile." });
-  }
-});
-
-// Get Client Preferences
-app.get("/client-preferences/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const { data, error } = await supabase
-      .from("client_preferences")
-      .select(
-        "preferred_art_style, project_requirements, budget_range, location_requirement, timeline, artist_experience_level, communication_preferences, project_type"
-      )
-      .eq("user_id", userId)
-      .single();
-
-    if (error || !data) {
-      console.warn(`Preferences not found for userId: ${userId}`);
-      return res.status(200).json({
-        message: "You haven't set up your preferences yet.",
-        preferences: null,
-      });
-    }
-
-    // Return preferences as is (No need for JSON.parse here, as it's already stored as jsonb)
-    res.status(200).json(data);
-  } catch (err) {
-    console.error("Error fetching preferences:", err);
-    res.status(500).json({ error: "Failed to fetch preferences." });
-  }
-});
-
-// Profile Update Endpoint
-app.put("/client-profile", async (req, res) => {
-  const { userId, profile, preferences } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ error: "User ID is required." });
-  }
-
-  try {
-    if (profile && Object.keys(profile).length > 0) {
-      const { error: profileError } = await supabase
-        .from("client")
-        .update(profile)
-        .eq("user_id", userId);
-
-      if (profileError) {
-        console.error("Error updating client profile:", profileError);
-        return res.status(500).json({ error: "Failed to update client profile." });
-      }
-    }
-
-    if (preferences && Object.keys(preferences).length > 0) {
-      const { data: existingPreferences, error: fetchError } = await supabase
-        .from("client_preferences")
-        .select("preferences_id")
-        .eq("user_id", userId)
-        .single();
-
-      if (fetchError && fetchError.code !== "PGRST116") {
-        console.error("Error fetching preferences:", fetchError);
-        return res.status(500).json({ error: "Failed to fetch preferences." });
-      }
-
-      if (existingPreferences) {
-        const { error: updateError } = await supabase
-          .from("client_preferences")
-          .update(preferences)
-          .eq("preferences_id", existingPreferences.preferences_id);
-
-        if (updateError) {
-          console.error("Error updating preferences:", updateError);
-          return res.status(500).json({ error: "Failed to update preferences." });
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from("client_preferences")
-          .insert({ user_id: userId, ...preferences });
-
-        if (insertError) {
-          console.error("Error inserting preferences:", insertError);
-          return res.status(500).json({ error: "Failed to insert preferences." });
-        }
-      }
-    }
-
-    res.status(200).json({ message: "Profile and preferences updated successfully." });
-  } catch (err) {
-    console.error("Unexpected error updating profile/preferences:", err);
-    res.status(500).json({ error: "Failed to update profile or preferences." });
-  }
-});
 
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) ****** CURRENTLY WORKING
-
 // Fetch user details for pre-filling shipping info
 app.get("/user/:userId", async (req, res) => {
   const { userId } = req.params;
@@ -1733,3 +1877,95 @@ app.post('/create-checkout-session', async (req, res) => {
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
+// ***** BROWSE ARTIST MATCHING ALGORITHM ******
+
+app.get("/match-artists/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Fetch client's preferences
+    const { data: client, error: clientError } = await supabase
+      .from("client")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (clientError || !client) {
+      return res.status(404).json({ error: "Client preferences not found." });
+    }
+
+    const clientPreferences = client.client_preferences || {};
+
+    // Fetch all artists
+    const { data: artists, error: artistError } = await supabase
+      .from("artist")
+      .select("*");
+
+    if (artistError || !artists.length) {
+      return res.status(400).json({ error: "No artists available for matching." });
+    }
+
+    const validClients = [client];
+    const validArtists = artists.map((artist) => {
+      const artistPreferences = artist.artist_preferences || {};
+      return {
+        user_id: artist.user_id,
+        preferences: validClients
+          .filter(client => {
+            const clientPreferences = client.client_preferences || {};
+            return (
+              (!artistPreferences.budget_range || clientPreferences.budget_range === artistPreferences.budget_range) &&
+              (!artistPreferences.art_style_specialization || (clientPreferences.preferred_art_style && clientPreferences.preferred_art_style.includes(artistPreferences.art_style_specialization))) &&
+              (!artistPreferences.location_preference || clientPreferences.location_requirement === artistPreferences.location_preference) &&
+              (!artistPreferences.project_type || clientPreferences.project_type === artistPreferences.project_type)
+            );
+          })
+          .map(c => c.user_id),
+      };
+    });
+
+    const clientData = {
+      user_id: client.user_id,
+      preferences: validArtists
+        .filter(artist => {
+          const artistPreferences = artist.artist_preferences || {};
+          return (
+            (!clientPreferences.budget_range || artistPreferences.budget_range === clientPreferences.budget_range) &&
+            (!clientPreferences.preferred_art_style || (artistPreferences.art_style_specialization && artistPreferences.art_style_specialization.includes(clientPreferences.preferred_art_style))) &&
+            (!clientPreferences.location_requirement || artistPreferences.location_preference === clientPreferences.location_requirement) &&
+            (!clientPreferences.project_type || artistPreferences.project_type === clientPreferences.project_type)
+          );
+        })
+        .map(a => a.user_id),
+    };
+
+    if (!clientData.preferences.length || !validArtists.length) {
+      return res.status(400).json({ error: "No valid matches found." });
+    }
+
+    // Run Gale-Shapley algorithm
+    const matches = galeShapley([clientData], validArtists);
+
+    // Format and return results
+    const formattedMatches = Object.entries(matches).map(([artistId, clientId]) => {
+      const artist = artists.find(a => a.user_id === artistId);
+      const clientMatch = client?.user_id === clientId ? client : null;
+
+      return {
+        artist_id: artist?.user_id || "Unknown",
+        artist_name: artist ? `${artist.firstname} ${artist.lastname}` : "Unknown Artist",
+        client_id: clientMatch?.user_id || "Unknown",
+        client_name: clientMatch ? `${clientMatch.firstname} ${clientMatch.lastname}` : "Unknown Client",
+      };
+    });
+
+    res.status(200).json({ matches: formattedMatches });
+  } catch (error) {
+    console.error("Error running Gale-Shapley:", error);
+    res.status(500).json({ error: "Matchmaking failed." });
+  }
+});
+
+
+
+// ***** BROWSE ARTIST MATCHING ALGORITHM END... ******
