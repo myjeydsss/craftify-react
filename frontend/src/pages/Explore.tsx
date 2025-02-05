@@ -1,5 +1,12 @@
 import React from "react";
-import hero1 from "../assets/hero1.png"; // Adjust the path as necessary
+import hireArtist from "../assets/hire-artist.png";
+import findClient from "../assets/find-client.png";
+import collab from "../assets/collab.png";
+import artistNetwork from "../assets/artist-network.png";
+import marketplace from "../assets/marketplace.png";
+import art1 from "../assets/artwork-1.png";
+import art2 from "../assets/artwork-2.png";
+import art3 from "../assets/artwork-3.png";
 import Footer from "../components/Footer"; // Adjust the path if necessary
 
 const Explore: React.FC = () => {
@@ -25,7 +32,7 @@ const Explore: React.FC = () => {
             <div className="flex flex-col md:flex-row-reverse items-center">
               <div className="mb-4 md:mb-0 md:ml-4">
                 <img
-                  src={hero1}
+                  src={hireArtist}
                   alt="Hire Artist"
                   className="mx-auto h-64 w-64 object-cover rounded-md shadow-lg hover:shadow-xl transition-all duration-300"
                 />
@@ -56,7 +63,7 @@ const Explore: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center">
               <div className="mb-4 md:mb-0 md:mr-4">
                 <img
-                  src={hero1}
+                  src={findClient}
                   alt="Find Client"
                   className="mx-auto h-64 w-64 object-cover rounded-md shadow-lg hover:shadow-xl transition-all duration-300"
                 />
@@ -87,23 +94,21 @@ const Explore: React.FC = () => {
             DISCOVER NEW OPPORTUNITIES
           </h1>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((item) => (
+            {[
+              { src: collab, title: "Craftify Collaboration" },
+              { src: artistNetwork, title: "Exclusive Artist Network" },
+              { src: marketplace, title: "Creative Marketplace" },
+            ].map((item, index) => (
               <div
-                key={item}
-                className="transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+          key={index}
+          className="transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
               >
-                <img
-                  src={hero1}
-                  alt={`Opportunity ${item}`}
-                  className="h-64 w-full object-cover rounded-md"
-                />
-                <p className="mt-2 font-semibold">
-                  {item === 1
-                    ? "Craftify Collaboration"
-                    : item === 2
-                    ? "Exclusive Artist Network"
-                    : "Creative Marketplace"}
-                </p>
+          <img
+            src={item.src}
+            alt={item.title}
+            className="h-64 w-full object-cover rounded-md"
+          />
+          <p className="mt-2 font-semibold">{item.title}</p>
               </div>
             ))}
           </div>
@@ -115,17 +120,17 @@ const Explore: React.FC = () => {
             SHOP OUR EXCLUSIVE ARTWORK
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
-            {[1, 2, 3].map((item) => (
+            {[art1, art2, art3].map((art, index) => (
               <div
-                key={item}
-                className="bg-white shadow-md p-6 rounded-md hover:shadow-lg transition-all duration-300 border border-orange-600"
+          key={index}
+          className="bg-white shadow-md p-6 rounded-md hover:shadow-lg transition-all duration-300 border border-orange-600"
               >
-                <img
-                  src={hero1}
-                  alt={`Item ${item}`}
-                  className="mx-auto h-64 w-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
-                />
-                <p className="text-orange-600 mt-2 font-semibold">₱1,000.00</p>
+          <img
+            src={art}
+            alt={`Artwork ${index + 1}`}
+            className="mx-auto h-64 w-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
+          />
+          <p className="text-orange-600 mt-2 font-semibold">₱1,000.00</p>
               </div>
             ))}
           </div>
