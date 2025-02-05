@@ -1909,6 +1909,97 @@ app.post('/create-checkout-session', async (req, res) => {
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
+// **Notification Function**
+//get notification
+app.get("/notifications/:userId", async (req, res) => { 
+  const { userId } = req.params;
+
+  try {
+    const { data: notifications, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error fetching notifications:", error);
+      return res.status(500).json({ error: "Failed to fetch notifications." });
+    }
+
+    res.status(200).json(notifications);
+  } catch (err) {
+    console.error("Unexpected error fetching notifications:", err);
+    res.status(500).json({ error: "Unexpected server error." });
+  }
+});
+
+//mark all as read in notification
+app.put("/notifications/:userId/mark-all-read", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
+
+    if (error) {
+      console.error("Error marking notifications as read:", error);
+      return res.status(500).json({ error: "Failed to mark notifications as read." });
+    }
+
+    res.status(200).json({ message: "All notifications marked as read." });
+  } catch (err) {
+    console.error("Unexpected error marking notifications as read:", err);
+    res.status(500).json({ error: "Unexpected server error." });
+  }
+});
+// delete a notification
+app.delete("/notifications/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error deleting notifications:", error);
+      return res.status(500).json({ error: "Failed to delete notifications." });
+    }
+    res.status(200).json({ message: "Notifications deleted successfully." });
+  } catch (err) {
+    console.error("Unexpected error deleting notifications:", err);
+    res.status(500).json({ error: "Unexpected server error." });
+  }
+});
+
+//delete all notification
+app.delete("/notifications/:userId/all", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error deleting notifications:", error);
+      return res.status(500).json({ error: "Failed to delete notifications." });
+    }
+
+    res.status(200).json({ message: "All notifications deleted successfully." });
+  } catch (err) {
+    console.error("Unexpected error deleting notifications:", err);
+    res.status(500).json({ error: "Unexpected server error." });
+  }
+});
+
+// **Notification Function End**
+
 // ***** BROWSE ARTIST MATCHING ALGORITHM ******
 
 app.get("/match-artists/:userId", async (req, res) => {

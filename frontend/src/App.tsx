@@ -23,6 +23,7 @@ import ArtsTable from "./pages/admin/ArtsTable";
 import BrowseArtist from "./pages/BrowseArtist";
 import BrowseArts from "./pages/BrowseArts";
 import ArtDetail from "./pages/ArtDetail";
+import Notification from "./pages/Notification";
 import Cart from "./pages/payment order/Cart";
 import Checkout from "./pages/payment order/Checkout";
 import ViewProfileArtist from "./pages/ViewProfileArtist";
@@ -81,7 +82,8 @@ const App = () => {
                     <Route path="/browse-clients" element={<BrowseClient />} />
                     <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
 
-
+                    {/* Notification routes */}
+                    <Route path="/notifications" element={<Notification />} />
  
 
                     {/* Payment routes */}
