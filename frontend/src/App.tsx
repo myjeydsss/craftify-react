@@ -30,6 +30,8 @@ import ViewProfileArtist from "./pages/ViewProfileArtist";
 import ClientProfile from "./pages/client/ClientProfile";
 import BrowseClient from "./pages/BrowseClient";
 import ViewProfileClient from "./pages/ViewProfileClient";
+import Messages from "./pages/Messages";
+import MessagePopup from "./pages/MessagePopup";
 
 const App = () => {
   
@@ -84,6 +86,10 @@ const App = () => {
 
                     {/* Notification routes */}
                     <Route path="/notifications" element={<Notification />} />
+
+                    {/* Message routes */}
+                    <Route path="/messages" element={<Messages />} />
+                    <Route path="/message-popup" element={<MessagePopup />} />
  
 
                     {/* Payment routes */}

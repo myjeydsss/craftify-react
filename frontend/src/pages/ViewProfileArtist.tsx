@@ -9,6 +9,7 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
+import MessagePopup from './MessagePopup.tsx'; // Import the MessagePopup component
 
 interface Artist {
   user_id: string;
@@ -54,6 +55,8 @@ const ViewProfileArtist: React.FC = () => {
 
   const [showAllPreferences, setShowAllPreferences] = useState<boolean>(false);
   const [artworksDisplayed, setArtworksDisplayed] = useState<number>(6);
+  const [isMessagePopupOpen, setIsMessagePopupOpen] = useState(false);
+  const [messages, setMessages] = useState<{ text: string; sender: string }[]>([]);
 
   useEffect(() => {
     const fetchArtistDetails = async () => {
@@ -98,6 +101,18 @@ const ViewProfileArtist: React.FC = () => {
     return value !== null && value !== undefined;
   });
 
+  const handleSendMessageClick = () => {
+    setIsMessagePopupOpen(true);
+  };
+
+  const handleCloseMessagePopup = () => {
+    setIsMessagePopupOpen(false);
+  };
+
+  const handleSendMessage = (message: string) => {
+    setMessages([...messages, { text: message, sender: 'You' }]);
+  };
+
   if (loading) return <div className="text-center mt-10">Loading...</div>;
   if (error) return <div className="text-center mt-10 text-red-500">{error}</div>;
 
@@ -133,6 +148,14 @@ const ViewProfileArtist: React.FC = () => {
               <div className="flex items-center gap-2">
                 <FaPhoneAlt />
                 <span>{artist?.phone || "Phone not available"}</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={handleSendMessageClick}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                >
+                  Send Message
+                </button>
               </div>
             </div>
           </div>
@@ -230,6 +253,20 @@ const ViewProfileArtist: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
+      {isMessagePopupOpen && (
+        <MessagePopup onClose={handleCloseMessagePopup} onSendMessage={handleSendMessage} />
+      )}
+
+      {/* Display messages */}
+      <div className="mt-4">
+        {messages.map((msg, index) => (
+          <div key={index} className={`mb-3 flex ${msg.sender === 'You' ? 'justify-end' : ''}`}>
+            <div className={`px-4 py-2 rounded-lg ${msg.sender === 'You' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
