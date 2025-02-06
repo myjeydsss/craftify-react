@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider";
 import { FaTrashAlt, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
 
 interface NotificationItem {  
     id: string;
@@ -15,7 +14,7 @@ interface NotificationItem {
 
 const Notification: React.FC = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
     const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -27,7 +26,7 @@ const Notification: React.FC = () => {
     
         try {
             const response = await axios.get<NotificationItem[]>(
-                `${import.meta.env.VITE_API_URL}/notification/${user.id}`
+                `${import.meta.env.VITE_API_URL}/notifications/${user.id}`
             );
             setNotificationItems(response.data);
         } catch (err: any) {
@@ -61,7 +60,7 @@ const Notification: React.FC = () => {
     const deleteNotification = async (id: string) => {
         try {
             await axios.delete(
-                `${import.meta.env.VITE_API_URL}/notification/${id}`
+                `${import.meta.env.VITE_API_URL}/notifications/${id}`
             );
             setNotificationItems((prevItems) => 
                 prevItems.filter((item) => item.id !== id)

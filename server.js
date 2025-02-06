@@ -1683,7 +1683,7 @@ app.get("/cart/:userId", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("cart")
-      .select("*, arts (title, image_url, price)")
+      .select("*, arts (user_id ,title, image_url, price)")
       .eq("user_id", userId);
 
     if (error) return res.status(400).json({ error: error.message });
@@ -1910,9 +1910,31 @@ app.post('/create-checkout-session', async (req, res) => {
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
 // **Notification Function**
+app.post("/notifications", async (req, res) => {
+    const { user_id, message, type } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from("notifications")
+            .insert([{ user_id, message, type }]);
+
+        if (error) {
+            console.error("Error adding notification:", error);
+            return res.status(500).json({ error: "Failed to add notification." });
+        }
+
+        res.status(201).json(data);
+    } catch (err) {
+        console.error("Unexpected error adding notification:", err);
+        res.status(500).json({ error: "Unexpected server error." });
+    }
+});
 //get notification
 app.get("/notifications/:userId", async (req, res) => { 
   const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(200).json({ message: "No notifications." });
+  }
 
   try {
     const { data: notifications, error } = await supabase
@@ -1955,15 +1977,14 @@ app.put("/notifications/:userId/mark-all-read", async (req, res) => {
   }
 });
 // delete a notification
-app.delete("/notifications/:userId", async (req, res) => {
-  const { userId } = req.params;
+app.delete("/notifications/:notifId", async (req, res) => {
+  const { notifId} = req.params;
 
   try {
-    const { error } = await supabase
-      .from("notifications")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.id);
+      const { error } = await supabase
+          .from("notifications")
+          .delete()
+          .eq("id", notifId);
 
     if (error) {
       console.error("Error deleting notifications:", error);

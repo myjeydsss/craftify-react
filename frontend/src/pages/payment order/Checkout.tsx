@@ -7,7 +7,8 @@ interface CartItem {
   id: string;
   art_id: string;
   quantity: number;
-  arts: {
+    arts: {
+    user_id: string;
     title: string;
     image_url: string;
     price: string;
@@ -76,7 +77,7 @@ const Checkout: React.FC = () => {
     const subtotal = calculateSubtotal();
     const tax = calculateTax(subtotal);
     return subtotal + tax;
-  };
+    };
 
   const clearCart = async (artIds: string[]) => {
     try {
@@ -94,6 +95,7 @@ const Checkout: React.FC = () => {
       console.error("Error clearing cart:",err);
     }
   };
+
   
   const handlePayment = async () => {
     try {
@@ -114,7 +116,9 @@ const Checkout: React.FC = () => {
       });
   
       const checkoutUrl = response.data;
-      
+
+        //Notify user and artist
+      await handleNotification();
       // Clear cart before opening payment window
       const artIds = cartItems.map(item => item.art_id);
       await clearCart(artIds);
@@ -127,6 +131,37 @@ const Checkout: React.FC = () => {
     }
   };
 
+    const handleArtistNotification = async (artistId: string) => {
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/notifications`, {
+                user_id: artistId,
+                message: "Your art has been sold successfully.",
+                type: "success"
+            });
+        } catch (err) {
+            console.error("Error creating artist notification:", err);
+        }
+    };
+
+    const handleNotification = async () => {
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/notifications`, {
+                user_id: user?.id,
+                message: "Your order has been placed successfully.",
+                type: "success"
+            });
+
+            // Notify each artist
+            const artistIds = [...new Set(cartItems.map(item => item.arts.user_id))];
+            for (const artistId of artistIds) {
+                await handleArtistNotification(artistId);
+                console.log(`artist user id = ${artistId}`); // Debug log
+
+            }
+        } catch (err) {
+            console.error("Error creating notification:", err);
+        }
+    };
   if (loading) {
     return <div className="text-center py-16 text-gray-600">Loading...</div>;
   }
