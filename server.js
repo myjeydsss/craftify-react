@@ -54,6 +54,35 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+//Check if user is authenticated
+const authenticateUser = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        console.error("No authorization header found");
+        return res.status(401).json({ error: "No authorization header" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        console.error("Malformed authorization header:", authHeader);
+        return res.status(401).json({ error: "Malformed authorization header" });
+    }
+
+    console.log("Authenticating token:", token);
+
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+        console.error("Token verification failed:", error || "User not found");
+        return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    console.log("Authenticated user:", data.user);
+    req.user = data.user;
+    next();
+};
 
 
 // ****** REGISTER USER ****** 
@@ -372,7 +401,7 @@ app.get("/artist-profile/:userId", async (req, res) => {
   try {
     const { data: artistData, error: artistError } = await supabase
       .from("artist")
-      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image, verification_id")
+      .select("user_id, firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image, verification_id")
       .eq("user_id", userId)
       .single();
 
@@ -2113,3 +2142,74 @@ app.get("/match-artists/:userId", async (req, res) => {
 
 
 // ***** BROWSE ARTIST MATCHING ALGORITHM END... ******
+
+// ***** MESSAGE FUNCTION *****
+// Get all conversations for a user
+app.get("/conversations/:userId", async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        // Fetch all conversations where the user is a participant
+        const { data: conversations, error: conversationsError } = await supabase
+            .from("conversations")
+            .select("*")
+            .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+
+        if (conversationsError || !conversations.length) {
+            return res.status(404).json({ error: "No conversations found." });
+        }
+
+        // Fetch the other user's details for each conversation
+        const formattedConversations = await Promise.all(
+            conversations.map(async (conversation) => {
+                const otherUserId = conversation.user1_id === userId ? conversation.user2_id : conversation.user1_id;
+
+                const { data: otherUser, error: userError } = await supabase
+                    .from("users")
+                    .select("id, username")
+                    .eq("id", otherUserId)
+                    .single();
+
+                if (userError || !otherUser) {
+                    return null;
+                }
+
+                return {
+                    conversation_id: conversation.id,
+                    other_user_id: otherUser.id,
+                    other_user_username: otherUser.username,
+                    created_at: conversation.created_at,
+                };
+            })
+        );
+
+        res.status(200).json({ conversations: formattedConversations.filter((c) => c !== null) });
+    } catch (error) {
+        console.error("Error fetching conversations:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
+
+// Get all messages in a conversation
+app.get("/messages/:conversationId", async (req, res) => {
+    const { conversationId } = req.params;
+
+    try {
+        // Fetch all messages in the conversation
+        const { data: messages, error: messagesError } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("conversation_id", conversationId)
+            .order("created_at", { ascending: true });
+
+        if (messagesError || !messages.length) {
+            return res.status(404).json({ error: "No messages found." });
+        }
+
+        res.status(200).json({ messages });
+    } catch (error) {
+        console.error("Error fetching messages:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
+// ***** MESSAGE FUNCTION END ******

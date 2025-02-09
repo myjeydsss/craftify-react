@@ -56,7 +56,7 @@ const Checkout: React.FC = () => {
             address: response.data.address || "",
           });
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching user details:", err);
         setError("Could not fetch user details. Please check your profile.");
       }

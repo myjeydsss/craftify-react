@@ -23,19 +23,24 @@ const Notification: React.FC = () => {
 
     const fetchNotificationItems = async () => {
         if (!user) return;
-    
+
         try {
             const response = await axios.get<NotificationItem[]>(
                 `${import.meta.env.VITE_API_URL}/notifications/${user.id}`
             );
             setNotificationItems(response.data);
-        } catch (err: any) {
-            if (err.response?.status === 404) {
-                // Specifically handle case of no notifications for this user
-                setNotificationItems([]);
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                if (err.response?.status === 404) {
+                    // Specifically handle case of no notifications for this user
+                    setNotificationItems([]);
+                } else {
+                    console.error("Error fetching notification items:", err);
+                    setError("Failed to fetch notification items.");
+                }
             } else {
-                console.error("Error fetching notification items:", err);
-                setError("Failed to fetch notification items.");
+                console.error("Unexpected error:", err);
+                setError("An unexpected error occurred.");
             }
         } finally {
             setLoading(false);
