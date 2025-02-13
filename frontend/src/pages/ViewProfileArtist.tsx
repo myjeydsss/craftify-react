@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthProvider"; // Import your AuthProvider
 import {
   FaMapMarkerAlt,
   FaEnvelope,
@@ -46,6 +47,7 @@ interface Artwork {
 
 const ViewProfileArtist: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
+  const { user } = useAuth(); // Get the authenticated user from AuthProvider
   const [artist, setArtist] = useState<Artist | null>(null);
   const [artistArts, setArtistArts] = useState<Artwork[]>([]);
   const [preferences, setPreferences] = useState<Preferences | null>(null);
@@ -54,6 +56,12 @@ const ViewProfileArtist: React.FC = () => {
 
   const [showAllPreferences, setShowAllPreferences] = useState<boolean>(false);
   const [artworksDisplayed, setArtworksDisplayed] = useState<number>(6);
+
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [projectName, setProjectName] = useState<string>("");
+  const [projectDescription, setProjectDescription] = useState<string>("");
+  const [budget, setBudget] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>("");
 
   useEffect(() => {
     const fetchArtistDetails = async () => {
@@ -84,6 +92,7 @@ const ViewProfileArtist: React.FC = () => {
     fetchArtistDetails();
   }, [userId]);
 
+
   const togglePreferences = () => setShowAllPreferences(!showAllPreferences);
 
   const loadMoreArtworks = () => {
@@ -97,6 +106,51 @@ const ViewProfileArtist: React.FC = () => {
     if (Array.isArray(value)) return value.length > 0;
     return value !== null && value !== undefined;
   });
+
+  const handleProposalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    if (!user) {
+      alert("You must be logged in to send a proposal.");
+      return;
+    }
+  
+    if (!artist || !artist.user_id) {
+      alert("Artist ID is missing! Please refresh the page.");
+      return;
+    }
+  
+    if (!projectName.trim() || !projectDescription.trim() || !budget.trim() || !dueDate.trim()) {
+      alert("All fields are required.");
+      return;
+    }
+  
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/send-proposal`, {
+        sender_id: user.id,
+        recipient_id: artist.user_id,
+        project_name: projectName.trim(),
+        project_description: projectDescription.trim(),
+        budget: parseFloat(budget),
+        due_date: new Date(dueDate).toISOString().split("T")[0],
+        status: "Pending",
+      });
+  
+      if (response.status === 201) {
+        alert("Proposal sent successfully!");
+        setShowModal(false);
+        setProjectName("");
+        setProjectDescription("");
+        setBudget("");
+        setDueDate("");
+      } else {
+        alert("Failed to send proposal. Please try again.");
+      }
+    } catch (err) {
+      alert("Failed to send proposal. Please check the server.");
+    }
+  };
+
 
   if (loading) return <div className="text-center mt-10">Loading...</div>;
   if (error) return <div className="text-center mt-10 text-red-500">{error}</div>;
@@ -135,8 +189,79 @@ const ViewProfileArtist: React.FC = () => {
                 <span>{artist?.phone || "Phone not available"}</span>
               </div>
             </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="mt-6 bg-orange-500 text-white px-6 py-2 rounded-lg shadow hover:bg-orange-600"
+            >
+              Send Proposal
+            </button>
           </div>
         </div>
+
+        {showModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
+      <h2 className="text-2xl font-semibold text-gray-800 mb-4">Send Proposal</h2>
+      <form onSubmit={handleProposalSubmit}>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium mb-2">Project Name</label>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium mb-2">Project Description</label>
+          <textarea
+            value={projectDescription}
+            onChange={(e) => setProjectDescription(e.target.value)}
+            className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
+            rows={4}
+            required
+          ></textarea>
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium mb-2">Budget</label>
+          <input
+            type="text"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium mb-2">Due Date</label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
+            required
+          />
+        </div>
+        <div className="flex justify-end space-x-4">
+          <button
+            type="button"
+            onClick={() => setShowModal(false)}
+            className="py-2 px-4 bg-gray-300 rounded-md shadow hover:bg-gray-400"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="py-2 px-4 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600"
+          >
+            Send
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
 
         {/* Preferences Section */}
         {hasValidPreferences && (

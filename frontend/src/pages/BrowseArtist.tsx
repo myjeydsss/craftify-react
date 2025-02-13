@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider";
 
-// TypeScript Interface
+// TypeScript Interfaces
 interface Artist {
   user_id: string;
   firstname: string;
@@ -21,12 +21,27 @@ interface Artist {
   status: string | null;
 }
 
+interface Match {
+  artist: {
+    id: string;
+    name: string;
+    role: string;
+    address: string | null;
+    profile_image: string | null;
+  };
+  client: {
+    id: string;
+    name: string;
+    role: string;
+    address: string | null;
+    profile_image: string | null;
+  };
+}
+
 const BrowseArtist: React.FC = () => {
   const { user } = useAuth(); // Get logged-in client
   const [artists, setArtists] = useState<Artist[]>([]);
-  const [matchedArtists, setMatchedArtists] = useState<
-    { artist_name: string; client_name: string }[]
-  >([]);
+  const [matchedArtists, setMatchedArtists] = useState<Match[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [matching, setMatching] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,14 +99,12 @@ const BrowseArtist: React.FC = () => {
       setError("User is not authenticated or missing user ID.");
       return;
     }
-  
+
     setMatching(true);
     setModalOpen(true);
-  
+
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/match-artists/${user.id}`
-      );
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/match-artists/${user.id}`);
       setMatchedArtists(response.data.matches || []);
     } catch (err: any) {
       console.error("Error fetching matched artists:", err);
@@ -136,56 +149,138 @@ const BrowseArtist: React.FC = () => {
 
         {/* Artists Grid */}
         {currentItems.length > 0 ? (
-          <Masonry breakpointCols={{ default: 4, 1100: 3, 700: 2, 500: 1 }} className="my-masonry-grid" columnClassName="my-masonry-grid_column">
-            {currentItems.map((artist) => (
-              <div key={artist.user_id} onClick={() => navigate(`/profile/artist/${artist.user_id}`)} className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 mb-6 cursor-pointer">
-                <div className="relative">
-                  {artist.profile_image ? (
-                    <img src={artist.profile_image} alt={`${artist.firstname} ${artist.lastname}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex items-center justify-center h-full bg-gray-100">
-                      <FaUserCircle className="text-gray-300 w-20 h-20" />
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="text-xl font-semibold text-gray-900">{artist.firstname} {artist.lastname}</h3>
-                  <p className="text-gray-600 italic text-sm mb-2">{artist.bio || "No bio available"}</p>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <FaMapMarkerAlt className="text-gray-500" />
-                    <p className="text-gray-700 text-sm">{artist.address || "No address available"}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </Masonry>
-        ) : (
-          <div className="text-center mt-12">
-            <p className="text-gray-600">No artists found. Try adjusting your search.</p>
+  <Masonry
+    breakpointCols={{ default: 4, 1100: 3, 700: 2, 500: 1 }}
+    className="my-masonry-grid"
+    columnClassName="my-masonry-grid_column"
+  >
+    {currentItems.map((artist) => (
+      <div
+        key={artist.user_id}
+        onClick={() => navigate(`/profile/artist/${artist.user_id}`)}
+        className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 mb-6 cursor-pointer"
+      >
+        <div className="relative">
+          {artist.profile_image ? (
+            <img
+              src={artist.profile_image}
+              alt={`${artist.firstname} ${artist.lastname}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full bg-gray-100">
+              <FaUserCircle className="text-gray-300 w-20 h-20" />
+            </div>
+          )}
+        </div>
+        <div className="p-4">
+          <h3 className="text-xl font-semibold text-gray-900">
+            {artist.firstname} {artist.lastname}
+          </h3>
+          <p className="text-gray-600 italic text-sm mb-2">
+            {artist.bio || "No bio available"}
+          </p>
+          <div className="flex items-center space-x-2 mb-1">
+            <FaMapMarkerAlt className="text-gray-500" />
+            <p className="text-gray-700 text-sm">
+              {artist.address || "No address available"}
+            </p>
           </div>
-        )}
+          {artist.status === "approved" && (
+            <div className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded mt-1">
+              I.D. Verified
+            </div>
+          )}
+        </div>
+      </div>
+    ))}
+  </Masonry>
+) : (
+  <div className="text-center mt-12">
+    <p className="text-gray-600">No artists found. Try adjusting your search.</p>
+  </div>
+)}
 
-        {/* Matching Modal */}
-        {modalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-              <h2 className="text-xl font-bold mb-4">Best Matches</h2>
-              {matching ? (
-                <p>Finding the best matches...</p>
-              ) : matchedArtists.length > 0 ? (
-                matchedArtists.map((match, index) => (
-                  <p key={index} className="border-b py-2">{`${match.artist_name} matched with ${match.client_name}`}</p>
-                ))
+{/* Matching Modal */}
+{modalOpen && (
+  <div
+    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+    onClick={() => setModalOpen(false)} // Close modal when clicking outside
+  >
+    <div
+      className="bg-white p-8 rounded-lg shadow-lg max-w-4xl w-full relative"
+      onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking inside
+    >
+      <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-800">
+        Best Match Found
+      </h2>
+      {matching ? (
+        <p className="text-center text-lg text-gray-600">Finding the best matches...</p>
+      ) : matchedArtists.length > 0 ? (
+        matchedArtists.map((match, index) => (
+          <div key={index} className="flex justify-between items-center mb-6">
+            {/* Client Section */}
+            <div className="flex flex-col items-center w-1/2 text-center">
+              {match.client.profile_image ? (
+                <img
+                  src={match.client.profile_image}
+                  alt={match.client.name}
+                  className="w-48 h-48 rounded-full object-cover shadow-lg"
+                />
               ) : (
-                <p>No matches found.</p>
+                <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
+                  <FaUserCircle className="text-gray-300 w-28 h-28" />
+                </div>
               )}
-              <button onClick={() => setModalOpen(false)} className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition">
-                Close
-              </button>
+              <h3 className="text-2xl font-bold text-gray-800 mt-4">{match.client.name}</h3>
+              <p className="text-lg text-gray-500 mt-1">{match.client.role}</p>
+              <p className="text-gray-600 text-sm mt-1">
+                {match.client.address || "No address provided"}
+              </p>
+            </div>
+            <div className="w-1 h-48 bg-gray-200 mx-8" />
+            {/* Artist Section */}
+            <div className="flex flex-col items-center w-1/2 text-center">
+              {match.artist.profile_image ? (
+                <img
+                  src={match.artist.profile_image}
+                  alt={match.artist.name}
+                  className="w-48 h-48 rounded-full object-cover shadow-lg"
+                />
+              ) : (
+                <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
+                  <FaUserCircle className="text-gray-300 w-28 h-28" />
+                </div>
+              )}
+              <h3 className="text-2xl font-bold text-gray-800 mt-4">{match.artist.name}</h3>
+              <p className="text-lg text-gray-500 mt-1">{match.artist.role}</p>
+              <p className="text-gray-600 text-sm mt-1">
+                {match.artist.address || "No address provided"}
+              </p>
             </div>
           </div>
-        )}
-
+        ))
+      ) : (
+        <p className="text-center text-lg text-gray-600">No matches found.</p>
+      )}
+      {/* Centered View Profile Button */}
+      {matchedArtists.length > 0 && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={() =>
+              navigate(
+                `/profile/artist/${matchedArtists[0]?.artist.id || "Unknown"}`
+              )
+            }
+            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          >
+            View Artist Profile
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+)}
         {/* Pagination Controls */}
         <div className="flex justify-between items-center py-4 mt-4">
           <p className="text-gray-600">
@@ -193,7 +288,13 @@ const BrowseArtist: React.FC = () => {
           </p>
           <div className="flex items-center space-x-2">
             {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i + 1} onClick={() => handlePageChange(i + 1)} className={`px-3 py-1 border ${currentPage === i + 1 ? "bg-gray-300" : "bg-white"} rounded-md`}>
+              <button
+                key={i + 1}
+                onClick={() => handlePageChange(i + 1)}
+                className={`px-3 py-1 border ${
+                  currentPage === i + 1 ? "bg-gray-300" : "bg-white"
+                } rounded-md`}
+              >
                 {i + 1}
               </button>
             ))}

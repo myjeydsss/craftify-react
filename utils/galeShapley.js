@@ -8,7 +8,7 @@ function galeShapley(clients, artists) {
   artists.forEach((artist) => {
     artistPreferences[artist.user_id] = {};
 
-    if (artist.preferences && Array.isArray(artist.preferences)) { // ✅ Fix: Ensure preferences exist
+    if (artist.preferences && Array.isArray(artist.preferences)) {
       artist.preferences.forEach((clientId, rank) => {
         artistPreferences[artist.user_id][clientId] = rank;
       });

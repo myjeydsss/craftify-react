@@ -29,6 +29,9 @@ import ViewProfileArtist from "./pages/ViewProfileArtist";
 import ClientProfile from "./pages/client/ClientProfile";
 import BrowseClient from "./pages/BrowseClient";
 import ViewProfileClient from "./pages/ViewProfileClient";
+import Community from "./pages/Community";
+import ArtistProject from "./pages/artist/ArtistProject";
+import ClientProject from "./pages/client/ClientProject";
 
 const App = () => {
   
@@ -57,6 +60,8 @@ const App = () => {
                         <Route path="/artist-arts" element={<MyArts />} />
                         <Route path="/artist-post-arts" element={<PostArts />} />
                         <Route path="/edit-art/:artId" element={<EditArtPage />} />
+                        <Route path="/artist-track-project" element={<ArtistProject />} />
+
 
 
                     {/* Admin routes */}
@@ -70,6 +75,8 @@ const App = () => {
                         <Route path="/client-dashboard" element={<ClientDashboard />} />
                         <Route path="/client-profile" element={<ClientProfile />} />
                         <Route path="/edit-client-profile" element={<EditClientProfile />} />
+                        <Route path="/client-project-page" element={<ClientProject />} />
+
 
 
                     {/* Other routes */}
@@ -81,18 +88,12 @@ const App = () => {
                     <Route path="/browse-clients" element={<BrowseClient />} />
                     <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
 
-
- 
+                    <Route path="/community" element={<Community />} />
 
                     {/* Payment routes */}
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/checkout" element={<Checkout />} />
                     
-
-
-
-
-
 
 
                     </Route>
