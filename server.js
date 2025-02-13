@@ -1737,53 +1737,22 @@ app.post("/cart", async (req, res) => {
 });
 
 // Remove item from cart
-app.delete("/cart/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const { artIds } = req.body; // Expecting an array of artIds in the request body
-
-  if (!Array.isArray(artIds) || artIds.length === 0) {
-    return res.status(400).json({ error: "Art IDs are required." });
-  }
+app.delete("/cart/:userId/:artId", async (req, res) => {
+  const { userId, artId } = req.params;
 
   try {
     const { error } = await supabase
       .from("cart")
       .delete()
       .eq("user_id", userId)
-      .in("art_id", artIds);
+      .eq("art_id", artId);
 
-    if (error) {
-      console.error("Error clearing selected items from cart:", error);
-      return res.status(500).json({ error: "Failed to clear selected items from cart." });
-    }
+    if (error) return res.status(400).json({ error: error.message });
 
-    res.status(200).json({ message: "Selected items cleared from cart successfully." });
+    res.status(200).json({ message: "Item removed from cart" });
   } catch (err) {
-    console.error("Unexpected error clearing selected items from cart:", err);
-    res.status(500).json({ error: "Server error while clearing selected items from cart." });
-  }
-});
-
-// Remove all items from cart
-app.delete("/cart/:userId/all", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    // Delete all cart items for the user
-    const { error } = await supabase
-      .from("cart")
-      .delete()
-      .eq("user_id", userId);
-
-    if (error) {
-      console.error("Error clearing cart:", error);
-      return res.status(500).json({ error: "Failed to clear cart." });
-    }
-
-    res.status(200).json({ message: "Cart cleared successfully." });
-  } catch (err) {
-    console.error("Unexpected error clearing cart:", err);
-    res.status(500).json({ error: "Server error while clearing cart." });
+    console.error("Error removing item from cart:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 // ****** NAVBAR CART FUNCTION END... ****** CURRENTLY WORKING
@@ -1928,7 +1897,6 @@ app.post('/create-checkout-session', async (req, res) => {
         }
     }
 });
-
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
@@ -2846,3 +2814,75 @@ app.get('/api/projects/:projectId/details', async (req, res) => {
 });
 
 // ****** PROJECT MANAGEMENT ENDPOINT END... ******
+
+
+// ***** MESSAGE FUNCTION *****
+// Get all conversations for a user
+app.get("/conversations/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+      // Fetch all conversations where the user is a participant
+      const { data: conversations, error: conversationsError } = await supabase
+          .from("conversations")
+          .select("*")
+          .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+
+      if (conversationsError || !conversations.length) {
+          return res.status(404).json({ error: "No conversations found." });
+      }
+
+      // Fetch the other user's details for each conversation
+      const formattedConversations = await Promise.all(
+          conversations.map(async (conversation) => {
+              const otherUserId = conversation.user1_id === userId ? conversation.user2_id : conversation.user1_id;
+
+              const { data: otherUser, error: userError } = await supabase
+                  .from("users")
+                  .select("id, username")
+                  .eq("id", otherUserId)
+                  .single();
+
+              if (userError || !otherUser) {
+                  return null;
+              }
+
+              return {
+                  conversation_id: conversation.id,
+                  other_user_id: otherUser.id,
+                  other_user_username: otherUser.username,
+                  created_at: conversation.created_at,
+              };
+          })
+      );
+
+      res.status(200).json({ conversations: formattedConversations.filter((c) => c !== null) });
+  } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// Get all messages in a conversation
+app.get("/messages/:conversationId", async (req, res) => {
+  const { conversationId } = req.params;
+
+  try {
+      // Fetch all messages in the conversation
+      const { data: messages, error: messagesError } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("conversation_id", conversationId)
+          .order("created_at", { ascending: true });
+
+      if (messagesError || !messages.length) {
+          return res.status(404).json({ error: "No messages found." });
+      }
+
+      res.status(200).json({ messages });
+  } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ error: "Internal server error." });
+  }
+});
+// ***** MESSAGE FUNCTION END ******

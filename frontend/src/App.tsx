@@ -23,6 +23,7 @@ import ArtsTable from "./pages/admin/ArtsTable";
 import BrowseArtist from "./pages/BrowseArtist";
 import BrowseArts from "./pages/BrowseArts";
 import ArtDetail from "./pages/ArtDetail";
+import Notification from "./pages/Notification";
 import Cart from "./pages/payment order/Cart";
 import Checkout from "./pages/payment order/Checkout";
 import ViewProfileArtist from "./pages/ViewProfileArtist";
@@ -32,6 +33,9 @@ import ViewProfileClient from "./pages/ViewProfileClient";
 import Community from "./pages/Community";
 import ArtistProject from "./pages/artist/ArtistProject";
 import ClientProject from "./pages/client/ClientProject";
+
+import Messages from "./pages/Messages";
+import MessagePopup from "./pages/MessagePopup";
 
 const App = () => {
   
@@ -89,6 +93,15 @@ const App = () => {
                     <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
 
                     <Route path="/community" element={<Community />} />
+                    {/* Notification routes */}
+                    <Route path="/notifications" element={<Notification />} />
+
+                    {/* Message routes */}
+                    <Route path="/messages" element={<Messages />} />
+                    <Route path="/message-popup" element={<MessagePopup onClose={function (): void {
+                            throw new Error("Function not implemented.");
+                        } } sender_id={""} receiver_id={""} />} />
+ 
 
                     {/* Payment routes */}
                     <Route path="/cart" element={<Cart />} />
