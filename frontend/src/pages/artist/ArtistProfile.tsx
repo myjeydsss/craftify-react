@@ -109,9 +109,9 @@ const ArtistProfile: React.FC = () => {
           })
         );
         setWishlist(wishlistItems);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching artist data:", err);
-        setError(err.response?.data?.error || "Failed to fetch artist data.");
+        setError((err as { response?: { data?: { error?: string } } }).response?.data?.error || "Failed to fetch artist data.");
       } finally {
         setLoading(false);
       }

@@ -23,12 +23,15 @@ import ArtsTable from "./pages/admin/ArtsTable";
 import BrowseArtist from "./pages/BrowseArtist";
 import BrowseArts from "./pages/BrowseArts";
 import ArtDetail from "./pages/ArtDetail";
+import Notification from "./pages/Notification";
 import Cart from "./pages/payment order/Cart";
 import Checkout from "./pages/payment order/Checkout";
 import ViewProfileArtist from "./pages/ViewProfileArtist";
 import ClientProfile from "./pages/client/ClientProfile";
 import BrowseClient from "./pages/BrowseClient";
 import ViewProfileClient from "./pages/ViewProfileClient";
+import Messages from "./pages/Messages";
+import MessagePopup from "./pages/MessagePopup";
 
 const App = () => {
   
@@ -81,7 +84,12 @@ const App = () => {
                     <Route path="/browse-clients" element={<BrowseClient />} />
                     <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
 
+                    {/* Notification routes */}
+                    <Route path="/notifications" element={<Notification />} />
 
+                    {/* Message routes */}
+                    <Route path="/messages" element={<Messages />} />
+                    <Route path="/message-popup" element={<MessagePopup />} />
  
 
                     {/* Payment routes */}

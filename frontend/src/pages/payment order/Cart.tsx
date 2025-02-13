@@ -8,7 +8,8 @@ interface CartItem {
   id: string;
   art_id: string;
   quantity: number;
-  arts: {
+    arts: {
+    user_id: string;
     title: string;
     image_url: string;
     price: string;
