@@ -78,6 +78,55 @@ const Checkout: React.FC = () => {
     return subtotal + tax;
   };
 
+  const clearCart = async (artIds: string[]) => {
+    try {
+      console.log('Clearing cart for user:', user?.id, 'with artIds:', artIds); // Debug log
+      
+      await axios.delete(`${import.meta.env.VITE_API_URL}/cart/${user?.id}`, {
+        data: { artIds },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Cart cleared successfully'); // Debug log
+    } catch (err) {
+      console.error("Error clearing cart:",err);
+    }
+  };
+  
+  const handlePayment = async () => {
+    try {
+      const totalAmount = calculateTotalPrice() * 100; // Convert to cents
+      
+      // First verify we have items to process
+      if (!cartItems.length) {
+        setError('No items in cart');
+        return;
+      }
+      
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
+        amount: totalAmount,
+        currency: 'PHP',
+        description: 'Purchase from Craftify',
+        email: user?.email,
+        name: user?.email
+      });
+  
+      const checkoutUrl = response.data;
+      
+      // Clear cart before opening payment window
+      const artIds = cartItems.map(item => item.art_id);
+      await clearCart(artIds);
+      
+      window.location.href = checkoutUrl; 
+  
+    } catch (error) {
+      console.error('Error during checkout:',error);
+      setError('Failed to process checkout. Please try again.');
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-16 text-gray-600">Loading...</div>;
   }
@@ -99,32 +148,6 @@ const Checkout: React.FC = () => {
       </div>
     );
   }
-
-  // Payment Handle 
-  const handlePayment = async () => {
-    try {
-      const totalAmount = calculateTotalPrice() * 100; // Convert to cents
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
-        amount: totalAmount,
-        currency: 'PHP',
-        description: 'Purchase from Craftify', // Update with your description
-        email: 'test@email.com', // Replace with actual customer email
-        name: 'testname' // Replace with actual customer name
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const checkoutUrl = response.data;
-
-      // Redirect to PayMongo checkout page
-      window.location.href = checkoutUrl;
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      setError('Failed to initiate payment. Please try again.');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-16">

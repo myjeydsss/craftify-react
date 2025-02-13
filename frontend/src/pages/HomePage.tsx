@@ -1,12 +1,12 @@
 import React from "react";
 
-import heroImage1 from "../assets/hero1.png";
-import heroImage2 from "../assets/hero2.png";
-import heroImage3 from "../assets/hero3.png";
+import art1 from "../assets/artwork-1.png";
+import art2 from "../assets/artwork-2.png";
+import art3 from "../assets/artwork-3.png";
 import portrait from "../assets/MATCH.png";
-import heroImage4 from "../assets/hero4.png";
-import heroImage5 from "../assets/hero5.png";
-import heroImage6 from "../assets/hero6.png";
+import art4 from "../assets/artwork-4.png";
+import art5 from "../assets/artwork-5.png";
+import art6 from "../assets/artwork-6.png";
 import heroImage7 from "../assets/hero7.png";
 import heroImage8 from "../assets/hero8.png";
 import heroImage9 from "../assets/hero9.png";
@@ -53,7 +53,7 @@ const HomePage: React.FC = () => {
         {/* Hero Section */}
         <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500">
           <div className="flex justify-center space-x-4 mb-8">
-            {[heroImage1, heroImage2, heroImage3].map((image, index) => (
+            {[art1, art2, art3].map((image, index) => (
               <img
                 key={index}
                 src={image}
@@ -113,7 +113,7 @@ const HomePage: React.FC = () => {
             <span className="text-orange-600">ART OF YOUR CHOICE</span>
           </h1>
           <div className="flex justify-center space-x-6">
-            {[heroImage4, heroImage5, heroImage6].map((image, index) => (
+            {[art4, art5, art6].map((image, index) => (
               <img
                 key={index}
                 src={image}

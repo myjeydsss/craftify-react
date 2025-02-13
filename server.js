@@ -1737,22 +1737,53 @@ app.post("/cart", async (req, res) => {
 });
 
 // Remove item from cart
-app.delete("/cart/:userId/:artId", async (req, res) => {
-  const { userId, artId } = req.params;
+app.delete("/cart/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { artIds } = req.body; // Expecting an array of artIds in the request body
+
+  if (!Array.isArray(artIds) || artIds.length === 0) {
+    return res.status(400).json({ error: "Art IDs are required." });
+  }
 
   try {
     const { error } = await supabase
       .from("cart")
       .delete()
       .eq("user_id", userId)
-      .eq("art_id", artId);
+      .in("art_id", artIds);
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (error) {
+      console.error("Error clearing selected items from cart:", error);
+      return res.status(500).json({ error: "Failed to clear selected items from cart." });
+    }
 
-    res.status(200).json({ message: "Item removed from cart" });
+    res.status(200).json({ message: "Selected items cleared from cart successfully." });
   } catch (err) {
-    console.error("Error removing item from cart:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Unexpected error clearing selected items from cart:", err);
+    res.status(500).json({ error: "Server error while clearing selected items from cart." });
+  }
+});
+
+// Remove all items from cart
+app.delete("/cart/:userId/all", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Delete all cart items for the user
+    const { error } = await supabase
+      .from("cart")
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error clearing cart:", error);
+      return res.status(500).json({ error: "Failed to clear cart." });
+    }
+
+    res.status(200).json({ message: "Cart cleared successfully." });
+  } catch (err) {
+    console.error("Unexpected error clearing cart:", err);
+    res.status(500).json({ error: "Server error while clearing cart." });
   }
 });
 // ****** NAVBAR CART FUNCTION END... ****** CURRENTLY WORKING
@@ -1897,6 +1928,7 @@ app.post('/create-checkout-session', async (req, res) => {
         }
     }
 });
+
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
