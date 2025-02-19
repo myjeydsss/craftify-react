@@ -11,7 +11,7 @@ import {
   FaTrash,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
-
+import MessagePopup from '../MessagePopup'; // Import the MessagePopup component
 
 interface ClientProfileData {
   firstname: string;

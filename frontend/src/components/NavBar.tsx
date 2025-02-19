@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FaUser, FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell, FaEnvelope } from "react-icons/fa";
+import { FaUser, FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell, FaEnvelope, FaHistory } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthProvider";
 import axios from "axios";
@@ -150,6 +150,9 @@ const NavBar: React.FC = () => {
                   )}
                 </Link>
               )}
+              <Link to="/transaction-history" className="relative text-black px-3 hover:text-gray-700">
+                <FaHistory size={20} />
+              </Link>
               <Link to="/messages" className="text-black hover:text-gray-700">
                 <FaEnvelope size={20} />
                 {/* Add notification badge if needed */}

@@ -10,6 +10,7 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
+import MessagePopup from './MessagePopup'; // Import the MessagePopup component
 
 interface Artist {
   user_id: string;
@@ -62,6 +63,8 @@ const ViewProfileArtist: React.FC = () => {
   const [projectDescription, setProjectDescription] = useState<string>("");
   const [budget, setBudget] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
+
+  const [isMessagePopupOpen, setIsMessagePopupOpen] = useState(false);
 
   useEffect(() => {
     const fetchArtistDetails = async () => {
@@ -195,6 +198,12 @@ const ViewProfileArtist: React.FC = () => {
             >
               Send Proposal
             </button>
+            <button
+                onClick={() => setIsMessagePopupOpen(true)}
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600"
+              >
+                Send Message
+              </button>
           </div>
         </div>
 

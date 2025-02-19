@@ -37,6 +37,8 @@ import ClientProject from "./pages/client/ClientProject";
 import Messages from "./pages/Messages";
 import MessagePopup from "./pages/MessagePopup";
 
+import TransactionHistory from "./pages/TransactionHistory";
+
 const App = () => {
   
     return (
@@ -106,6 +108,9 @@ const App = () => {
                     {/* Payment routes */}
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/checkout" element={<Checkout />} />
+
+                    {/* Transaction history */}
+                    <Route path="/transaction-history" element={<TransactionHistory />} />
                     
 
 
