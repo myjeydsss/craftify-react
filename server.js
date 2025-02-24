@@ -2886,3 +2886,50 @@ app.get("/messages/:conversationId", async (req, res) => {
   }
 });
 // ***** MESSAGE FUNCTION END ******
+
+//***** TRANSACTION FUNCTION ******/
+
+app.get("/orders/:userId", async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        console.log("Fetching orders for userId:", userId); // Log the userId
+
+        const { data: orders, error } = await supabase
+            .from("orders")
+            .select(`
+                id,
+                created_at,
+                amount,
+                status,
+                description
+            `)
+            .eq("user_id", userId);
+
+        if (error) {
+            console.error("Error fetching orders:", error);
+            return res.status(400).json({ error: "Failed to fetch orders." });
+        }
+
+        console.log("Orders fetched:", orders); // Log the fetched orders
+
+        // Check if orders are empty and log a message
+        if (orders.length === 0) {
+            console.warn(`No orders found for userId: ${userId}`);
+        }
+
+        // Format the orders data
+        const formattedOrders = orders.map(order => ({
+            id: order.id,
+            date: order.created_at,
+            amount: order.amount,
+            status: order.status,
+            description: order.description,
+        }));
+
+        res.status(200).json(formattedOrders);
+    } catch (err) {
+        console.error("Unexpected error fetching orders:", err);
+        res.status(500).json({ error: "Failed to fetch orders." });
+    }
+});
