@@ -104,6 +104,33 @@ app.post("/register", async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred. Please try again." });
   }
 });
+
+// Check if email is already registered
+app.get("/check-email", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+      // Check in the users table (or the appropriate table)
+      const { data, error } = await supabase
+          .from("users") // Replace with your actual user table
+          .select("email")
+          .eq("email", email);
+
+      if (error) {
+          return res.status(500).json({ error: "Error checking email." });
+      }
+
+      const emailExists = data.length > 0;
+      res.status(200).json({ exists: emailExists });
+  } catch (err) {
+      console.error("Unexpected error:", err);
+      res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
 // ****** REGISTER USER END... ****** 
 
 // ****** LOGIN USER ****** 

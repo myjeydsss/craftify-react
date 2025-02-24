@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios"; // To make HTTP requests
-import { FaSpinner, FaUser, FaPaintBrush } from "react-icons/fa"; // Icons for Client and Artist
+import { FaSpinner, FaUser , FaPaintBrush } from "react-icons/fa"; // Icons for Client and Artist
 import Swal from "sweetalert2"; // Import SweetAlert2
 
 const Register: React.FC = () => {
@@ -49,8 +49,20 @@ const Register: React.FC = () => {
     try {
       setLoading(true);
 
-      // Dynamically use the backend URL
+      // Check if the email is already registered
       const API_BASE_URL = import.meta.env.VITE_API_URL; 
+      const emailCheckResponse = await axios.get(`${API_BASE_URL}/check-email`, {
+        params: { email: emailRef.current.value }
+      });
+
+      if (emailCheckResponse.data.exists) {
+        Swal.fire({
+          icon: "error",
+          title: "Email already in use!",
+          text: "This email is already registered. Please use a different email.",
+        });
+        return;
+      }
 
       // API call to your backend
       await axios.post(`${API_BASE_URL}/register`, {
@@ -183,7 +195,7 @@ const Register: React.FC = () => {
                   role === "Client" ? "border-red-500 bg-red-50" : "border-gray-150"
                 }`}
               >
-                <FaUser className="text-4xl text-blue-500 mx-auto mb-2" />
+                <FaUser  className="text-4xl text-blue-500 mx-auto mb-2" />
                 <span className="block font-semibold text-gray-700">Client</span>
               </div>
 
