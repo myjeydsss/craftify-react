@@ -1885,7 +1885,7 @@ app.post('/create-checkout-session', async (req, res) => {
 
     try {
         const response = await axios.post(
-            'https://api.paymongo.com/v1/checkout_sessions',
+            `${process.env.VITE_PAYMONGO_URL}/checkout_sessions`,
             {
                 data: {
                     attributes: {
@@ -1927,6 +1927,37 @@ app.post('/create-checkout-session', async (req, res) => {
         }
     }
 });
+
+//Put the order in the database table orders
+app.post("/order", async (req, res) => {
+    const { user_id, status, user_email, user_name, amount, description, payment_intent_id, checkout_url } = req.body;
+
+    try {
+        const { data, error } = await supabase.from("orders").insert([
+            {
+                user_id,
+                status,
+                user_email,
+                user_name,
+                amount,
+                description,
+                payment_intent_id,
+                checkout_url,
+            },
+        ]).single();
+
+        if (error) {
+            console.error("Error inserting order:", error.message);
+            return res.status(500).json({ error: "Failed to place order." });
+        }
+
+        res.status(201).json({ message: "Order placed successfully.", order: data });
+    } catch (error) {
+        console.error("Error processing order:", error);
+        res.status(500).json({ error: "Failed to process order." });
+    }
+});
+
 
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
@@ -2952,7 +2983,7 @@ app.get("/orders/:userId", async (req, res) => {
         const formattedOrders = orders.map(order => ({
             id: order.id,
             date: order.created_at,
-            amount: order.amount,
+            amount: order.amount / 100, // Format amount to 2 decimal places
             status: order.status,
             description: order.description,
         }));
