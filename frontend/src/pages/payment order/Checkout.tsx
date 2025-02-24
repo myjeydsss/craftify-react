@@ -97,40 +97,51 @@ const Checkout: React.FC = () => {
   };
 
   
-  const handlePayment = async () => {
-    try {
-      const totalAmount = calculateTotalPrice() * 100; // Convert to cents
-      
-      // First verify we have items to process
-      if (!cartItems.length) {
-        setError('No items in cart');
-        return;
-      }
-      
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
-        amount: totalAmount,
-        currency: 'PHP',
-        description: 'Purchase from Craftify',
-        email: user?.email,
-        name: user?.email
-      });
-  
-      const checkoutUrl = response.data;
+    const handlePayment = async () => {
+        try {
+            const totalAmount = calculateTotalPrice() * 100; // Convert to cents
 
-        //Notify user and artist
-      await handleNotification();
-      // Clear cart before opening payment window
-      const artIds = cartItems.map(item => item.art_id);
-      await clearCart(artIds);
-      
-      window.location.href = checkoutUrl; 
-  
-    } catch (error) {
-      console.error('Error during checkout:',error);
-      setError('Failed to process checkout. Please try again.');
-    }
-  };
+            if (!cartItems.length) {
+                setError('No items in cart');
+                return;
+            }
 
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
+                amount: totalAmount,
+                currency: 'PHP',
+                description: 'Purchase from Craftify',
+                email: user?.email,
+                name: user?.email
+            });
+
+            const checkoutUrl = response.data;
+
+            await axios.post(`${import.meta.env.VITE_API_URL}/order`, {
+                user_id: user?.id,
+                status: 'pending',
+                user_email: user?.email,
+                user_name: user?.email,
+                amount: totalAmount,
+                description: 'Purchase from Craftify',
+                payment_intent_id: response.data.payment_intent_id,
+                checkout_url: checkoutUrl,
+            });
+
+            // Step 3: Notify user and artist
+            await handleNotification();
+
+            // Step 4: Clear cart before opening payment window
+            const artIds = cartItems.map(item => item.art_id);
+            await clearCart(artIds);
+
+            // Redirect user to payment page
+            window.location.href = checkoutUrl;
+
+        } catch (error) {
+            console.error('Error during checkout:', error);
+            setError('Failed to process checkout. Please try again.');
+        }
+    };
     const handleArtistNotification = async (artistId: string) => {
         try {
             await axios.post(`${import.meta.env.VITE_API_URL}/notifications`, {
