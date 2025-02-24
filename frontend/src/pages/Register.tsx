@@ -50,7 +50,7 @@ const Register: React.FC = () => {
       setLoading(true);
 
       // Dynamically use the backend URL
-      const API_BASE_URL = process.env.REACT_APP_API_URL; 
+      const API_BASE_URL = import.meta.env.VITE_API_URL; 
 
       // API call to your backend
       await axios.post(`${API_BASE_URL}/register`, {

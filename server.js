@@ -70,12 +70,13 @@ app.post("/register", async (req, res) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
+      console.error("Supabase Auth Error:", error.message); // Log the error for debugging
       return res.status(400).json({ error: error.message });
     }
 
     const user = data.user;
     if (!user) {
-      return res.status(400).json({ error: "User registration failed." });
+      return res.status(400).json({ error: "User  registration failed." });
     }
 
     // Determine the table based on the role
@@ -93,12 +94,14 @@ app.post("/register", async (req, res) => {
     });
 
     if (insertError) {
+      console.error("Database Insert Error:", insertError.message); // Log the error for debugging
       return res.status(500).json({ error: insertError.message });
     }
 
-    res.status(201).json({ message: "User registered successfully!" });
+    res.status(201).json({ message: "User  registered successfully!" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Unexpected Error:", err.message); // Log the error for debugging
+    res.status(500).json({ error: "An unexpected error occurred. Please try again." });
   }
 });
 // ****** REGISTER USER END... ****** 
