@@ -2933,3 +2933,328 @@ app.get("/orders/:userId", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch orders." });
     }
 });
+
+// ****** COLLABORATIVE FILTERING ENDPOINT ******
+app.get("/recommend-clients/:userId", async (req, res) => {
+  const { userId } = req.params; // This is the ID of the client being visited
+  const visitorId = req.query.visitorId; // Get the visitor's ID from the query parameters
+
+  const CLIENT_CDN_URL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
+
+  try {
+    // Fetch the user's likes, comments, and visits
+    const [likes, comments, visits] = await Promise.all([
+      supabase.from("community_likes").select("post_id").eq("user_id", userId),
+      supabase.from("community_comments").select("post_id").eq("user_id", userId),
+      supabase.from("profile_visits").select("visited_id").eq("visitor_id", visitorId) // Fetch visited profiles with IDs
+    ]);
+
+    // Log the fetched data for debugging
+    console.log("Fetching visits for userId:", userId); // Log the userId being used
+    console.log("Fetched visits:", visits.data); // Log the fetched visits
+
+    // Check if visits.data is null or undefined
+    if (!visits.data) {
+      console.warn("No visits found for visitorId:", visitorId);
+      return res.status(200).json([]); // Return an empty array if no visits are found
+    }
+
+    // Extract post IDs from the fetched data
+    const postIds = [...new Set([
+      ...likes.data.map(item => item.post_id),
+      ...comments.data.map(item => item.post_id),
+    ])];
+
+    // Extract visited client IDs
+    const visitedClientIds = visits.data.map(item => item.visited_id);
+
+    console.log("Post IDs:", postIds); // Log post IDs
+    console.log("Visited Client IDs:", visitedClientIds); // Log visited client IDs
+
+    // If no interactions, return an empty array
+    if (postIds.length === 0 && visitedClientIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // Fetch clients who have liked or commented on the same posts
+    const { data: recommendedClientsLikes, error: likesError } = await supabase
+      .from("community_likes")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId); // Exclude the current user
+
+    const { data: recommendedClientsComments, error: commentsError } = await supabase
+      .from("community_comments")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId); // Exclude the current user
+
+    if (likesError || commentsError) {
+      console.error("Error fetching recommended clients:", likesError || commentsError);
+      return res.status(500).json({ error: "Failed to fetch recommendations." });
+    }
+
+    // Combine the results from likes, comments, and visits
+    const allRecommendedClients = [
+      ...recommendedClientsLikes,
+      ...recommendedClientsComments,
+      ...visitedClientIds.map(visitedId => ({ user_id: visitedId })) // Include visited clients
+    ];
+
+    // Get unique user IDs from the recommendations
+    const uniqueClientIds = [...new Set(allRecommendedClients.map(client => client.user_id))];
+
+    // Fetch client details for the recommended clients
+    const { data: clientsDetails, error: clientsError } = await supabase
+      .from("client")
+      .select("*")
+      .in("user_id", uniqueClientIds);
+
+    if (clientsError) {
+      console.error("Error fetching client details:", clientsError);
+      return res.status(500).json({ error: "Failed to fetch client details." });
+    }
+
+    // If no recommendations found, return an empty array
+    if (clientsDetails.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // Add CDN URL to clients' profile images
+    const processedClientsDetails = clientsDetails.map(client => ({
+      ...client,
+      profile_image: client.profile_image
+        ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
+        : null,
+    }));
+
+    // Count visit frequencies for each client
+    const visitCounts = visits.data.reduce((acc, visit) => {
+      acc[visit.visited_id] = (acc[visit.visited_id] || 0) + 1; // Increment the count for each visited client
+      return acc;
+    }, {});
+
+    // Add visit counts to processed clients
+    const clientsWithCounts = processedClientsDetails.map(client => ({
+      ...client,
+      visit_count: visitCounts[client.user_id] || 0 // Add visit count
+    }));
+
+    // Filter out the currently visited client from the recommendations
+    const filteredClientsDetails = clientsWithCounts.filter(client => 
+      client.user_id !== userId // Exclude the currently visited client
+    );
+
+    // Sort clients by visit count in descending order
+    filteredClientsDetails.sort((a, b) => b.visit_count - a.visit_count);
+
+    // Return the filtered and sorted recommended clients directly
+    res.status(200).json(filteredClientsDetails);
+  } catch (err) {
+    console.error("Unexpected error in recommendations:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+
+// visit profile endpoint
+app.post("/log-profile-visit/:userId", async (req, res) => {
+  const { userId } = req.params; // The ID of the client being visited (UUID)
+  const { visitorId } = req.body; // Get the visitor's ID from the request body (UUID)
+
+  console.log("Logging visit for userId:", userId, "by visitorId:", visitorId); // Log the IDs
+
+  if (!visitorId) {
+      return res.status(400).json({ error: "Visitor ID is required." });
+  }
+
+  try {
+      // Log the profile visit
+      const { error } = await supabase
+          .from("profile_visits")
+          .insert([{ visitor_id: visitorId, visited_id: userId, visited_at: new Date() }]); // Log the visit with timestamp
+
+      if (error) {
+          return res.status(500).json({ error: "Failed to log profile visit." });
+      }
+
+      res.status(200).json({ message: "Profile visit logged successfully." });
+  } catch (err) {
+      console.error("Error logging profile visit:", err);
+      res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+// ****** COLLABORATIVE FILTERING ENDPOINT END ******
+
+
+// ****** COLLABORATIVE FILTERING ENDPOINT ARTIST ******
+app.get("/recommend-artists/:userId", async (req, res) => {
+  const { userId } = req.params; // This is the ID of the artist being visited
+  const visitorId = req.query.visitorId; // Get the visitor's ID from the query parameters
+
+  const CDNURL_ARTIST = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+
+  
+  try {
+    // Fetch the user's likes, comments, and visits
+    const [likes, comments, visits] = await Promise.all([
+      supabase.from("community_likes").select("post_id").eq("user_id", userId),
+      supabase.from("community_comments").select("post_id").eq("user_id", userId),
+      supabase.from("profile_visits").select("visited_id").eq("visitor_id", visitorId) // Fetch visited profiles with IDs
+    ]);
+
+    // Log the fetched data for debugging
+    console.log("Fetching visits for userId:", userId); // Log the userId being used
+    console.log("Fetched visits:", visits.data); // Log the fetched visits
+
+    // Check if visits.data is null or undefined
+    if (!visits.data) {
+      console.warn("No visits found for visitorId:", visitorId);
+      return res.status(200).json([]); // Return an empty array if no visits are found
+    }
+
+    // Extract post IDs from the fetched data
+    const postIds = [...new Set([
+      ...likes.data.map(item => item.post_id),
+      ...comments.data.map(item => item.post_id),
+    ])];
+
+    // Extract visited artist IDs
+    const visitedArtistIds = visits.data.map(item => item.visited_id);
+
+    console.log("Post IDs:", postIds); // Log post IDs
+    console.log("Visited Artust IDs:", visitedArtistIds); // Log visited artist IDs
+
+    // If no interactions, return an empty array
+    if (postIds.length === 0 && visitedArtistIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // Fetch artists who have liked or commented on the same posts
+    const { data: recommendedArtistsLikes, error: likesError } = await supabase
+      .from("community_likes")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId); // Exclude the current user
+
+    const { data: recommendedArtistsComments, error: commentsError } = await supabase
+      .from("community_comments")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId); // Exclude the current user
+
+    if (likesError || commentsError) {
+      console.error("Error fetching recommended artists:", likesError || commentsError);
+      return res.status(500).json({ error: "Failed to fetch recommendations." });
+    }
+
+    // Combine the results from likes, comments, and visits
+    const allRecommendedArtists = [
+      ...recommendedArtistsLikes,
+      ...recommendedArtistsComments,
+      ...visitedArtistIds.map(visitedId => ({ user_id: visitedId })) // Include visited artists
+    ];
+
+    // Get unique user IDs from the recommendations
+    const uniqueArtistIds = [...new Set(allRecommendedArtists.map(artist => artist.user_id))];
+
+    // Fetch artist details for the recommended artists
+    const { data: artistsDetails, error: artistsError } = await supabase
+      .from("artist")
+      .select("*")
+      .in("user_id", uniqueArtistIds);
+
+    if (artistsError) {
+      console.error("Error fetching artist details:", artistsError);
+      return res.status(500).json({ error: "Failed to fetch artist details." });
+    }
+
+    // If no recommendations found, return an empty array
+    if (artistsDetails.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // Add CDN URL to artists' profile images
+    const processedArtistsDetails = artistsDetails.map(artist => ({
+      ...artist,
+      profile_image: artist.profile_image
+        ? `${CDNURL_ARTIST}${artist.user_id}/${artist.profile_image}`
+        : null,
+    }));
+
+    // Count visit frequencies for each artist
+    const visitCounts = visits.data.reduce((acc, visit) => {
+      acc[visit.visited_id] = (acc[visit.visited_id] || 0) + 1; // Increment the count for each visited artist
+      return acc;
+    }, {});
+
+    // Add visit counts to processed artists
+    const artistsWithCounts = processedArtistsDetails.map(artist => ({
+      ...artist,
+      visit_count: visitCounts[artist.user_id] || 0 // Add visit count
+    }));
+
+    // Filter out the currently visited artist from the recommendations
+    const filteredArtistsDetails = artistsWithCounts.filter(artist => 
+      artist.user_id !== userId // Exclude the currently visited artist
+    );
+
+    // Sort artists by visit count in descending order
+    filteredArtistsDetails.sort((a, b) => b.visit_count - a.visit_count);
+
+    // Return the filtered and sorted recommended artists directly
+    res.status(200).json(filteredArtistsDetails);
+  } catch (err) {
+    console.error("Unexpected error in recommendations:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+// ****** COLLABORATIVE FILTERING ENDPOINT ARTIST END ******
+
+//***** TRANSACTION FUNCTION ******/
+
+app.get("/orders/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+      console.log("Fetching orders for userId:", userId); // Log the userId
+
+      const { data: orders, error } = await supabase
+          .from("orders")
+          .select(`
+              id,
+              created_at,
+              amount,
+              status,
+              description
+          `)
+          .eq("user_id", userId);
+
+      if (error) {
+          console.error("Error fetching orders:", error);
+          return res.status(400).json({ error: "Failed to fetch orders." });
+      }
+
+      console.log("Orders fetched:", orders); // Log the fetched orders
+
+      // Check if orders are empty and log a message
+      if (orders.length === 0) {
+          console.warn(`No orders found for userId: ${userId}`);
+      }
+
+      // Format the orders data
+      const formattedOrders = orders.map(order => ({
+          id: order.id,
+          date: order.created_at,
+          amount: order.amount,
+          status: order.status,
+          description: order.description,
+      }));
+
+      res.status(200).json(formattedOrders);
+  } catch (err) {
+      console.error("Unexpected error fetching orders:", err);
+      res.status(500).json({ error: "Failed to fetch orders." });
+  }
+});
+
+//***** TRANSACTION FUNCTION END...******/

@@ -47,6 +47,7 @@ const BrowseArtist: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [search, setSearch] = useState<string>("");
+  const [userRole, setUserRole] = useState<string | null>(null); // State to hold user role
   const navigate = useNavigate();
 
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -72,6 +73,24 @@ const BrowseArtist: React.FC = () => {
     fetchArtists();
   }, []);
 
+  // Fetch user role
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user && user.id) {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/user-role/${user.id}`);
+          setUserRole(response.data.role);
+          console.log("Fetched user role:", response.data.role); // Debugging line
+        } catch (err: any) {
+          console.error("Error fetching user role:", err.message);
+          setError("Failed to fetch user role.");
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
   // Filter artists by search term
   const filteredArtists = artists.filter((artist) => {
     const searchLower = search.toLowerCase();
@@ -96,7 +115,7 @@ const BrowseArtist: React.FC = () => {
   // Fetch best matches using Gale-Shapley Algorithm
   const findMatches = async () => {
     if (!user || !user.id) {
-      setError("User is not authenticated or missing user ID.");
+      setError("User  is not authenticated or missing user ID.");
       return;
     }
 
@@ -114,6 +133,30 @@ const BrowseArtist: React.FC = () => {
       setMatching(false);
     }
   };
+
+  // Log profile visit
+  const logProfileVisit = async (artistId: string) => {
+    if (!user || !user.id) {
+        console.error("User  is not authenticated.");
+        return; // Exit the function if the user is not authenticated
+    }
+
+    console.log("Logging profile visit for artistId:", artistId); // Log the artist ID
+
+    try {
+        await axios.post(`${import.meta.env.VITE_API_URL}/log-profile-visit/${artistId}`, {
+            visitorId: user.id // Use the actual visitor ID from the logged-in user
+        });
+    } catch (error) {
+        console.error("Error logging profile visit:", error);
+    }
+};
+
+const handleArtistClick = async (artistId: string) => {
+    await logProfileVisit(artistId); // Log the visit
+    navigate(`/profile/artist/${artistId}`); // Navigate to the artist's profile
+};
+
 
   if (loading) return <div className="text-center py-16">Loading...</div>;
   if (error) return <div className="text-center text-red-500 py-16">{error}</div>;
@@ -139,148 +182,150 @@ const BrowseArtist: React.FC = () => {
             />
             <FaSearch className="absolute left-3 top-3 text-gray-500" />
           </div>
-          <button
-            onClick={findMatches}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-          >
-            Find Match
-          </button>
+          {userRole && userRole.trim().toLowerCase() !== "artist" && (
+            <button
+              onClick={findMatches}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+            >
+              Find Match
+            </button>
+          )}
         </div>
 
         {/* Artists Grid */}
         {currentItems.length > 0 ? (
-  <Masonry
-    breakpointCols={{ default: 4, 1100: 3, 700: 2, 500: 1 }}
-    className="my-masonry-grid"
-    columnClassName="my-masonry-grid_column"
-  >
-    {currentItems.map((artist) => (
-      <div
-        key={artist.user_id}
-        onClick={() => navigate(`/profile/artist/${artist.user_id}`)}
-        className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 mb-6 cursor-pointer"
-      >
-        <div className="relative">
-          {artist.profile_image ? (
-            <img
-              src={artist.profile_image}
-              alt={`${artist.firstname} ${artist.lastname}`}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full bg-gray-100">
-              <FaUserCircle className="text-gray-300 w-20 h-20" />
-            </div>
-          )}
-        </div>
-        <div className="p-4">
-          <h3 className="text-xl font-semibold text-gray-900">
-            {artist.firstname} {artist.lastname}
-          </h3>
-          <p className="text-gray-600 italic text-sm mb-2">
-            {artist.bio || "No bio available"}
-          </p>
-          <div className="flex items-center space-x-2 mb-1">
-            <FaMapMarkerAlt className="text-gray-500" />
-            <p className="text-gray-700 text-sm">
-              {artist.address || "No address available"}
-            </p>
-          </div>
-          {artist.status === "approved" && (
-            <div className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded mt-1">
-              I.D. Verified
-            </div>
-          )}
-        </div>
-      </div>
-    ))}
-  </Masonry>
-) : (
-  <div className="text-center mt-12">
-    <p className="text-gray-600">No artists found. Try adjusting your search.</p>
-  </div>
-)}
-
-{/* Matching Modal */}
-{modalOpen && (
-  <div
-    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-    onClick={() => setModalOpen(false)} // Close modal when clicking outside
-  >
-    <div
-      className="bg-white p-8 rounded-lg shadow-lg max-w-4xl w-full relative"
-      onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking inside
-    >
-      <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-800">
-        Best Match Found
-      </h2>
-      {matching ? (
-        <p className="text-center text-lg text-gray-600">Finding the best matches...</p>
-      ) : matchedArtists.length > 0 ? (
-        matchedArtists.map((match, index) => (
-          <div key={index} className="flex justify-between items-center mb-6">
-            {/* Client Section */}
-            <div className="flex flex-col items-center w-1/2 text-center">
-              {match.client.profile_image ? (
-                <img
-                  src={match.client.profile_image}
-                  alt={match.client.name}
-                  className="w-48 h-48 rounded-full object-cover shadow-lg"
-                />
-              ) : (
-                <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
-                  <FaUserCircle className="text-gray-300 w-28 h-28" />
-                </div>
-              )}
-              <h3 className="text-2xl font-bold text-gray-800 mt-4">{match.client.name}</h3>
-              <p className="text-lg text-gray-500 mt-1">{match.client.role}</p>
-              <p className="text-gray-600 text-sm mt-1">
-                {match.client.address || "No address provided"}
-              </p>
-            </div>
-            <div className="w-1 h-48 bg-gray-200 mx-8" />
-            {/* Artist Section */}
-            <div className="flex flex-col items-center w-1/2 text-center">
-              {match.artist.profile_image ? (
-                <img
-                  src={match.artist.profile_image}
-                  alt={match.artist.name}
-                  className="w-48 h-48 rounded-full object-cover shadow-lg"
-                />
-              ) : (
-                <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
-                  <FaUserCircle className="text-gray-300 w-28 h-28" />
-                </div>
-              )}
-              <h3 className="text-2xl font-bold text-gray-800 mt-4">{match.artist.name}</h3>
-              <p className="text-lg text-gray-500 mt-1">{match.artist.role}</p>
-              <p className="text-gray-600 text-sm mt-1">
-                {match.artist.address || "No address provided"}
-              </p>
-            </div>
-          </div>
-        ))
-      ) : (
-        <p className="text-center text-lg text-gray-600">No matches found.</p>
-      )}
-      {/* Centered View Profile Button */}
-      {matchedArtists.length > 0 && (
-        <div className="flex justify-center mt-8">
-          <button
-            onClick={() =>
-              navigate(
-                `/profile/artist/${matchedArtists[0]?.artist.id || "Unknown"}`
-              )
-            }
-            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          <Masonry
+            breakpointCols={{ default: 4, 1100: 3, 700: 2, 500: 1 }}
+            className="my-masonry-grid"
+            columnClassName="my-masonry-grid_column"
           >
-            View Artist Profile
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+            {currentItems.map((artist) => (
+              <div
+                key={artist.user_id}
+                onClick={() => handleArtistClick(artist.user_id)} // Updated click handler
+                className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 mb-6 cursor-pointer"
+              >
+                <div className="relative">
+                  {artist.profile_image ? (
+                    <img
+                      src={artist.profile_image}
+                      alt={`${artist.firstname} ${artist.lastname}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-gray-100">
+                      <FaUserCircle className="text-gray-300 w-20 h-20" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {artist.firstname} {artist.lastname}
+                  </h3>
+                  <p className="text-gray-600 italic text-sm mb-2">
+                    {artist.bio || "No bio available"}
+                  </p>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <FaMapMarkerAlt className="text-gray-500" />
+                    <p className="text-gray-700 text-sm">
+                      {artist.address || "No address available"}
+                    </p>
+                  </div>
+                  {artist.status === "approved" && (
+                    <div className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded mt-1">
+                      I.D. Verified
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </Masonry>
+        ) : (
+          <div className="text-center mt-12">
+            <p className="text-gray-600">No artists found. Try adjusting your search.</p>
+          </div>
+        )}
+
+        {/* Matching Modal */}
+        {modalOpen && (
+          <div
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={() => setModalOpen(false)} // Close modal when clicking outside
+          >
+            <div
+              className="bg-white p-8 rounded-lg shadow-lg max-w-4xl w-full relative"
+              onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking inside
+            >
+              <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-800">
+                Best Match Found
+              </h2>
+              {matching ? (
+                <p className="text-center text-lg text-gray-600 ">Finding the best matches...</p>
+              ) : matchedArtists.length > 0 ? (
+                matchedArtists.map((match, index) => (
+                  <div key={index} className="flex justify-between items-center mb-6">
+                    {/* Client Section */}
+                    <div className="flex flex-col items-center w-1/2 text-center">
+                      {match.client.profile_image ? (
+                        <img
+                          src={match.client.profile_image}
+                          alt={match.client.name}
+                          className="w-48 h-48 rounded-full object-cover shadow-lg"
+                        />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
+                          <FaUserCircle className="text-gray-300 w-28 h-28" />
+                        </div>
+                      )}
+                      <h3 className="text-2xl font-bold text-gray-800 mt-4">{match.client.name}</h3>
+                      <p className="text-lg text-gray-500 mt-1">{match.client.role}</p>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {match.client.address || "No address provided"}
+                      </p>
+                    </div>
+                    <div className="w-1 h-48 bg-gray-200 mx-8" />
+                    {/* Artist Section */}
+                    <div className="flex flex-col items-center w-1/2 text-center">
+                      {match.artist.profile_image ? (
+                        <img
+                          src={match.artist.profile_image}
+                          alt={match.artist.name}
+                          className="w-48 h-48 rounded-full object-cover shadow-lg"
+                        />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
+                          <FaUserCircle className="text-gray-300 w-28 h-28" />
+                        </div>
+                      )}
+                      <h3 className="text-2xl font-bold text-gray-800 mt-4">{match.artist.name}</h3>
+                      <p className="text-lg text-gray-500 mt-1">{match.artist.role}</p>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {match.artist.address || "No address provided"}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-lg text-gray-600">No matches found.</p>
+              )}
+              {/* Centered View Profile Button */}
+              {matchedArtists.length > 0 && (
+                <div className="flex justify-center mt-8">
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/profile/artist/${matchedArtists[0]?.artist.id || "Unknown"}`
+                      )
+                    }
+                    className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                  >
+                    View Artist Profile
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* Pagination Controls */}
         <div className="flex justify-between items-center py-4 mt-4">
           <p className="text-gray-600">

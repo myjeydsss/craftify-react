@@ -10,8 +10,8 @@ import {
     FaChevronUp,
     FaUserCircle,
 } from "react-icons/fa";
-
-import MessagePopup from './MessagePopup'; // Import the MessagePopup component
+import { useNavigate } from "react-router-dom"; // Make sure to import useNavigate
+import MessagePopup from "./MessagePopup.tsx";
 
 interface Client {
     user_id: string;
@@ -36,47 +36,60 @@ interface Preferences {
 }
 
 const ViewProfileClient: React.FC = () => {
-    const { userId } = useParams<{ userId: string }>();
-    const { user } = useAuth(); // Get authenticated user
-    const [client, setClient] = useState<Client | null>(null);
-    const [preferences, setPreferences] = useState<Preferences | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [showAllPreferences, setShowAllPreferences] = useState<boolean>(false);
-    const [showModal, setShowModal] = useState<boolean>(false);
+  const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate(); // Initialize navigate
+  const { user } = useAuth(); // Get authenticated user
+  const [client, setClient] = useState<Client | null>(null);
+  const [preferences, setPreferences] = useState<Preferences | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAllPreferences, setShowAllPreferences] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [recommendedClients, setRecommendedClients] = useState<Client[]>([]); // New state for recommended clients
 
     const [projectName, setProjectName] = useState<string>("");
     const [projectDescription, setProjectDescription] = useState<string>("");
     const [budget, setBudget] = useState<string>("");
     const [dueDate, setDueDate] = useState<string>("");
 
-    const [isMessagePopupOpen, setIsMessagePopupOpen] = useState(false);
+  const [isMessagePopupOpen, setIsMessagePopupOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchClientDetails = async () => {
-            setLoading(true);
-            try {
-                const clientResponse = await axios.get<Client>(
-                    `${import.meta.env.VITE_API_URL}/client-profile/${userId}`
-                );
-                setClient(clientResponse.data);
-
-                const preferencesResponse = await axios.get<Preferences | null>(
-                    `${import.meta.env.VITE_API_URL}/client-preferences/${userId}`
-                );
-                setPreferences(preferencesResponse.data);
-            } catch (err) {
-                console.error("Error fetching client details:", err);
-                setError("Failed to load client details.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchClientDetails();
-    }, [userId]);
-
-    const togglePreferences = () => setShowAllPreferences(!showAllPreferences);
+  useEffect(() => {
+    const fetchClientDetails = async () => {
+      setLoading(true);
+      try {
+        const clientResponse = await axios.get<Client>(
+          `${import.meta.env.VITE_API_URL}/client-profile/${userId}`
+        );
+        setClient(clientResponse.data);
+  
+        const preferencesResponse = await axios.get<Preferences | null>(
+          `${import.meta.env.VITE_API_URL}/client-preferences/${userId}`
+        );
+        setPreferences(preferencesResponse.data);
+  
+        // Check if user is authenticated before fetching recommendations
+        if (user && user.id) {
+          // Fetch recommended clients with visitorId as a query parameter
+          const recommendationsResponse = await axios.get<Client[]>(
+            `${import.meta.env.VITE_API_URL}/recommend-clients/${userId}?visitorId=${user.id}`
+          );
+          setRecommendedClients(recommendationsResponse.data);
+        } else {
+          setError("User  is not authenticated.");
+        }
+      } catch (err) {
+        console.error("Error fetching client details:", err);
+        setError("Failed to load client details.");
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchClientDetails();
+  }, [userId, user]); // Include user in the dependency array
+  
+  const togglePreferences = () => setShowAllPreferences(!showAllPreferences);
 
     const hasValidPreferences =
         preferences &&
@@ -114,71 +127,81 @@ const ViewProfileClient: React.FC = () => {
                 status: "Pending",
             });
 
-            if (response.status === 201) {
-                alert("Proposal sent successfully!");
-                setShowModal(false);
-                setProjectName("");
-                setProjectDescription("");
-                setBudget("");
-                setDueDate("");
-            } else {
-                alert("Failed to send proposal. Please try again.");
-            }
-        } catch (err) {
-            alert("Failed to send proposal. Please check the server.");
-        }
-    };
+      if (response.status === 201) {
+        alert("Proposal sent successfully!");
+        setShowModal(false);
+        setProjectName("");
+        setProjectDescription("");
+        setBudget("");
+        setDueDate("");
+      } else {
+        alert("Failed to send proposal. Please try again.");
+      }
+    } catch (err) {
+      alert("Failed to send proposal. Please check the server.");
+    }
+  };
+
+  const handleSendMessageClick = () => {
+    setIsMessagePopupOpen(true);
+  };
+
+  const handleCloseMessagePopup = () => {
+    setIsMessagePopupOpen(false);
+  };
 
     if (loading) return <div className="text-center mt-10">Loading...</div>;
     if (error) return <div className="text-center mt-10 text-red-500">{error}</div>;
 
-    return (
-        <div className="min-h-screen bg-gray-50 py-16 px-4">
-            <div className="max-w-6xl mx-auto">
-                {/* Profile Section */}
-                <div className="bg-white shadow-lg rounded-lg p-8 mb-12 relative">
-                    <div className="flex flex-col items-center text-center">
-                        {client?.profile_image ? (
-                            <img
-                                src={client.profile_image}
-                                alt={`${client.firstname} ${client.lastname}`}
-                                className="w-60 h-60 object-cover rounded-full border-4 border-gray-300"
-                            />
-                        ) : (
-                            <FaUserCircle className="w-60 h-60 text-gray-400 border-4 border-gray-300 rounded-full" />
-                        )}
-                        <h1 className="text-4xl font-bold text-gray-900 mt-4">
-                            {client?.firstname} {client?.lastname}
-                        </h1>
-                        <p className="text-gray-600 mt-2">{client?.bio || "No bio available"}</p>
-                        <div className="flex flex-wrap justify-center gap-6 mt-4 text-gray-600">
-                            <div className="flex items-center gap-2">
-                                <FaMapMarkerAlt />
-                                <span>{client?.address || "Location not available"}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <FaEnvelope />
-                                <span>{client?.email || "Email not available"}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <FaPhoneAlt />
-                                <span>{client?.phone || "Phone not available"}</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="mt-6 bg-orange-500 text-white px-6 py-2 rounded-lg shadow hover:bg-orange-600"
-                        >
-                            Send Proposal
-                        </button>
-                        <button
-                            onClick={() => setIsMessagePopupOpen(true)}
-                            className="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600"
-                        >
-                            Send Message
-                        </button>
-                    </div>
-                </div>
+  return (
+    <div className="min-h-screen bg-gray-50 py-16 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Profile Section */}
+        <div className="bg-white shadow-lg rounded-lg p-8 mb-12 relative">
+          <div className="flex flex-col items-center text-center">
+            {client?.profile_image ? (
+              <img
+                src={client.profile_image}
+                alt={`${client.firstname} ${client.lastname}`}
+                className="w-60 h-60 object-cover rounded-full border-4 border-gray- 300"
+              />
+            ) : (
+              <FaUserCircle className="w-60 h-60 text-gray-400 border-4 border-gray-300 rounded-full" />
+            )}
+            <h1 className="text-4xl font-bold text-gray-900 mt-4">
+              {client?.firstname} {client?.lastname}
+            </h1>
+            <p className="text-gray-600 mt-2">{client?.bio || "No bio available"}</p>
+            <div className="flex flex-wrap justify-center gap-6 mt-4 text-gray-600">
+              <div className="flex items-center gap-2">
+                <FaMapMarkerAlt />
+                <span>{client?.address || "Location not available"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FaEnvelope />
+                <span>{client?.email || "Email not available"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FaPhoneAlt />
+                <span>{client?.phone || "Phone not available"}</span>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-center space-x-4">
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-orange-500 text-white px-6 py-2 rounded-lg shadow hover:bg-orange-600 transition"
+              >
+                Send Proposal
+              </button>
+              <button
+                onClick={handleSendMessageClick}
+                className="bg-yellow-500 text-white px-6 py-2 rounded-lg shadow hover:bg-yellow-600 transition"
+              >
+                Send Message
+              </button>
+            </div>
+          </div>
+        </div>
 
                 {/* Proposal Modal */}
                 {showModal && (
@@ -246,66 +269,112 @@ const ViewProfileClient: React.FC = () => {
                     </div>
                 )}
 
-                {/* Preferences Section */}
-                {hasValidPreferences && (
-                    <div className="bg-white shadow-md rounded-lg p-8 mb-12">
-                        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Preferences</h2>
-                        <div
-                            className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${showAllPreferences ? "" : "max-h-48 overflow-hidden"
-                                }`}
+        {/* Preferences Section */}
+        {hasValidPreferences && (
+          <div className="bg-white shadow-md rounded-lg p-8 mb-12">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Preferences</h2>
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${
+                showAllPreferences ? "" : "max-h-48 overflow-hidden"
+              }`}
+            >
+              {Object.entries(preferences!).map(([key, value]) =>
+                value ? (
+                  <div key={key}>
+                    <strong className="block text-gray-800 capitalize">
+                      {key.replace(/_/g, " ")}:
+                    </strong>
+                    {Array.isArray(value) && value.length > 0 ? (
+                      value.map((v) => (
+                        <span
+                          key={v}
+                          className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium mr-2 mb-2"
                         >
-                            {Object.entries(preferences!).map(([key, value]) =>
-                                value ? (
-                                    <div key={key}>
-                                        <strong className="block text-gray-800 capitalize">
-                                            {key.replace(/_/g, " ")}:
-                                        </strong>
-                                        {Array.isArray(value) && value.length > 0 ? (
-                                            value.map((v) => (
-                                                <span
-                                                    key={v}
-                                                    className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium mr-2 mb-2"
-                                                >
-                                                    {v}
-                                                </span>
-                                            ))
-                                        ) : (
-                                            <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
-                                                {value}
-                                            </span>
-                                        )}
-                                    </div>
-                                ) : null
-                            )}
-                        </div>
-                        <div className="flex justify-center mt-6">
-                            <button
-                                onClick={togglePreferences}
-                                className="text-orange-500 hover:text-orange-700 flex items-center"
-                            >
-                                {showAllPreferences ? (
-                                    <>
-                                        <FaChevronUp className="mr-2" /> View Less
-                                    </>
-                                ) : (
-                                    <>
-                                        <FaChevronDown className="mr-2" /> View All Preferences
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                )}
+                          {v}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {value}
+                      </span>
+                    )}
+                  </div>
+                ) : null
+              )}
             </div>
-            {isMessagePopupOpen && (
-                <MessagePopup
-                    onClose={() => setIsMessagePopupOpen(false)}
-                    sender_id={user?.id || ""}
-                    receiver_id={client?.user_id || ""}
-                />
-            )}
-        </div>
-    );
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={togglePreferences}
+                className="text-orange-500 hover:text-orange-700 flex items-center"
+              >
+                {showAllPreferences ? (
+                  <>
+                    <FaChevronUp className="mr-2" /> View Less
+                  </>
+                ) : (
+                  <>
+                    <FaChevronDown className="mr-2" /> View All Preferences
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Recommended Clients Section */}
+        {recommendedClients.length > 0 ? (
+          <div className="bg-white shadow-lg rounded-lg p-8 mb-12">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-6">Recommended Clients</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {recommendedClients.map((recClient) => (
+                <div
+                  key={recClient.user_id}
+                  className="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 mb-6 cursor-pointer"
+                >
+                  <div className="flex flex-col items-center text-center p-6">
+                    {recClient.profile_image ? (
+                      <img
+                        src={recClient.profile_image}
+                        alt={`${recClient.firstname} ${recClient.lastname}`}
+                        className="w-32 h-32 object-cover rounded-full border-4 border-gray-300 mb-4"
+                      />
+                    ) : (
+                      <FaUserCircle className="w-32 h-32 text-gray-400 border-4 border-gray-300 rounded-full mb-4" />
+                    )}
+                    <h3 className="text-2xl font-bold text-gray-800 mb-1">
+                      {recClient.firstname} {recClient.lastname}
+                    </h3>
+                    <p className="text-gray-600 mb-4">{recClient.address || "No address available"}</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent the card click event
+                        navigate(`/profile/client/${recClient.user_id}`);
+                      }}
+                      className="bg-orange-600 text-white px-5 py-2 rounded-lg shadow hover:bg-orange-700 transition duration-200"
+                    >
+                      View Profile
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white shadow-md rounded-lg p-8 mb-12 text-center">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-4">Recommended Clients</h2>
+            <p className="text-gray-600">No recommended clients for you at this time.</p>
+          </div>
+        )}
+      </div>
+      {isMessagePopupOpen && user && client && (
+        <MessagePopup
+          onClose={handleCloseMessagePopup}
+          sender_id={user.id} // Pass the sender_id
+          receiver_id={client.user_id} // Pass the receiver_id
+        />
+      )}
+    </div>
+  );
 };
 
 export default ViewProfileClient;

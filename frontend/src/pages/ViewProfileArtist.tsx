@@ -1,27 +1,29 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider"; // Import your AuthProvider
 import {
-    FaMapMarkerAlt,
-    FaEnvelope,
-    FaPhoneAlt,
-    FaCheckCircle,
-    FaChevronDown,
-    FaChevronUp,
+      FaMapMarkerAlt,
+      FaEnvelope,
+      FaPhoneAlt,
+      FaCheckCircle,
+      FaChevronDown,
+      FaChevronUp,
+    FaUserCircle,
 } from "react-icons/fa";
-import MessagePopup from './MessagePopup'; // Import the MessagePopup component
+import { useNavigate } from "react-router-dom"; // Make sure to import useNavigate
+import MessagePopup from "./MessagePopup.tsx"; // Import the MessagePopup component
 
 interface Artist {
-    user_id: string;
-    firstname: string;
-    lastname: string;
-    bio: string | null;
-    address: string | null;
-    email: string;
-    phone: string | null;
-    profile_image: string | null;
-    status: string | null;
+      user_id: string;
+      firstname: string;
+      lastname: string;
+      bio: string | null;
+      address: string | null;
+      email: string;
+      phone: string | null;
+      profile_image: string | null;
+      status: string | null;
 }
 
 interface Preferences {
@@ -46,25 +48,36 @@ interface Artwork {
     price: number;
 }
 
+interface RecommendedArtist {
+    user_id: string;
+    firstname: string;
+    lastname: string;
+    address: string;
+    profile_image: string | null;
+}
+
 const ViewProfileArtist: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
-    const { user } = useAuth(); // Get the authenticated user from AuthProvider
+    const { user } = useAuth(); // Get the current user from the useAuth hook
+    const navigate = useNavigate(); // Initialize navigate
     const [artist, setArtist] = useState<Artist | null>(null);
     const [artistArts, setArtistArts] = useState<Artwork[]>([]);
     const [preferences, setPreferences] = useState<Preferences | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [recommendedArtists, setRecommendedArtists] = useState<RecommendedArtist[]>([]); // State for recommended artists
 
     const [showAllPreferences, setShowAllPreferences] = useState<boolean>(false);
     const [artworksDisplayed, setArtworksDisplayed] = useState<number>(6);
+    const [isMessagePopupOpen, setIsMessagePopupOpen] = useState(false);
+    const [messages] = useState<{ text: string; sender: string }[]>([]);
 
-    const [showModal, setShowModal] = useState<boolean>(false);
+    // Proposal state
+    const [showProposalModal, setShowProposalModal] = useState<boolean>(false);
     const [projectName, setProjectName] = useState<string>("");
     const [projectDescription, setProjectDescription] = useState<string>("");
     const [budget, setBudget] = useState<string>("");
     const [dueDate, setDueDate] = useState<string>("");
-
-    const [isMessagePopupOpen, setIsMessagePopupOpen] = useState(false);
 
     useEffect(() => {
         const fetchArtistDetails = async () => {
@@ -74,7 +87,6 @@ const ViewProfileArtist: React.FC = () => {
                     `${import.meta.env.VITE_API_URL}/artist-profile/${userId}`
                 );
                 setArtist(artistResponse.data);
-
                 const preferencesResponse = await axios.get<Preferences | null>(
                     `${import.meta.env.VITE_API_URL}/view-artist-preferences/${userId}`
                 );
@@ -84,6 +96,12 @@ const ViewProfileArtist: React.FC = () => {
                     `${import.meta.env.VITE_API_URL}/api/arts/${userId}`
                 );
                 setArtistArts(artsResponse.data);
+
+                // Fetch recommended artists
+                const recommendationsResponse = await axios.get<RecommendedArtist[]>(
+                    `${import.meta.env.VITE_API_URL}/recommend-artists/${userId}?visitorId=${user?.id}`
+                );
+                setRecommendedArtists(recommendationsResponse.data);
             } catch (err) {
                 console.error("Error fetching artist details:", err);
                 setError("Failed to load artist details.");
@@ -93,8 +111,7 @@ const ViewProfileArtist: React.FC = () => {
         };
 
         fetchArtistDetails();
-    }, [userId]);
-
+    }, [userId, user]);
     const togglePreferences = () => setShowAllPreferences(!showAllPreferences);
 
     const loadMoreArtworks = () => {
@@ -104,10 +121,18 @@ const ViewProfileArtist: React.FC = () => {
         });
     };
 
-    const hasValidPreferences = preferences && Object.values(preferences).some((value) => {
+    const hasValidPreferences = preferences && Object.values(preferences ).some((value) => {
         if (Array.isArray(value)) return value.length > 0;
         return value !== null && value !== undefined;
     });
+
+    const handleSendMessageClick = () => {
+        setIsMessagePopupOpen(true);
+    };
+
+    const handleCloseMessagePopup = () => {
+        setIsMessagePopupOpen(false);
+    };
 
     const handleProposalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -140,7 +165,7 @@ const ViewProfileArtist: React.FC = () => {
 
             if (response.status === 201) {
                 alert("Proposal sent successfully!");
-                setShowModal(false);
+                setShowProposalModal(false);
                 setProjectName("");
                 setProjectDescription("");
                 setBudget("");
@@ -159,53 +184,55 @@ const ViewProfileArtist: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-16 px-4">
             <div className="max-w-6xl mx-auto">
-                {/* Profile Section */}
-                <div className="bg-white shadow-lg rounded-lg p-8 mb-12 relative">
-                    <div className="flex flex-col items-center text-center">
-                        <img
-                            src={artist?.profile_image || "/default-profile.png"}
-                            alt={`${artist?.firstname} ${artist?.lastname}`}
-                            className="w-60 h-60 object-cover rounded-full border-4 border-gray-300"
-                        />
-                        <div className="flex items-center mt-4 space-x-3">
-                            <h1 className="text-4xl font-bold text-gray-900">
-                                {artist?.firstname} {artist?.lastname}
-                            </h1>
-                            {artist?.status === "approved" && (
-                                <FaCheckCircle className="text-green-500 text-3xl" />
-                            )}
-                        </div>
-                        <p className="text-gray-600 mt-2">{artist?.bio || "No bio available"}</p>
-                        <div className="flex flex-wrap justify-center gap-6 mt-4 text-gray-600">
-                            <div className="flex items-center gap-2">
-                                <FaMapMarkerAlt />
-                                <span>{artist?.address || "Location not available"}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <FaEnvelope />
-                                <span>{artist?.email || "Email not available"}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <FaPhoneAlt />
-                                <span>{artist?.phone || "Phone not available"}</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="mt-6 bg-orange-500 text-white px-6 py-2 rounded-lg shadow hover:bg-orange-600"
-                        >
-                            Send Proposal
-                        </button>
-                        <button
-                            onClick={() => setIsMessagePopupOpen(true)}
-                            className="bg-blue-500 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-600"
-                        >
-                            Send Message
-                        </button>
-                    </div>
-                </div>
-
-                {showModal && (
+               {/* Profile Section */}
+<div className="bg-white shadow-lg rounded-lg p-8 mb-12 relative">
+    <div className="flex flex-col items-center text-center">
+        <img
+            src={artist?.profile_image || "/default-profile.png"}
+            alt={`${artist?.firstname} ${artist?.lastname}`}
+            className="w-60 h-60 object-cover rounded-full border-4 border-gray-300"
+        />
+        <div className="flex items-center mt-4 space-x-3">
+            <h1 className="text-4xl font-bold text-gray-900">
+                {artist?.firstname} {artist?.lastname}
+            </h1>
+            {artist?.status === "approved" && (
+                <FaCheckCircle className="text-green-500 text-3xl" />
+            )}
+        </div>
+        <p className="text-gray-600 mt-2">{artist?.bio || "No bio available"}</p>
+        <div className="flex flex-wrap justify-center gap-6 mt-4 text-gray-600">
+            <div className="flex items-center gap-2">
+                <FaMapMarkerAlt />
+                <span>{artist?.address || "Location not available"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <FaEnvelope />
+                <span>{artist?.email || "Email not available"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <FaPhoneAlt />
+                <span>{artist?.phone || "Phone not available"}</span>
+            </div>
+        </div>
+        <div className="mt-6 flex justify-center space-x-4">
+            <button
+                onClick={() => setShowProposalModal(true)}
+                className="bg-orange-600 text-white px-6 py-2 rounded-lg shadow hover:bg-orange-700 transition"
+            >
+                Send Proposal
+            </button>
+            <button
+                onClick={handleSendMessageClick}
+                className="bg-yellow-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+            >
+                Send Message
+            </button>
+        </div>
+    </div>
+</div>
+                {/* Proposal Modal */}
+                {showProposalModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
                         <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
                             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Send Proposal</h2>
@@ -253,7 +280,7 @@ const ViewProfileArtist: React.FC = () => {
                                 <div className="flex justify-end space-x-4">
                                     <button
                                         type="button"
-                                        onClick={() => setShowModal(false)}
+                                        onClick={() => setShowProposalModal(false)}
                                         className="py-2 px-4 bg-gray-300 rounded-md shadow hover:bg-gray-400"
                                     >
                                         Cancel
@@ -278,7 +305,7 @@ const ViewProfileArtist: React.FC = () => {
                             className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${showAllPreferences ? "" : "max-h-48 overflow-hidden"
                                 }`}
                         >
-                            {Object.entries(preferences!).map(([key, value]) =>
+                            {Object.entries(preferences).map(([key, value]) =>
                                 value ? (
                                     <div key={key}>
                                         <strong className="block text-gray-800 capitalize">
@@ -361,14 +388,70 @@ const ViewProfileArtist: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Recommended Clients Section */}
+                        {recommendedArtists.length > 0 ? (
+                          <div className="bg-white shadow-lg rounded-lg p-8 mb-12">
+                            <h2 className="text-3xl font-semibold text-gray-900 mb-6">Recommended Clients</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                              {recommendedArtists.map((recArtist) => (
+                                <div
+                                  key={recArtist.user_id}
+                                  className="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 mb-6 cursor-pointer"
+                                >
+                                  <div className="flex flex-col items-center text-center p-6">
+                                    {recArtist.profile_image ? (
+                                      <img
+                                        src={recArtist.profile_image}
+                                        alt={`${recArtist.firstname} ${recArtist.lastname}`}
+                                        className="w-32 h-32 object-cover rounded-full border-4 border-gray-300 mb-4"
+                                      />
+                                    ) : (
+                                      <FaUserCircle className="w-32 h-32 text-gray-400 border-4 border-gray-300 rounded-full mb-4" />
+                                    )}
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-1">
+                                      {recArtist.firstname} {recArtist.lastname}
+                                    </h3>
+                                    <p className="text-gray-600 mb-4">{recArtist.address || "No address available"}</p>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Prevent the card click event
+                                        navigate(`/profile/artist/${recArtist.user_id}`);
+                                      }}
+                                      className="bg-orange-600 text-white px-5 py-2 rounded-lg shadow hover:bg-orange-700 transition duration-200"
+                                    >
+                                      View Profile
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-white shadow-md rounded-lg p-8 mb-12 text-center">
+                            <h2 className="text-3xl font-semibold text-gray-900 mb-4">Recommended Clients</h2>
+                            <p className="text-gray-600">No recommended clients for you at this time.</p>
+                          </div>
+                        )}
             </div>
-            {isMessagePopupOpen && (
+            {isMessagePopupOpen && user && artist && (
                 <MessagePopup
-                    onClose={() => setIsMessagePopupOpen(false)}
-                    sender_id={user?.id || ""}
-                    receiver_id={artist?.user_id || ""}
+                    onClose={handleCloseMessagePopup}
+                    sender_id={user.id} // Pass the sender_id
+                    receiver_id={artist.user_id} // Pass the receiver_id
                 />
             )}
+
+            {/* Display messages */}
+            <div className="mt-4">
+                {messages.map((msg, index) => (
+                    <div key={index} className={`mb-3 flex ${msg.sender === 'You' ? 'justify-end' : ''}`}>
+                        <div className={`px-4 py-2 rounded-lg ${msg.sender === 'You' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                            {msg.text}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };

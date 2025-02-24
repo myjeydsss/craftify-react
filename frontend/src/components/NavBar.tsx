@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FaUser, FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell, FaEnvelope, FaHistory } from "react-icons/fa";
+import { FaUser , FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell, FaEnvelope, FaBars, FaTimes, FaHistory } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthProvider";
 import axios from "axios";
@@ -9,7 +9,8 @@ const NavBar: React.FC = () => {
   const { user, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
-  const [cartCount, setCartCount] = useState<number>(0); // Cart count state
+  const [cartCount, setCartCount] = useState<number>(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -46,6 +47,9 @@ const NavBar: React.FC = () => {
   // Toggle dropdown
   const toggleDropdown = () => setDropdownOpen((prev) => !prev);
 
+  // Toggle mobile menu
+  const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
+
   // Handle outside click to close dropdown
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -78,20 +82,18 @@ const NavBar: React.FC = () => {
   const renderNavLinks = () => {
     if (!user) {
       return (
-        <div className="absolute inset-x-0 flex justify-center">
-          <div className="flex space-x-6">
-            <Link to="/" className={`${isActive("/") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
-            <Link to="/explore" className={`${isActive("/explore") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Explore</Link>
-            <Link to="/about-us" className={`${isActive("/about-us") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>About Us</Link>
-            <Link to="/how-it-works" className={`${isActive("/how-it-works") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>How It Works</Link>
-          </div>
+        <div className="flex flex-col md:flex-row md:space-x-6">
+          <Link to="/" className={`${isActive("/") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
+          <Link to="/explore" className={`${isActive("/explore") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Explore</Link>
+          <Link to="/about-us" className={`${isActive("/about-us") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>About Us</Link>
+          <Link to="/how-it-works" className={`${isActive("/how-it-works") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>How It Works</Link>
         </div>
       );
     }
 
     if (role === "Artist") {
       return (
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row md:space-x-4">
           <Link to="/artist-dashboard" className={`${isActive("/artist-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
           <Link to="/artist-track-project" className={`${isActive("/artist-track-project") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           <Link to="/community" className={`${isActive("/community") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Community</Link>
@@ -102,7 +104,7 @@ const NavBar: React.FC = () => {
 
     if (role === "Client") {
       return (
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row md:space-x-4">
           <Link to="/client-dashboard" className={`${isActive("/client-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
           <Link to="/client-project-page" className={`${isActive("/client-project-page") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           <Link to="/community" className={`${isActive("/community") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Community</Link>
@@ -112,7 +114,7 @@ const NavBar: React.FC = () => {
 
     if (role === "Admin") {
       return (
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row md:space-x-4">
           <Link to="/admin-dashboard" className={`${isActive("/admin-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
           <Link to="/users-table" className={`${isActive("/users-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Users Table</Link>
           <Link to="/tags-table" className={`${isActive("/tags-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Tags Table</Link>
@@ -134,8 +136,17 @@ const NavBar: React.FC = () => {
             </Link>
           </div>
 
+          {/* Hamburger Icon for Mobile */}
+          <div className="md:hidden">
+            <button onClick={toggleMobileMenu} className="text-black focus:outline-none">
+              {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+            </button>
+          </div>
+
           {/* Navigation Links */}
-          {renderNavLinks()}
+          <div className={`flex-col md:flex md:flex-row md:space-x-6 ${mobileMenuOpen ? 'flex' : 'hidden'} md:flex`}>
+            {renderNavLinks()}
+          </div>
 
           {/* Right Icons */}
           {user ? (
@@ -155,7 +166,6 @@ const NavBar: React.FC = () => {
               </Link>
               <Link to="/messages" className="text-black hover:text-gray-700">
                 <FaEnvelope size={20} />
-                {/* Add notification badge if needed */}
               </Link>
               <Link to="/notifications" className="text-black hover:text-gray-700">
                 <FaBell size={20} />
@@ -165,7 +175,7 @@ const NavBar: React.FC = () => {
                   onClick={toggleDropdown}
                   className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  <FaUser size={20} />
+                  <FaUser  size={20} />
                 </button>
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
@@ -191,7 +201,7 @@ const NavBar: React.FC = () => {
                 onClick={toggleDropdown}
                 className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
               >
-                <FaUser size={20} />
+                <FaUser  size={20} />
               </button>
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
