@@ -38,6 +38,7 @@ import Messages from "./pages/Messages";
 import MessagePopup from "./pages/MessagePopup";
 
 import TransactionHistory from "./pages/TransactionHistory";
+import Verification from "./pages/admin/Verification";
 
 const App = () => {
   
@@ -75,6 +76,7 @@ const App = () => {
                         <Route path="/users-table" element={<UserTable />} />
                         <Route path="/tags-table" element={<TagTable />} />
                         <Route path="/arts-table" element={<ArtsTable />} />
+                        <Route path="/verification" element={<Verification />} />
 
 
                     {/* Client routes */}

@@ -145,8 +145,13 @@ const TagTable: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-2xl font-bold mb-6">Tag Management</h1>
+    <div className="container mx-auto px-4 py-16">
+
+    {/* Header Section */}
+    <div className="text-center mb-8">
+             <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Tag Management</h1>
+             <hr className="border-gray-300 mb-6" />
+           </div>
 
       {/* Search and Add Tag Row */}
       <div className="flex items-center space-x-4 mb-6">

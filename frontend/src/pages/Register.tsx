@@ -1,8 +1,8 @@
 import React, { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios"; // To make HTTP requests
-import { FaSpinner, FaUser , FaPaintBrush } from "react-icons/fa"; // Icons for Client and Artist
+import { FaSpinner, FaUser , FaPaintBrush, FaEye, FaEyeSlash } from "react-icons/fa"; // Import icons
 import Swal from "sweetalert2"; // Import SweetAlert2
+import axios from "axios"; // To make HTTP requests
 
 const Register: React.FC = () => {
   const firstNameRef = useRef<HTMLInputElement>(null);
@@ -94,7 +94,7 @@ const Register: React.FC = () => {
 
   return (
     <div className="flex items-center py-20 justify-center min-h-screen bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500">
-      <div className="w-full max-w-lg p-8 bg-white shadow-2xl rounded-lg">
+      <div className="w-full max-w-lg p-8 bg-white shadow-lg rounded-lg">
         <h2 className="text-4xl font-extrabold text-center text-red-400">Create an Account</h2>
         <p className="mt-2 text-center text-gray-600">Start your journey with us today!</p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
@@ -161,7 +161,7 @@ const Register: React.FC = () => {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute inset-y-6 right-0 p-3 text-sm text-gray-500 hover:text-gray-700"
             >
-              {showPassword ? "Hide" : "Show"}
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
 
@@ -180,7 +180,7 @@ const Register: React.FC = () => {
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute inset-y-6 right-0 p-3 text-sm text-gray-500 hover:text-gray-700"
             >
-              {showConfirmPassword ? "Hide" : "Show"}
+              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
 

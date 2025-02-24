@@ -1,11 +1,10 @@
-
-
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { FaTh, FaList, FaUserCircle, FaEye, FaRegCheckCircle, FaRegClock } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2"; // Import SweetAlert2
+
 
 interface Project {
   project_id: string;
@@ -40,6 +39,18 @@ const ArtistProject: React.FC = () => {
   const [activeView, setActiveView] = useState<"Board" | "List">("Board");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { user } = useAuth();
+
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -87,7 +98,7 @@ const ArtistProject: React.FC = () => {
     setSelectedProject(null);
   };
 
-  const onAcceptProposal = async (proposal: Proposal) => {
+   const onAcceptProposal = async (proposal: Proposal) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/proposals/accept`, { proposal });
       const newProject = response.data.newProject;
@@ -99,26 +110,43 @@ const ArtistProject: React.FC = () => {
       // Close the modal
       setSelectedProposal(null);
 
-      alert("Proposal accepted and project created!");
+      // Show success toast
+      Toast.fire({
+        icon: "success",
+        title: "Proposal accepted and project created!",
+      });
     } catch (err) {
       console.error("Error accepting proposal:", err);
-      alert("Failed to accept proposal.");
+      Toast.fire({
+        icon: "error",
+        title: "Failed to accept proposal.",
+      });
     }
   };
-
+  
   const onRejectProposal = async (proposal: Proposal) => {
     try {
-      await axios.post(`${API_BASE_URL}/api/proposals/reject`, { proposalId: proposal.proposal_id });
+        await axios.post(`${API_BASE_URL}/api/proposals/reject`, { proposalId: proposal.proposal_id });
 
-      // Update frontend state
-      setProposals((prev) => prev.filter((p) => p.proposal_id !== proposal.proposal_id));
+        // Update frontend state
+        setProposals((prev) => prev.filter((p) => p.proposal_id !== proposal.proposal_id));
 
-      alert("Proposal rejected.");
+        // Show success toast
+        Toast.fire({
+            icon: "success",
+            title: "Proposal rejected.",
+        });
+
+        // Close the modal
+        setSelectedProposal(null); // Close the modal after rejection
     } catch (err) {
-      console.error("Error rejecting proposal:", err);
-      alert("Failed to reject proposal.");
+        console.error("Error rejecting proposal:", err);
+        Toast.fire({
+            icon: "error",
+            title: "Failed to reject proposal.",
+        });
     }
-  };
+};
 
   const updateProjectStatus = async (project: Project, newStatus: string) => {
     try {
@@ -131,11 +159,18 @@ const ArtistProject: React.FC = () => {
         setProjects((prev) =>
           prev.map((p) => (p.project_id === project.project_id ? { ...p, status: newStatus } : p))
         );
-        alert(`Project status updated to "${newStatus}"!`);
+        // Show success toast
+        Toast.fire({
+          icon: "success",
+          title: `Project status updated to "${newStatus}"!`,
+        });
       }
     } catch (err) {
       console.error("Error updating project status:", err);
-      alert("Failed to update project status.");
+      Toast.fire({
+        icon: "error",
+        title: "Failed to update project status.",
+      });
     }
   };
 
@@ -150,11 +185,18 @@ const ArtistProject: React.FC = () => {
         setProjects((prev) =>
           prev.map((p) => (p.project_id === project.project_id ? { ...p, priority: newPriority } : p))
         );
-        alert(`Project priority updated to "${newPriority}"!`);
+        // Show success toast
+        Toast.fire({
+          icon: "success",
+          title: `Project priority updated to "${newPriority}"!`,
+        });
       }
     } catch (err) {
       console.error("Error updating project priority:", err);
-      alert("Failed to update project priority.");
+      Toast.fire({
+        icon: "error",
+        title: "Failed to update project priority.",
+      });
     }
   };
 

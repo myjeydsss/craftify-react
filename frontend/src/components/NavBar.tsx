@@ -120,6 +120,7 @@ const NavBar: React.FC = () => {
           <Link to="/tags-table" className={`${isActive("/tags-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Tags Table</Link>
           <Link to="/arts-table" className={`${isActive("/arts-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Arts Table</Link>
           <Link to="/verification" className={`${isActive("/verification") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Verification</Link>
+          <Link to="/community" className={`${isActive("/community") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Community</Link>
         </div>
       );
     }
@@ -161,9 +162,11 @@ const NavBar: React.FC = () => {
                   )}
                 </Link>
               )}
-              <Link to="/transaction-history" className="relative text-black px-3 hover:text-gray-700">
-                <FaHistory size={20} />
-              </Link>
+              {role !== "Admin" && (
+                <Link to="/transaction-history" className="relative text-black px-3 hover:text-gray-700">
+                  <FaHistory size={20} />
+                </Link>
+              )}
               <Link to="/messages" className="text-black hover:text-gray-700">
                 <FaEnvelope size={20} />
               </Link>

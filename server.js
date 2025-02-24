@@ -1824,6 +1824,21 @@ app.get("/user/:userId", async (req, res) => {
       return res.status(200).json(clientData);
     }
 
+    // If not found in "artist", check in the "client" table
+    let { data: adminData, error: adminError } = await supabase
+      .from("admin")
+      .select("firstname, lastname, role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (adminError) {
+      console.error("Supabase client query error:", adminError.message);
+    }
+
+    if (adminData) {
+      return res.status(200).json(adminData);
+    }
+
     // If user is not found in either table
     return res.status(404).json({ error: "User not found." });
   } catch (err) {
@@ -2296,7 +2311,7 @@ app.get("/community-posts", async (req, res) => {
       ),
     ];
 
-    // Fetch user details (both artists and clients)
+    // Fetch user details (artists, clients, and admins)
     const { data: artistData } = await supabase
       .from("artist")
       .select("user_id, firstname, lastname, profile_image")
@@ -2307,8 +2322,13 @@ app.get("/community-posts", async (req, res) => {
       .select("user_id, firstname, lastname, profile_image")
       .in("user_id", userIds);
 
+    const { data: adminData } = await supabase
+      .from("admin")
+      .select("user_id, firstname, lastname")
+      .in("user_id", userIds);
+
     // Create user map with fallback for missing users
-    const userMap = [...(artistData || []), ...(clientData || [])].reduce((acc, user) => {
+    const userMap = [...(artistData || []), ...(clientData || []), ...(adminData || [])].reduce((acc, user) => {
       const isArtist = artistData?.some((artist) => artist.user_id === user.user_id);
       acc[user.user_id] = {
         firstname: user.firstname,
@@ -2325,11 +2345,11 @@ app.get("/community-posts", async (req, res) => {
       ...post,
       images: post.images ? (Array.isArray(post.images) ? post.images : JSON.parse(post.images)) : [],
       likes: post.community_likes ? post.community_likes.map((like) => like.user_id) : [],
-      user: userMap[post.user_id] || { firstname: "Unknown", lastname: "User  ", profile_image: null },
+      user: userMap[post.user_id] || { firstname: "Unknown", lastname: "User ", profile_image: null },
       comments: post.community_comments
         ? post.community_comments.map((comment) => ({
             ...comment,
-            user: userMap[comment.user_id] || { firstname: "Unknown", lastname: "User  ", profile_image: null },
+            user: userMap[comment.user_id] || { firstname: "Unknown", lastname: "User ", profile_image: null },
           }))
         : [],
     }));
@@ -2359,7 +2379,13 @@ app.get("/user/:user_id", async (req, res) => {
       .eq("user_id", user_id)
       .single();
 
-    const userData = artistData || clientData;
+      const { data: adminData } = await supabase
+      .from("admin")
+      .select("user_id, firstname, lastname, profile_image")
+      .eq("user_id", user_id)
+      .single();
+
+    const userData = artistData || clientData || adminData;
     if (!userData) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -2380,7 +2406,7 @@ app.get("/user/:user_id", async (req, res) => {
 app.post("/community-posts", upload.array("images"), async (req, res) => {
   try {
     const { user_id, content } = req.body;
-    if (!user_id) return res.status(400).json({ error: "User ID is required" });
+    if (!user_id) return res.status(400).json({ error: "User  ID is required" });
 
     let imageUrls = [];
 
@@ -2422,7 +2448,7 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
       return res.status(500).json({ error: "Failed to create post" });
     }
 
-    // Fetch user data for this post (artist or client)
+    // Fetch user data for this post (artist, client, or admin)
     let userData = null;
 
     // First check if the user exists in the artist table
@@ -2444,11 +2470,23 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
 
       if (clientData) {
         userData = clientData;
+      } else {
+        // If not found in client table, check in the admin table
+        const { data: adminData, error: adminError } = await supabase
+          .from("admin")
+          .select("firstname, lastname")
+          .eq("user_id", user_id)
+          .single();
+
+        if (adminData) {
+          userData = adminData;
+          userData.profile_image = null; // Admins may not have a profile image
+        }
       }
     }
 
     if (!userData) {
-      return res.status(404).json({ error: "User not found in artist or client table" });
+      return res.status(404).json({ error: "User  not found in artist, client, or admin table" });
     }
 
     // Include profile image URL based on artist or client
@@ -2471,6 +2509,7 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
     res.status(500).json({ error: "Failed to create post" });
   }
 });
+
 // **LIKE a Post**
 app.post("/community-posts/like", async (req, res) => {
   const { post_id, user_id } = req.body;
@@ -3711,3 +3750,246 @@ app.delete("/notifications/:id", async (req, res) => {
 });
 //***** NOTIFICATION FUNCTION END... ******
 
+
+// ***** ARTIST VERIFICATION FUNCTION ******
+// **Upload artist verification documents**
+const VERIFY_CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-verification/";
+
+app.post(
+  "/api/artist-verification/:userId",
+  upload.fields([{ name: "document" }, { name: "valid_id" }]),
+  async (req, res) => {
+    const { userId } = req.params;
+    const files = req.files;
+
+    if (!userId || !files || !files.document || !files.valid_id) {
+      return res.status(400).json({ error: "User  ID, portfolio, and valid ID are required." });
+    }
+
+    try {
+      // Upload portfolio to Supabase storage
+      const documentFile = files.document[0];
+      const documentFileName = `${Date.now()}-${documentFile.originalname}`;
+      const documentPath = `portfolio/${userId}/${documentFileName}`;
+
+      const { error: documentUploadError } = await supabase.storage
+        .from("artist-verification")
+        .upload(documentPath, documentFile.buffer, {
+          contentType: documentFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (documentUploadError) {
+        return res.status(500).json({ error: "Failed to upload portfolio." });
+      }
+
+      // Upload valid ID to Supabase storage
+      const validIdFile = files.valid_id[0];
+      const validIdFileName = `${Date.now()}-${validIdFile.originalname}`;
+      const validIdPath = `valid_id/${userId}/${validIdFileName}`;
+
+      const { error: validIdUploadError } = await supabase.storage
+        .from("artist-verification")
+        .upload(validIdPath, validIdFile.buffer, {
+          contentType: validIdFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (validIdUploadError) {
+        return res.status(500).json({ error: "Failed to upload valid ID." });
+      }
+
+      // Insert verification request and get the returned ID
+      const { data: verificationData, error: verificationError } = await supabase
+        .from('artist_verification')
+        .insert({
+          user_id: userId,
+          document_url: `portfolio/${userId}/${documentFileName}`,
+          valid_id: `valid_id/${userId}/${validIdFileName}`,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        })
+        .select('verification_id'); // Explicitly request the generated ID
+
+      if (verificationError) {
+        return res.status(500).json({ error: 'Failed to save verification request' });
+      }
+
+      // Add verification ID to existing artist record
+      const { error: artistUpdateError } = await supabase
+        .from('artist')
+        .update({ verification_id: verificationData[0].verification_id })
+        .eq('user_id', userId);
+
+      if (artistUpdateError) {
+        return res.status(500).json({ error: "Failed to update artist verification ID." });
+      }
+
+      // Fetch the sender's name for the notification
+      const { data: userData, error: userError } = await supabase
+        .from('artist')
+        .select('firstname, lastname')
+        .eq('user_id', userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error("Error fetching user data:", userError);
+        return res.status(500).json({ error: "Failed to fetch user data for notification." });
+      }
+
+      const senderName = `${userData.firstname} ${userData.lastname}`;
+
+      // Notify admins about the new verification request
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin')
+        .select('user_id'); // Fetch all admin user IDs
+
+      if (adminError) {
+        console.error("Error fetching admin users:", adminError);
+        return res.status(500).json({ error: "Failed to fetch admin users." });
+      }
+
+      // Create notifications for each admin
+      const notificationPromises = adminData.map(async (admin) => {
+        const notificationMessage = `New verification request submitted by ${senderName}.`;
+        return supabase.from("notifications").insert([
+          {
+            user_id: admin.user_id,
+            type: "Verification",
+            message: notificationMessage,
+            is_read: false, // Set to false initially
+            created_at: new Date().toISOString(),
+          }
+        ]);
+      });
+
+      // Wait for all notifications to be created
+      await Promise.all(notificationPromises);
+
+      res.status(200).json({
+        success: true,
+        message: "Verification request submitted successfully.",
+      });
+    } catch (err) {
+      console.error("An unexpected error occurred during verification:", err);
+      res.status(500).json({ error: "An unexpected error occurred during verification." });
+    }
+  }
+);
+
+// **Fetch all artist verifications**
+app.get("/api/artist-verifications", async (req, res) => {
+  try {
+    const { data: verifications, error } = await supabase
+      .from("artist_verification")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    // Enrich verifications with artist details
+    const enrichedVerifications = await Promise.all(
+      verifications.map(async (verification) => {
+        const { data: artistData, error: artistError } = await supabase
+          .from("artist")
+          .select("firstname, lastname, role")
+          .eq("user_id", verification.user_id)
+          .single();
+
+        if (artistError) {
+          console.error(`Error fetching artist data for verification ${verification.verification_id}:`, artistError);
+          return { ...verification, artist: null };
+        }
+
+        // Construct full URLs for document and valid ID
+        const documentUrl = `${VERIFY_CDNURL}${verification.document_url}`;
+        const validIdUrl = `${VERIFY_CDNURL}${verification.valid_id}`;
+
+        return { 
+          ...verification, 
+          artist: artistData,
+          document_url: documentUrl,
+          valid_id: validIdUrl
+        };
+      })
+    );
+
+    res.status(200).json(enrichedVerifications);
+  } catch (err) {
+    console.error("Failed to fetch artist verifications:", err);
+    res.status(500).json({ error: "Failed to fetch artist verifications." });
+  }
+});
+
+// Endpoint to approve or reject artist verification
+app.post("/api/artist-verification/:verificationId/:action", async (req, res) => {
+  const { verificationId, action } = req.params;
+
+  if (!['approved', 'rejected'].includes(action)) {
+    return res.status(400).json({ error: "Invalid action. Use 'approved' or 'rejected'." });
+  }
+
+  try {
+    // Fetch the user ID associated with the verification request
+    const { data: verificationData, error: fetchError } = await supabase
+      .from('artist_verification')
+      .select('user_id')
+      .eq('verification_id', verificationId)
+      .single();
+
+    if (fetchError || !verificationData) {
+      return res.status(404).json({ error: "Verification request not found." });
+    }
+
+    const userId = verificationData.user_id;
+
+    // Update the verification status
+    const { error } = await supabase
+      .from('artist_verification')
+      .update({ status: action })
+      .eq('verification_id', verificationId);
+
+    if (error) {
+      return res.status(500).json({ error: "Failed to update verification status." });
+    }
+
+    // Notify the user about the status change
+    const { data: userData, error: userFetchError } = await supabase
+      .from('artist')
+      .select('firstname, lastname')
+      .eq('user_id', userId)
+      .single();
+
+    if (userFetchError || !userData) {
+      console.error("Error fetching user data:", userFetchError);
+      return res.status(500).json({ error: "Failed to fetch user data for notification." });
+    }
+
+    const userName = `${userData.firstname} ${userData.lastname}`;
+    const notificationMessage = `Your verification request has been ${action}.`;
+
+    const { error: notificationError } = await supabase
+      .from("notifications")
+      .insert([
+        {
+          user_id: userId,
+          type: "Verification",
+          message: notificationMessage,
+          is_read: false, // Set to false initially
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
+    res.status(200).json({ success: true, message: `Verification has been ${action}.` });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+
+// ****** ARTIST UPLOAD VERIFICATION END... ******

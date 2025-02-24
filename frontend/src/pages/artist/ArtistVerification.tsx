@@ -10,6 +10,7 @@ const ArtistVerification: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
   const handlePortfolioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -20,30 +21,29 @@ const ArtistVerification: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) setValidId(file);
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!portfolio || !validId) {
       Swal.fire("Missing Documents", "Please upload both your portfolio and a valid ID.", "warning");
       return;
     }
-
+  
     setUploading(true);
-
+  
     try {
       const formData = new FormData();
-      formData.append("document", portfolio);
-      formData.append("valid_id", validId);
-
+      formData.append("document", portfolio); // Ensure the name matches the backend
+      formData.append("valid_id", validId); // Ensure the name matches the backend
+  
       const response = await axios.post(
-        `http://localhost:8081/artist-verification/${user?.id}`,
+        `${API_BASE_URL}/api/artist-verification/${user?.id}`, // Corrected URL
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
         }
       );
-
+  
       if (response.data.success) {
         Swal.fire("Success", "Verification request submitted successfully.", "success").then(() =>
           navigate("/artist-profile")
