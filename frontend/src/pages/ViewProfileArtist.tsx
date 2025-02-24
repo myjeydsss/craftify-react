@@ -349,7 +349,7 @@ const ViewProfileArtist: React.FC = () => {
                 )}
 
                 {/* Artworks Section */}
-                <div className="bg-white shadow-md rounded-lg p-8">
+                <div className="bg-white shadow-md rounded-lg p-8 mb-12">
                     <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                         Artworks by {artist?.firstname}
                     </h2>

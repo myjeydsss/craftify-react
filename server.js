@@ -2160,9 +2160,7 @@ app.get("/match-clients/:userId", async (req, res) => {
 
 // ***** BROWSE CLIENT MATCHING ALGORITHM END... ******
 
-
 // ****** SEND PROPOSAL ENDPOINT ******
-
 // Proposal Endpoint
 app.post("/send-proposal", async (req, res) => {
   const { sender_id, recipient_id, project_name, project_description, budget, due_date, status } = req.body;
@@ -2172,6 +2170,37 @@ app.post("/send-proposal", async (req, res) => {
   }
 
   try {
+    // Attempt to fetch the sender's name from the artist table
+    let senderName;
+    let { data: senderData, error: senderError } = await supabase
+      .from("artist")
+      .select("firstname, lastname") // Fetch both firstname and lastname
+      .eq("user_id", sender_id)
+      .single();
+
+    // If not found in artist, check the client table
+    if (senderError || !senderData) {
+      ({ data: senderData, error: senderError } = await supabase
+        .from("client")
+        .select("firstname, lastname") // Fetch both firstname and lastname
+        .eq("user_id", sender_id)
+        .single());
+    }
+
+    // If still not found, return an error
+    if (senderError || !senderData) {
+      console.error("Error fetching sender's name:", senderError);
+      return res.status(500).json({ error: "Failed to fetch sender's name." });
+    }
+
+    // Construct the sender's name based on where it was found
+    if (senderData.firstname && senderData.lastname) {
+      senderName = `${senderData.firstname} ${senderData.lastname}`; // From either artist or client table
+    } else {
+      senderName = senderData.name; // Fallback if only name is available
+    }
+
+    // Insert the proposal into the proposals table
     const { data, error } = await supabase.from("proposals").insert([
       { sender_id, recipient_id, project_name, project_description, budget, due_date, status }
     ]);
@@ -2180,7 +2209,24 @@ app.post("/send-proposal", async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // Update the proposals state
+    // Create a notification for the recipient
+    const notificationMessage = `You have received a new proposal from ${senderName}.`;
+    const { error: notificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: recipient_id,
+        type: "Proposal",
+        message: notificationMessage,
+        is_read: false, // Set to false initially
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
+    // Fetch the updated proposals for the recipient
     const { data: proposalsData, error: proposalsError } = await supabase
       .from('proposals')
       .select('*')
@@ -2188,7 +2234,7 @@ app.post("/send-proposal", async (req, res) => {
 
     if (proposalsError) {
       console.error("Error fetching proposals:", proposalsError);
-      throw proposalsError;
+      return res.status(500).json({ error: "Failed to fetch proposals." });
     }
 
     const proposalsWithProfiles = await Promise.all(
@@ -2200,11 +2246,11 @@ app.post("/send-proposal", async (req, res) => {
 
     res.status(201).json({ message: "Proposal sent successfully!", data: proposalsWithProfiles });
   } catch (err) {
+    console.error("Internal server error:", err);
     res.status(500).json({ error: "Internal server error." });
   }
 });
 // ****** SEND PROPOSAL ENDPOINT END... ******
-
 
 // ****** COMMUNITY ENDPOINT ******
 
@@ -2425,12 +2471,12 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
     res.status(500).json({ error: "Failed to create post" });
   }
 });
-
-// **LIKE/UNLIKE a Post**
+// **LIKE a Post**
 app.post("/community-posts/like", async (req, res) => {
   const { post_id, user_id } = req.body;
 
   try {
+    // Step 1: Check if the user already liked the post
     const { data: existingLikes, error: fetchError } = await supabase
       .from("community_likes")
       .select("id")
@@ -2442,8 +2488,8 @@ app.post("/community-posts/like", async (req, res) => {
       return res.status(500).json({ error: "Error checking like status" });
     }
 
+    // Step 2: If the user already liked the post, unlike it
     if (existingLikes.length > 0) {
-      // Unlike: Remove the like
       const { error: deleteError } = await supabase
         .from("community_likes")
         .delete()
@@ -2454,7 +2500,7 @@ app.post("/community-posts/like", async (req, res) => {
         return res.status(500).json({ error: "Error removing like" });
       }
     } else {
-      // Like: Add a new like
+      // Step 3: If not liked, add a new like
       const { error: insertError } = await supabase
         .from("community_likes")
         .insert({ post_id, user_id });
@@ -2463,9 +2509,72 @@ app.post("/community-posts/like", async (req, res) => {
         console.error("Error adding like:", insertError);
         return res.status(500).json({ error: "Error adding like" });
       }
+
+      // Step 4: Fetch the post owner
+      const { data: postData, error: postFetchError } = await supabase
+        .from("community_posts")
+        .select("user_id")
+        .eq("id", post_id)
+        .single();
+
+      if (postFetchError || !postData) {
+        console.error("Error fetching post owner:", postFetchError);
+        return res.status(500).json({ error: "Error fetching post owner" });
+      }
+
+      const postOwnerId = postData.user_id;
+
+      // Step 5: Check if the liker is the post owner
+      if (postOwnerId !== user_id) {
+        // Fetch the liker’s name from both tables
+        let likerData = null;
+
+        // Check in the client table
+        const { data: clientData } = await supabase
+          .from("client")
+          .select("firstname, lastname")
+          .eq("user_id", user_id)
+          .single();
+
+        if (clientData) {
+          likerData = clientData;
+        } else {
+          // If not found in client, check in the artist table
+          const { data: artistData } = await supabase
+            .from("artist")
+            .select("firstname, lastname")
+            .eq("user_id", user_id)
+            .single();
+          if (artistData) {
+            likerData = artistData;
+          }
+        }
+
+        if (!likerData) {
+          console.error("Liker not found in client or artist table");
+          return res.status(404).json({ error: "Liker not found" });
+        }
+
+        // Step 6: Create a notification for the post owner
+        const notificationMessage = `${likerData.firstname} ${likerData.lastname} likes your post.`;
+        const { error: notificationError } = await supabase.from("notifications").insert([
+          {
+            user_id: postOwnerId, // Notify the post owner
+            type: "Post Liked",
+            message: notificationMessage,
+            is_read: false, // Set to false initially
+            created_at: new Date().toISOString(),
+          }
+        ]);
+
+        if (notificationError) {
+          console.error("Error creating notification:", notificationError);
+          return res.status(500).json({ error: "Failed to create notification." });
+        }
+      }
     }
 
-    // Fetch updated likes
+    // Step 7: Fetch updated likes
     const { data: updatedLikes, error: fetchUpdatedLikesError } = await supabase
       .from("community_likes")
       .select("user_id")
@@ -2482,7 +2591,6 @@ app.post("/community-posts/like", async (req, res) => {
     res.status(500).json({ error: "Unexpected error" });
   }
 });
-
 // **POST a Comment on a Post**
 app.post("/community-comments", async (req, res) => {
   const { post_id, user_id, content } = req.body;
@@ -2492,17 +2600,82 @@ app.post("/community-comments", async (req, res) => {
   }
 
   try {
-    const { data: newComment, error } = await supabase
+    // Step 1: Insert the new comment
+    const { data: newComment, error: insertError } = await supabase
       .from("community_comments")
       .insert({ post_id, user_id, content })
       .select("id, content, user_id, created_at")
       .single();
 
-    if (error) {
-      console.error("Error adding comment:", error);
+    if (insertError) {
+      console.error("Error adding comment:", insertError);
       return res.status(500).json({ error: "Failed to add comment" });
     }
 
+    // Step 2: Fetch the post owner
+    const { data: postData, error: postFetchError } = await supabase
+      .from("community_posts")
+      .select("user_id")
+      .eq("id", post_id)
+      .single();
+
+    if (postFetchError || !postData) {
+      console.error("Error fetching post owner:", postFetchError);
+      return res.status(500).json({ error: "Error fetching post owner" });
+    }
+
+    const postOwnerId = postData.user_id;
+
+    // Step 3: Check if the commenter is the post owner
+    if (postOwnerId !== user_id) {
+      // Fetch the commenter's name from both tables
+      let commenterData = null;
+
+      // Check in the client table
+      const { data: clientData } = await supabase
+        .from("client")
+        .select("firstname, lastname")
+        .eq("user_id", user_id)
+        .single();
+
+      if (clientData) {
+        commenterData = clientData;
+      } else {
+        // If not found in client, check in the artist table
+        const { data: artistData } = await supabase
+          .from("artist")
+          .select("firstname, lastname")
+          .eq("user_id", user_id)
+          .single();
+        if (artistData) {
+          commenterData = artistData;
+        }
+      }
+
+      if (!commenterData) {
+        console.error("Commenter not found in client or artist table");
+        return res.status(404).json({ error: "Commenter not found" });
+      }
+
+      // Step 4: Create a notification for the post owner
+      const notificationMessage = `${commenterData.firstname} ${commenterData.lastname} commented on your post.`;
+      const { error: notificationError } = await supabase.from("notifications").insert([
+        {
+          user_id: postOwnerId, // Notify the post owner
+          type: "Post Commented",
+          message: notificationMessage,
+          is_read: false, // Set to false initially
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+      if (notificationError) {
+        console.error("Error creating notification:", notificationError);
+        return res.status(500).json({ error: "Failed to create notification." });
+      }
+    }
+
+    // Step 5: Return the new comment
     res.status(201).json({ comment: newComment });
   } catch (err) {
     console.error("Unexpected error while adding comment:", err);
@@ -2715,7 +2888,6 @@ const fetchProfileDetails = async (userId) => {
   }
 };
 
-
 // Endpoint to accept a proposal and create a project
 app.post('/api/proposals/accept', async (req, res) => {
   const { proposal } = req.body;
@@ -2759,6 +2931,23 @@ app.post('/api/proposals/accept', async (req, res) => {
       throw new Error(`Error updating proposal: ${proposalError.message}`);
     }
 
+    // Step 3: Create a notification for the recipient
+    const notificationMessage = `Your proposal for "${proposal.project_name}" has been accepted and a project has been created.`;
+    const { error: notificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: proposal.sender_id, // 
+        type: "Proposal Accepted",
+        message: notificationMessage,
+        is_read: false, // Set to false initially
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
     res.status(200).json({ newProject });
   } catch (err) {
     console.error("Error accepting proposal:", err);
@@ -2771,7 +2960,19 @@ app.post('/api/proposals/reject', async (req, res) => {
   const { proposalId } = req.body;
 
   try {
-    // Update the proposal status to "Rejected"
+    // Step 1: Fetch the proposal to get the recipient's ID and project name
+    const { data: proposalData, error: fetchError } = await supabase
+      .from("proposals")
+      .select("sender_id, project_name")
+      .eq("proposal_id", proposalId)
+      .single();
+
+    if (fetchError || !proposalData) {
+      console.error("Error fetching proposal:", fetchError);
+      return res.status(404).json({ error: "Proposal not found." });
+    }
+
+    // Step 2: Update the proposal status to "Rejected"
     const { error } = await supabase
       .from("proposals")
       .update({ status: "Rejected" })
@@ -2781,6 +2982,23 @@ app.post('/api/proposals/reject', async (req, res) => {
       throw new Error(`Error rejecting proposal: ${error.message}`);
     }
 
+    // Step 3: Create a notification for the recipient
+    const notificationMessage = `Your proposal for "${proposalData.project_name}" has been rejected.`;
+    const { error: notificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: proposalData.sender_id, 
+        type: "Proposal Rejected",
+        message: notificationMessage,
+        is_read: false, // Set to false initially
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
     res.status(200).json({ message: 'Proposal rejected.' });
   } catch (err) {
     console.error("Error rejecting proposal:", err);
@@ -2788,12 +3006,24 @@ app.post('/api/proposals/reject', async (req, res) => {
   }
 });
 
-
 // Endpoint to update project status
 app.post('/api/projects/update-status', async (req, res) => {
   const { project_id, status } = req.body;
 
   try {
+    // Step 1: Fetch the project to get the client and artist IDs
+    const { data: projectData, error: fetchError } = await supabase
+      .from("projects")
+      .select("client_id, artist_id, project_name") // Fetch client_id, artist_id, and project_name
+      .eq("project_id", project_id)
+      .single();
+
+    if (fetchError || !projectData) {
+      console.error("Error fetching project:", fetchError);
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    // Step 2: Update the project status
     const { error } = await supabase
       .from("projects")
       .update({ status, updated_at: new Date() })
@@ -2801,6 +3031,44 @@ app.post('/api/projects/update-status', async (req, res) => {
 
     if (error) {
       throw new Error(`Error updating project status: ${error.message}`);
+    }
+
+    // Step 3: Create a notification for the client
+    const notificationMessage = `The status for the project "${projectData.project_name}" has been updated to "${status}".`;
+    
+    // Notify the client
+    const { error: clientNotificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: projectData.client_id, // Notify the client
+        type: "Project Status Updated",
+        message: notificationMessage,
+        is_read: false, // Set to false initially
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (clientNotificationError) {
+      console.error("Error creating client notification:", clientNotificationError);
+      return res.status(500).json({ error: "Failed to create client notification." });
+    }
+
+    // Step 4: Notify the artist only if the status is "Confirmed"
+    if (status === "Confirmed") {
+      const artistNotificationMessage = `The project "${projectData.project_name}" has been confirmed.`;
+      const { error: artistNotificationError } = await supabase.from("notifications").insert([
+        {
+          user_id: projectData.artist_id, // Notify the artist
+          type: "Project Confirmed",
+          message: artistNotificationMessage,
+          is_read: false, // Set to false initially
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+      if (artistNotificationError) {
+        console.error("Error creating artist notification:", artistNotificationError);
+        return res.status(500).json({ error: "Failed to create artist notification." });
+      }
     }
 
     res.status(200).json({ success: true });
@@ -2815,6 +3083,19 @@ app.post('/api/projects/update-priority', async (req, res) => {
   const { project_id, priority } = req.body;
 
   try {
+    // Step 1: Fetch the project to get the client and artist IDs
+    const { data: projectData, error: fetchError } = await supabase
+      .from("projects")
+      .select("client_id, artist_id, project_name") // Fetch client_id, artist_id, and project_name
+      .eq("project_id", project_id)
+      .single();
+
+    if (fetchError || !projectData) {
+      console.error("Error fetching project:", fetchError);
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    // Step 2: Update the project priority
     const { error } = await supabase
       .from("projects")
       .update({ priority, updated_at: new Date() })
@@ -2824,12 +3105,33 @@ app.post('/api/projects/update-priority', async (req, res) => {
       throw new Error(`Error updating project priority: ${error.message}`);
     }
 
+    // Step 3: Create a notification for the client and artist
+    const notificationMessage = `The priority for the project "${projectData.project_name}" has been updated to "${priority}".`;
+    
+    // Notify the client
+    const { error: clientNotificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: projectData.client_id, // Notify the client
+        type: "Project Priority Updated",
+        message: notificationMessage,
+        is_read: false, // Set to false initially
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (clientNotificationError) {
+      console.error("Error creating client notification:", clientNotificationError);
+      return res.status(500).json({ error: "Failed to create client notification." });
+    }
+
+
     res.status(200).json({ success: true });
   } catch (err) {
     console.error("Error updating project priority:", err);
     res.status(500).json({ error: 'Failed to update project priority.' });
   }
 });
+
 // Endpoint to fetch project details along with sender information
 app.get('/api/projects/:projectId/details', async (req, res) => {
   const { projectId } = req.params;
@@ -3319,3 +3621,93 @@ app.get("/orders/:userId", async (req, res) => {
 });
 
 //***** TRANSACTION FUNCTION END...******/
+
+
+//***** NOTIFICATION FUNCTION ******
+
+// Fetch notifications for a user
+app.get("/notifications/:userId", async (req, res) => {
+  const { userId } = req.params; // Get userId from the request parameters
+
+  try {
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ error: "Error fetching notifications." });
+    }
+
+    res.status(200).json({ notifications: data });
+  } catch (err) {
+    console.error("Error fetching notifications:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// Mark all notifications as read for a user
+app.put("/notifications/:userId/mark-all-as-read", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+      const { error } = await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("user_id", userId);
+
+      if (error) {
+          return res.status(500).json({ error: "Error marking notifications as read." });
+      }
+
+      res.status(200).json({ message: "All notifications marked as read." });
+  } catch (err) {
+      console.error("Error marking notifications as read:", err);
+      res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// Delete a single notification
+app.delete("/notifications/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Convert id to a number for an int8 column
+  const notificationId = Number(id);
+  if (isNaN(notificationId)) {
+      return res.status(400).json({ error: "Invalid notification ID." });
+  }
+
+  try {
+      // Check if the notification exists
+      const { data: existingNotification, error: fetchError } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("id", notificationId)
+          .single();
+
+      if (fetchError) {
+          return res.status(500).json({ error: "Error fetching notification." });
+      }
+
+      if (!existingNotification) {
+          return res.status(404).json({ error: "Notification not found." });
+      }
+
+      // Delete the notification
+      const { error: deleteError } = await supabase
+          .from("notifications")
+          .delete()
+          .eq("id", notificationId);
+
+      if (deleteError) {
+          return res.status(500).json({ error: "Error deleting notification." });
+      }
+
+      res.status(200).json({ message: "Notification deleted." });
+  } catch (err) {
+      res.status(500).json({ error: "Internal server error." });
+  }
+});
+//***** NOTIFICATION FUNCTION END... ******
+

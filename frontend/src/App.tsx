@@ -95,6 +95,7 @@ const App = () => {
                     <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
 
                     <Route path="/community" element={<Community />} />
+                    
                     {/* Notification routes */}
                     <Route path="/notifications" element={<Notification />} />
 

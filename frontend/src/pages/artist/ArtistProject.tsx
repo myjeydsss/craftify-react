@@ -182,12 +182,13 @@ const ArtistProject: React.FC = () => {
 
   
   return (
-    <div className="bg-gray-50 min-h-screen font-poppins">
       <div className="container mx-auto px-4 py-16">
         
         {/* Header Section */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Project Dashboard</h1>
+          <hr className="border-gray-300 mb-6" />
+
         </div>
   
         {/* Stats Overview */}
@@ -219,8 +220,7 @@ const ArtistProject: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Ongoing Projects</p>
               <p className="text-2xl font-bold">
-                {projects.filter(project => project.status === "In Progress").length}
-              </p>
+              {projects.filter(project => project.status === "In Progress" || project.status === "Done").length}              </p>
             </div>
             <div className="p-3 bg-purple-100 rounded-lg">
               <FaTh className="text-purple-600 text-2xl" />
@@ -232,7 +232,7 @@ const ArtistProject: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Completed Projects</p>
               <p className="text-2xl font-bold">
-                {projects.filter(project => project.status === "Done").length}
+                {projects.filter(project => project.status === "Confirmed").length}
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
@@ -266,6 +266,8 @@ const ArtistProject: React.FC = () => {
     </button>
   ))}
 </div>
+<hr className="border-gray-300 mb-6" />
+
 
 {/* Board View */}
 {activeView === "Board" && (
@@ -642,7 +644,6 @@ const ArtistProject: React.FC = () => {
   </div>
 )}
       </div>
-    </div>
   );
 };
 

@@ -353,7 +353,8 @@ const Community: React.FC = () => {
 
   return (
     <div className="container mx-auto py-16 px-4">
-      <h1 className="text-4xl font-bold text-center text-[#5C0601] mb-10">Community</h1>
+      <h1 className="text-4xl font-bold text-center text-[#5C0601] mb-4">Community</h1>
+        <hr className="border-gray-300 mb-6" />
 
       {error && <div className="text-center text-red-600 font-semibold mb-6">{error}</div>}
 
