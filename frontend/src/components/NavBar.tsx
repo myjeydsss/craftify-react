@@ -11,6 +11,8 @@ const NavBar: React.FC = () => {
   const [role, setRole] = useState<string | null>(null);
   const [cartCount, setCartCount] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
+  const [isScrolled, setIsScrolled] = useState(false);  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,6 +46,19 @@ const NavBar: React.FC = () => {
     }
   };
 
+  // Fetch unread notifications count
+  const fetchUnreadNotificationsCount = async () => {
+    if (user) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/notifications/count/${user.id}`);
+        setUnreadNotificationsCount(response.data.count);
+      } catch (error) {
+        console.error("Error fetching unread notifications count:", error);
+        setUnreadNotificationsCount(0);
+      }
+    }
+  };
+
   // Toggle dropdown
   const toggleDropdown = () => setDropdownOpen((prev) => !prev);
 
@@ -61,10 +76,11 @@ const NavBar: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  // Fetch user role and cart count when user changes
+  // Fetch user role, cart count, and unread notifications count when user changes
   useEffect(() => {
     fetchUserRole();
     fetchCartCount();
+    fetchUnreadNotificationsCount();
   }, [user]);
 
   // Handle logout
@@ -77,6 +93,15 @@ const NavBar: React.FC = () => {
       console.error("Error logging out:", error);
     }
   };
+
+  // Handle scroll event to set isScrolled state
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);  
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Render navigation links based on user role
   const renderNavLinks = () => {
@@ -119,7 +144,7 @@ const NavBar: React.FC = () => {
           <Link to="/users-table" className={`${isActive("/users-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Users Table</Link>
           <Link to="/tags-table" className={`${isActive("/tags-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Tags Table</Link>
           <Link to="/arts-table" className={`${isActive("/arts-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Arts Table</Link>
-          <Link to="/verification" className={`${isActive("/verification") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Verification</Link>
+          <Link to="/verification" className={`${isActive("/verification") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium `}>Verification</Link>
           <Link to="/community" className={`${isActive("/community") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Community</Link>
         </div>
       );
@@ -127,7 +152,7 @@ const NavBar: React.FC = () => {
   };
 
   return (
-    <nav className="fixed w-full z-50 bg-white shadow-lg">
+    <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "bg-white/70 backdrop-blur-md shadow-lg" : "bg-white shadow-lg"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16">
           {/* Logo */}
@@ -156,22 +181,27 @@ const NavBar: React.FC = () => {
                 <Link to="/cart" className="relative text-black px-3 hover:text-gray-700">
                   <FaShoppingCart size={20} />
                   {cartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-md text-[10px]">
                       {cartCount}
                     </span>
                   )}
                 </Link>
               )}
               {role !== "Admin" && (
-                <Link to="/transaction-history" className="relative text-black px-3 hover:text-gray-700">
+                <Link to="/transaction-history" className="relative text-black hover:text-gray-700">
                   <FaHistory size={20} />
                 </Link>
               )}
               <Link to="/messages" className="text-black hover:text-gray-700">
                 <FaEnvelope size={20} />
               </Link>
-              <Link to="/notifications" className="text-black hover:text-gray-700">
+              <Link to="/notifications" className="relative text-black px-2 hover:text-gray-700">
                 <FaBell size={20} />
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
               </Link>
               <div ref={dropdownRef} className="relative">
                 <button
@@ -216,7 +246,7 @@ const NavBar: React.FC = () => {
                   </Link>
                   <Link
                     to="/register"
-                    className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    className="px-4 py- 2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                   >
                     <FaUserPlus className="mr-2" /> Register
                   </Link>

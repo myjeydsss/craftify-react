@@ -3,6 +3,7 @@ import axios from "axios";
 import { FaTh, FaList, FaUserCircle, FaEye, FaRegCheckCircle, FaRegClock } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
 
 interface Project {
   project_id: string;
@@ -12,8 +13,8 @@ interface Project {
   status: string;
   priority: string;
   proposal_id: string;
-  budget?: string; // Optional budget field
-  senderProfile?: any; // Optional sender profile field
+  budget?: string;  
+  senderProfile?: any;  
 }
 
 interface Proposal {
@@ -25,10 +26,10 @@ interface Proposal {
   sender_id: string;
   recipient_id: string;
   status: string;
-  senderProfile?: any; // Improve later by defining Profile interface
+  senderProfile?: any;  
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL; // Ensure API URL is correctly set
+const API_BASE_URL = import.meta.env.VITE_API_URL;  
 
 const ClientProject: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -86,57 +87,112 @@ const ClientProject: React.FC = () => {
 
   const onAcceptProposal = async (proposal: Proposal) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/proposals/accept`, { proposal });
-      const newProject = response.data.newProject;
+        const response = await axios.post(`${API_BASE_URL}/api/proposals/accept`, { proposal });
+        const newProject = response.data.newProject;
 
-      // Update frontend state
-      setProposals((prev) => prev.filter((p) => p.proposal_id !== proposal.proposal_id));
-      setProjects((prev) => [...prev, newProject]);
+        setProposals((prev) => prev.filter((p) => p.proposal_id !== proposal.proposal_id));
+        setProjects((prev) => [...prev, newProject]);
+        setSelectedProposal(null);
 
-      // Close the modal
-      setSelectedProposal(null);
-
-      alert("Proposal accepted and project created!");
+        // Show success toast
+        Swal.fire({
+            icon: 'success',
+            title: 'Proposal Accepted!',
+            text: 'The proposal has been accepted and the project has been created.',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
     } catch (err) {
-      console.error("Error accepting proposal:", err);
-      alert("Failed to accept proposal.");
+        console.error("Error accepting proposal:", err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to accept proposal.',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
     }
-  };
+};
 
-  const onRejectProposal = async (proposal: Proposal) => {
-    try {
+const onRejectProposal = async (proposal: Proposal) => {
+  try {
       await axios.post(`${API_BASE_URL}/api/proposals/reject`, { proposalId: proposal.proposal_id });
 
-      // Update frontend state
       setProposals((prev) => prev.filter((p) => p.proposal_id !== proposal.proposal_id));
 
-      alert("Proposal rejected.");
-    } catch (err) {
+      // Show success toast
+      Swal.fire({
+          icon: 'success',
+          title: 'Proposal Rejected!',
+          text: 'The proposal has been rejected successfully.',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+      });
+
+      // Close the modal
+      setSelectedProposal(null); // This will close the modal
+  } catch (err) {
       console.error("Error rejecting proposal:", err);
-      alert("Failed to reject proposal.");
-    }
-  };
+      Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to reject proposal.',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+      });
+  }
+};
 
   const handleConfirm = async (project: Project) => {
-    // Logic to confirm the project, e.g., updating the status in the database
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/projects/update-status`, {
-        project_id: project.project_id,
-        status: "Confirmed", // or whatever status you want to set
-      });
-  
-      if (response.data.success) {
-        // Update the local state to reflect the change
-        setProjects((prev) =>
-          prev.map((p) => (p.project_id === project.project_id ? { ...p, status: "Confirmed" } : p))
-        );
-        alert("Project confirmed successfully!");
-      }
+        const response = await axios.post(`${API_BASE_URL}/api/projects/update-status`, {
+            project_id: project.project_id,
+            status: "Confirmed",
+        });
+
+        if (response.data.success) {
+            setProjects((prev) =>
+                prev.map((p) => (p.project_id === project.project_id ? { ...p, status: "Confirmed" } : p))
+            );
+
+            // Show success toast
+            Swal.fire({
+                icon: 'success',
+                title: 'Project Confirmed!',
+                text: 'The project status has been updated to confirmed.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        }
     } catch (err) {
-      console.error("Error confirming project:", err);
-      alert("Failed to confirm project.");
+        console.error("Error confirming project:", err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to confirm project.',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
     }
-  };
+};
 
   const handleViewDetails = async (project: Project) => {
     try {
@@ -291,7 +347,7 @@ const ClientProject: React.FC = () => {
                   <div className="flex space-x-2 mt-2">
                     {status === "Done" || status === "Failed" ? (
                       <button
-                        onClick={() => handleConfirm(project)} // Implement handleConfirm function
+                        onClick={() => handleConfirm(project)}  
                         className="bg-green-500 text-white px-4 py-1 rounded-md hover:bg-green-600"
                       >
                         Confirm
@@ -599,13 +655,13 @@ const ClientProject: React.FC = () => {
               {/* Action Buttons */}
 <div className="flex justify-between space-x-4 mt-6">
   <button
-    onClick={() => onRejectProposal(selectedProposal)} // Call the reject function
+    onClick={() => onRejectProposal(selectedProposal)}  
     className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition duration-300 transform hover:scale-105"
   >
     Reject
   </button>
   <button
-    onClick={() => onAcceptProposal(selectedProposal)} // Call the accept function
+    onClick={() => onAcceptProposal(selectedProposal)}  
     className="flex-1 px-4 py-2 bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition duration-300 transform hover:scale-105"
   >
     Accept

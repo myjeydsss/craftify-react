@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom";
+import './App.css'
+import './index.css'
 import HomePage from "./pages/HomePage";
 import NavBar from "./components/NavBar";
 import Explore from "./pages/Explore";

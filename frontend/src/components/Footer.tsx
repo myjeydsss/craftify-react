@@ -1,5 +1,7 @@
 import React from "react";
 import logo from "../assets/logo.png"; // Adjust the path as necessary
+import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn } from "react-icons/fa"; // Import social media icons
+import { Link } from "react-router";
 
 const Footer: React.FC = () => {
   return (
@@ -20,24 +22,24 @@ const Footer: React.FC = () => {
               <h3 className="font-bold text-[#CA5310] mb-2">Quick Links</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+                  <Link to="/" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     Home
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+                  <Link to="/about-us" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     About Us
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+                  <Link to="/contact" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     Contact
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+                  <Link to="/privacy-policy" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     Privacy Policy
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -46,19 +48,19 @@ const Footer: React.FC = () => {
               <h3 className="font-bold text-[#CA5310] mb-2">Support</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+                  <Link to="/faqs" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     FAQs
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+                  <Link to="/help-center" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     Help Center
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+                  <Link to="/feedback" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     Feedback
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -66,17 +68,17 @@ const Footer: React.FC = () => {
             <div>
               <h3 className="font-bold text-[#CA5310] mb-2">Follow Us</h3>
               <div className="flex space-x-4 justify-center md:justify-start">
-                <a href="#" className="text-gray-600 hover:text-[#CA5310]">
-                  <i className="fab fa-facebook-f"></i>
+                <a href="#" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                  <FaFacebookF size={20} />
                 </a>
-                <a href="#" className="text-gray-600 hover:text-[#CA5310]">
-                  <i className="fab fa-twitter"></i>
+                <a href="#" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                  <FaTwitter size={20} />
                 </a>
-                <a href="#" className="text-gray-600 hover:text-[#CA5310]">
-                  <i className="fab fa-instagram"></i>
+                <a href="#" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                  <FaInstagram size={20} />
                 </a>
-                <a href="#" className="text-gray-600 hover:text-[#CA5310]">
-                  <i className="fab fa-linkedin-in"></i>
+                <a href="#" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                  <FaLinkedinIn size={20} />
                 </a>
               </div>
             </div>

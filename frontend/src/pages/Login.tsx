@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaSpinner, FaEye, FaEyeSlash } from "react-icons/fa";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider";
+import Footer from "../components/Footer";
 
 
 const Login: React.FC = () => {
@@ -16,49 +17,50 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!emailRef.current?.value || !passwordRef.current?.value) {
       setErrorMsg("Please enter your email and password.");
       return;
     }
-
+  
     try {
       setLoading(true);
       setErrorMsg("");
-
+  
       const { success, error, userId } = await login(
         emailRef.current.value,
         passwordRef.current.value
       );
-
+  
       if (!success) {
         setErrorMsg(error || "Login failed. Please try again.");
         return;
       }
-
+  
       if (!userId) throw new Error("User  ID not found after login.");
-
+  
       localStorage.setItem("userId", userId);
-
+  
       const API_BASE_URL = import.meta.env.VITE_API_URL;
       const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
       const { role } = response.data;
-
+  
       const roleRoutes: Record<string, string> = {
         Artist: "/artist-dashboard",
         Client: "/client-dashboard",
         Admin: "/admin-dashboard",
       };
-
+  
       navigate(roleRoutes[role] || "/");
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.error || "Login failed. Please try again.");
+      setErrorMsg("Unexpected error during login.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 px-4">
       <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
         <h2 className="text-3xl font-bold text-center text-red-400">Welcome to Craftify!</h2>
@@ -128,6 +130,9 @@ const Login: React.FC = () => {
         </div>
       </div>
     </div>
+    <Footer />
+
+    </>
   );
 };
 

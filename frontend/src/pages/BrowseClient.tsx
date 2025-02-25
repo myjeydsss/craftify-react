@@ -4,8 +4,9 @@ import Masonry from "react-masonry-css";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider";
+import ClipLoader from "react-spinners/ClipLoader";
 
-// TypeScript Interfaces
+
 interface Client {
   user_id: string;
   firstname: string;
@@ -38,7 +39,7 @@ interface Match {
 }
 
 const BrowseClient: React.FC = () => {
-  const { user } = useAuth(); // Get logged-in artist
+  const { user } = useAuth();  
   const [clients, setClients] = useState<Client[]>([]);
   const [matchedClients, setMatchedClients] = useState<Match[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -52,7 +53,7 @@ const BrowseClient: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState<number>(25);
   const totalItems = clients.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const [userRole, setUserRole] = useState<string | null>(null); // State to hold user role
+    const [userRole, setUserRole] = useState<string | null>(null); 
   
 
   // Fetch clients from the server
@@ -80,7 +81,7 @@ const BrowseClient: React.FC = () => {
         try {
           const response = await axios.get(`${import.meta.env.VITE_API_URL}/user-role/${user.id}`);
           setUserRole(response.data.role);
-          console.log("Fetched user role:", response.data.role); // Debugging line
+          
         } catch (err: any) {
           console.error("Error fetching user role:", err.message);
           setError("Failed to fetch user role.");
@@ -112,7 +113,7 @@ const BrowseClient: React.FC = () => {
     }
   };
 
-  // Fetch best matches using Gale-Shapley Algorithm
+  //  Gale-Shapley Algorithm
   const findMatches = async () => {
     if (!user || !user.id) {
       setError("User  is not authenticated or missing user ID.");
@@ -137,14 +138,12 @@ const BrowseClient: React.FC = () => {
   const handleProfileClick = async (clientId: string) => {
     if (!user || !user.id) {
         console.error("User  is not authenticated.");
-        return; // Exit the function if the user is not authenticated
+        return;  
     }
-
-    console.log("Logging profile visit for clientId:", clientId); // Log the client ID
 
     try {
         await axios.post(`${import.meta.env.VITE_API_URL}/log-profile-visit/${clientId}`, {
-            visitorId: user.id // Use the actual visitor ID from the logged-in user
+            visitorId: user.id 
         });
         
         navigate(`/profile/client/${clientId}`);
@@ -153,8 +152,12 @@ const BrowseClient: React.FC = () => {
     }
 };
 
-  if (loading) return <div className="text-center py-16">Loading...</div>;
-  if (error) return <div className="text-center text-red-500 py-16">{error}</div>;
+if (loading) return (
+  <div className="flex justify-center items-center h-screen bg-gray-50">
+    <ClipLoader color="#3498db" loading={loading} size={80} />
+    <p className="mt-4 text-gray-600">Loading...</p>
+  </div>);  
+    if (error) return <div className="text-center text-red-500 py-16">{error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-16">
@@ -222,11 +225,11 @@ const BrowseClient: React.FC = () => {
         {modalOpen && (
           <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-            onClick={() => setModalOpen(false)} // Close modal when clicking outside
+            onClick={() => setModalOpen(false)}  
           >
             <div
               className="bg-white p-8 rounded-lg shadow-lg max-w-4xl w-full relative"
-              onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking inside
+              onClick={(e) => e.stopPropagation()}  
             >
               <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-800">
                 Best Match Found

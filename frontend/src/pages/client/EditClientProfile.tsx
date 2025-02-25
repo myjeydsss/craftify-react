@@ -63,19 +63,27 @@ const EditClientProfile: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
-
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Fetch client profile
+    
         const profileResponse = await axios.get(`${API_BASE_URL}/client-profile/${user.id}`);
         setClientProfile(profileResponse.data);
-
-        // Fetch client preferences
+    
         const preferencesResponse = await axios.get(`${API_BASE_URL}/client-preferences/${user.id}`);
-        setPreferences(preferencesResponse.data);
+    
+        // Ensure fetched preferences contain arrays instead of undefined
+        setPreferences({
+          preferred_art_style: preferencesResponse.data.preferred_art_style || [],
+          project_requirements: preferencesResponse.data.project_requirements || "",
+          budget_range: preferencesResponse.data.budget_range || "",
+          location_requirement: preferencesResponse.data.location_requirement || "",
+          timeline: preferencesResponse.data.timeline || "",
+          artist_experience_level: preferencesResponse.data.artist_experience_level || "",
+          communication_preferences: preferencesResponse.data.communication_preferences || [],
+          project_type: preferencesResponse.data.project_type || [],
+        });
       } catch (err) {
         console.error("Failed to fetch profile or preferences:", err);
         setError("Failed to load profile or preferences. Please try again later.");
@@ -124,7 +132,7 @@ const EditClientProfile: React.FC = () => {
     formData.append("file", imageFile);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/upload-profile-image/${user.id}`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/upload-client-profile-image/${user.id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -216,7 +224,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">First Name</label>
             <input
               name="firstname"
-              value={clientProfile.firstname}
+              value={clientProfile.firstname || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -225,7 +233,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Last Name</label>
             <input
               name="lastname"
-              value={clientProfile.lastname}
+              value={clientProfile.lastname || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -234,7 +242,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Bio</label>
             <textarea
               name="bio"
-              value={clientProfile.bio}
+              value={clientProfile.bio || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -243,7 +251,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Gender</label>
             <select
               name="gender"
-              value={clientProfile.gender}
+              value={clientProfile.gender || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             >
@@ -258,7 +266,7 @@ const EditClientProfile: React.FC = () => {
             <input
               type="date"
               name="date_of_birth"
-              value={clientProfile.date_of_birth}
+              value={clientProfile.date_of_birth || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -267,7 +275,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Address</label>
             <input
               name="address"
-              value={clientProfile.address}
+              value={clientProfile.address || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -277,7 +285,7 @@ const EditClientProfile: React.FC = () => {
             <input
               type="email"
               name="email"
-              value={clientProfile.email}
+              value={clientProfile.email || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -286,7 +294,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Phone</label>
             <input
               name="phone"
-              value={clientProfile.phone}
+              value={clientProfile.phone || ""}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -333,7 +341,7 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Project Requirements</label>
               <textarea
                 name="project_requirements"
-                value={preferences.project_requirements}
+                value={preferences.project_requirements || ""}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               />
@@ -344,7 +352,7 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Budget Range</label>
               <select
                 name="budget_range"
-                value={preferences.budget_range}
+                value={preferences.budget_range || ""}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
@@ -360,7 +368,7 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Location Requirement</label>
               <select
                 name="location_requirement"
-                value={preferences.location_requirement}
+                value={preferences.location_requirement || ""}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
@@ -376,7 +384,7 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Timeline</label>
               <select
                 name="timeline"
-                value={preferences.timeline}
+                value={preferences.timeline || ""}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
@@ -392,7 +400,7 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Artist Experience Level</label>
               <select
                 name="artist_experience_level"
-                value={preferences.artist_experience_level}
+                value={preferences.artist_experience_level || ""}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >

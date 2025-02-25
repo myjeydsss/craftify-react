@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../context/AuthProvider"; // Import your AuthProvider
+import { useAuth } from "../context/AuthProvider"; 
 import {
       FaMapMarkerAlt,
       FaEnvelope,
@@ -11,8 +11,11 @@ import {
       FaChevronUp,
     FaUserCircle,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom"; // Make sure to import useNavigate
-import MessagePopup from "./MessagePopup.tsx"; // Import the MessagePopup component
+import { useNavigate } from "react-router-dom"; 
+import MessagePopup from "./MessagePopup.tsx";
+import ClipLoader from "react-spinners/ClipLoader";
+import Swal from "sweetalert2";
+
 
 interface Artist {
       user_id: string;
@@ -58,8 +61,8 @@ interface RecommendedArtist {
 
 const ViewProfileArtist: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
-    const { user } = useAuth(); // Get the current user from the useAuth hook
-    const navigate = useNavigate(); // Initialize navigate
+    const { user } = useAuth(); 
+    const navigate = useNavigate();
     const [artist, setArtist] = useState<Artist | null>(null);
     const [artistArts, setArtistArts] = useState<Artwork[]>([]);
     const [preferences, setPreferences] = useState<Preferences | null>(null);
@@ -78,6 +81,8 @@ const ViewProfileArtist: React.FC = () => {
     const [projectDescription, setProjectDescription] = useState<string>("");
     const [budget, setBudget] = useState<string>("");
     const [dueDate, setDueDate] = useState<string>("");
+    const [showBudgetAlert, setShowBudgetAlert] = useState(false); // State to control the visibility of the alert
+
 
     useEffect(() => {
         const fetchArtistDetails = async () => {
@@ -136,22 +141,22 @@ const ViewProfileArtist: React.FC = () => {
 
     const handleProposalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
+    
         if (!user) {
             alert("You must be logged in to send a proposal.");
             return;
         }
-
+    
         if (!artist || !artist.user_id) {
             alert("Artist ID is missing! Please refresh the page.");
             return;
         }
-
+    
         if (!projectName.trim() || !projectDescription.trim() || !budget.trim() || !dueDate.trim()) {
             alert("All fields are required.");
             return;
         }
-
+    
         try {
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/send-proposal`, {
                 sender_id: user.id,
@@ -162,24 +167,55 @@ const ViewProfileArtist: React.FC = () => {
                 due_date: new Date(dueDate).toISOString().split("T")[0],
                 status: "Pending",
             });
-
+    
             if (response.status === 201) {
-                alert("Proposal sent successfully!");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Proposal Sent!',
+                    text: 'Your proposal has been sent successfully.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
                 setShowProposalModal(false);
                 setProjectName("");
                 setProjectDescription("");
                 setBudget("");
                 setDueDate("");
             } else {
-                alert("Failed to send proposal. Please try again.");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Sending Proposal',
+                    text: 'Failed to send proposal. Please try again.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
             }
         } catch (err) {
-            alert("Failed to send proposal. Please check the server.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Sending Proposal',
+                text: 'Failed to send proposal. Please check the server.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
         }
     };
-
-    if (loading) return <div className="text-center mt-10">Loading...</div>;
-    if (error) return <div className="text-center mt-10 text-red-500">{error}</div>;
+    
+    if (loading) return (
+        <div className="flex justify-center items-center h-screen bg-gray-50">
+          <ClipLoader color="#3498db" loading={loading} size={80} />
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>);  
+            if (error) return <div className="text-center mt-10 text-red-500">{error}</div>;
 
     return (
         <div className="min-h-screen bg-gray-50 py-16 px-4">
@@ -231,71 +267,95 @@ const ViewProfileArtist: React.FC = () => {
         </div>
     </div>
 </div>
-                {/* Proposal Modal */}
-                {showProposalModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-                        <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Send Proposal</h2>
-                            <form onSubmit={handleProposalSubmit}>
-                                <div className="mb-4">
-                                    <label className="block text-gray-700 font-medium mb-2">Project Name</label>
-                                    <input
-                                        type="text"
-                                        value={projectName}
-                                        onChange={(e) => setProjectName(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-gray-700 font-medium mb-2">Project Description</label>
-                                    <textarea
-                                        value={projectDescription}
-                                        onChange={(e) => setProjectDescription(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
-                                        rows={4}
-                                        required
-                                    ></textarea>
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-gray-700 font-medium mb-2">Budget</label>
-                                    <input
-                                        type="text"
-                                        value={budget}
-                                        onChange={(e) => setBudget(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-gray-700 font-medium mb-2">Due Date</label>
-                                    <input
-                                        type="date"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
-                                <div className="flex justify-end space-x-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowProposalModal(false)}
-                                        className="py-2 px-4 bg-gray-300 rounded-md shadow hover:bg-gray-400"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="py-2 px-4 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600"
-                                    >
-                                        Send
-                                    </button>
-                                </div>
-                            </form>
+               {/* Proposal Modal */}
+{showProposalModal && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-3xl w-full transition-transform transform scale-100 hover:scale-105">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Send Proposal</h2>
+            <form onSubmit={handleProposalSubmit}>
+                <div className="mb-4">
+                    <label className="block text-gray-700 font-medium mb-2">Project Name</label>
+                    <input
+                        type="text"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500 transition duration-200"
+                        required
+                    />
+                </div>
+                <div className="mb-4">
+                    <label className="block text-gray-700 font-medium mb-2">Project Description</label>
+                    <textarea
+                        value={projectDescription}
+                        onChange={(e) => setProjectDescription(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500 transition duration-200"
+                        rows={4}
+                        required
+                    ></textarea>
+                </div>
+                <div className="mb-4">
+                    <label className="block text-gray-700 font-medium mb-2">Budget</label>
+                    <input
+                        type="text" // Keep as text to control input
+                        value={budget}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow only numbers and decimal point
+                            if (/^\d*\.?\d*$/.test(value) || value === '') {
+                                setBudget(value);
+                                setShowBudgetAlert(false); // Hide alert if input is valid
+                            } else {
+                                setShowBudgetAlert(true); // Show alert if input is invalid
+                            }
+                        }}
+                        onKeyPress={(e) => {
+                            // Prevent letters from being input
+                            if (!/[0-9.]/.test(e.key) && e.key !== 'Backspace') {
+                                e.preventDefault();
+                                setShowBudgetAlert(true); // Show alert if input is invalid
+                            }
+                        }}
+                        className="w-full border border-gray-300 rounded-md py-2 px-3 text-gray-800 focus:outline-none focus:border-blue-500 transition duration-200"
+                        required
+                    />
+                    {showBudgetAlert && (
+                        <div className="flex items-center p-4 mb-4 mt-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+                            <svg className="shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                            </svg>
+                            <span className="font-medium">Invalid input! Please enter a valid number for the budget.</span>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
+                <div className="mb-4">
+                    <label className="block text-gray-700 font-medium mb-2">Due Date</label>
+                    <input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md py-2 px-3 text -gray-800 focus:outline-none focus:border-blue-500 transition duration-200"
+                        required
+                    />
+                </div>
+                <div className="flex justify-end space-x-4">
+                    <button
+                        type="button"
+                        onClick={() => setShowProposalModal(false)}
+                        className="py-2 px-4 bg-gray-300 rounded-md shadow hover:bg-gray-400 transition duration-200"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        className="py-2 px-4 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600 transition duration-200"
+                    >
+                        Send
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+)}
 
                 {/* Preferences Section */}
                 {hasValidPreferences && (
@@ -415,7 +475,7 @@ const ViewProfileArtist: React.FC = () => {
                                     <p className="text-gray-600 mb-4">{recArtist.address || "No address available"}</p>
                                     <button
                                       onClick={(e) => {
-                                        e.stopPropagation(); // Prevent the card click event
+                                        e.stopPropagation();  
                                         navigate(`/profile/artist/${recArtist.user_id}`);
                                       }}
                                       className="bg-orange-600 text-white px-5 py-2 rounded-lg shadow hover:bg-orange-700 transition duration-200"
@@ -437,8 +497,8 @@ const ViewProfileArtist: React.FC = () => {
             {isMessagePopupOpen && user && artist && (
                 <MessagePopup
                     onClose={handleCloseMessagePopup}
-                    sender_id={user.id} // Pass the sender_id
-                    receiver_id={artist.user_id} // Pass the receiver_id
+                    sender_id={user.id} 
+                    receiver_id={artist.user_id}  
                 />
             )}
 
