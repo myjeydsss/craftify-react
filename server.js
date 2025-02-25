@@ -294,7 +294,7 @@ if (!fs.existsSync(CLIENT_UPLOADS_DIR)) {
   fs.mkdirSync(CLIENT_UPLOADS_DIR, { recursive: true });
 }
 
- app.use("/uploads", express.static(CLIENT_UPLOADS_DIR));
+ app.use("/uploads/client-profile", express.static(CLIENT_UPLOADS_DIR));
 
  app.post("/upload-client-profile-image/:userId", upload.single("file"), async (req, res) => {
   const { userId } = req.params;
@@ -491,56 +491,59 @@ app.post("/artist-preferences/create-default", async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
-
 app.put("/artist-profile", async (req, res) => {
   const { userId, profile, preferences } = req.body;
 
+  // Validate userId
   if (!userId) {
-    return res.status(400).json({ error: "User ID is required." });
+    return res.status(400).json({ error: "User  ID is required." });
   }
 
   try {
-     const { data: existingProfile, error: fetchProfileError } = await supabase
+    // Fetch existing artist profile
+    const { data: existingProfile, error: fetchProfileError } = await supabase
       .from("artist")
-      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")  
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
+      .eq("user_id", userId)
       .single();
 
     if (fetchProfileError || !existingProfile) {
       console.error("Error fetching existing profile:", fetchProfileError);
-      return res.status(500).json({ error: "Failed to fetch existing profile." });
+      return res.status(404).json({ error: "Artist profile not found." });
     }
 
-     let updatedProfileImage = existingProfile.profile_image;
-    if (profile.profile_image) {
-      updatedProfileImage = profile.profile_image.includes("http")
-        ? existingProfile.profile_image  
-        : profile.profile_image;  
-    }
+    // Determine the updated profile image
+    const updatedProfileImage = profile.profile_image && !profile.profile_image.includes("http")
+      ? profile.profile_image
+      : existingProfile.profile_image;
 
-     const updatedProfile = {
-      firstname: profile.firstname ?? existingProfile.firstname,
-      lastname: profile.lastname ?? existingProfile.lastname,
-      bio: profile.bio ?? existingProfile.bio,
-      gender: profile.gender ?? existingProfile.gender,
-      date_of_birth: profile.date_of_birth ?? existingProfile.date_of_birth,
-      email: profile.email ?? existingProfile.email,
-      role: profile.role ?? existingProfile.role,
-      address: profile.address ?? existingProfile.address,
-      phone: profile.phone ?? existingProfile.phone,
-      profile_image: updatedProfileImage,  
+    // Prepare updated profile data
+    const updatedProfile = {
+      firstname: profile.firstname || existingProfile.firstname,
+      lastname: profile.lastname || existingProfile.lastname,
+      bio: profile.bio || existingProfile.bio,
+      gender: profile.gender || existingProfile.gender,
+      date_of_birth: profile.date_of_birth || existingProfile.date_of_birth,
+      email: profile.email || existingProfile.email,
+      role: profile.role || existingProfile.role,
+      address: profile.address || existingProfile.address,
+      phone: profile.phone || existingProfile.phone,
+      profile_image: updatedProfileImage,
     };
 
-     const { error: profileError } = await supabase
+    // Update artist profile in the database
+    const { error: profileUpdateError } = await supabase
       .from("artist")
       .update(updatedProfile)
       .eq("user_id", userId);
 
-    if (profileError) {
-      console.error("Error updating artist profile:", profileError);
+    if (profileUpdateError) {
+      console.error("Error updating artist profile:", profileUpdateError);
       return res.status(500).json({ error: "Failed to update artist profile." });
     }
 
-     if (preferences && Object.keys(preferences).length > 0) {
+    // Handle preferences if provided
+    if (preferences && Object.keys(preferences).length > 0) {
       const { data: existingPreferences, error: fetchPreferencesError } = await supabase
         .from("artist_preferences")
         .select("*")
@@ -553,10 +556,11 @@ app.put("/artist-profile", async (req, res) => {
       }
 
       const updatedPreferences = {
-        ...(existingPreferences || {}),  
+        ...(existingPreferences || {}),
         ...preferences,
       };
 
+      // Update or insert preferences
       if (existingPreferences) {
         const { error: updateError } = await supabase
           .from("artist_preferences")
@@ -579,6 +583,7 @@ app.put("/artist-profile", async (req, res) => {
       }
     }
 
+    // Successful response
     res.status(200).json({ message: "Profile and preferences updated successfully." });
   } catch (err) {
     console.error("Unexpected error updating profile/preferences:", err);

@@ -68,7 +68,7 @@ const ViewProfileArtist: React.FC = () => {
     const [preferences, setPreferences] = useState<Preferences | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [recommendedArtists, setRecommendedArtists] = useState<RecommendedArtist[]>([]); // State for recommended artists
+    const [recommendedArtists, setRecommendedArtists] = useState<RecommendedArtist[]>([]); 
 
     const [showAllPreferences, setShowAllPreferences] = useState<boolean>(false);
     const [artworksDisplayed, setArtworksDisplayed] = useState<number>(6);
@@ -81,7 +81,7 @@ const ViewProfileArtist: React.FC = () => {
     const [projectDescription, setProjectDescription] = useState<string>("");
     const [budget, setBudget] = useState<string>("");
     const [dueDate, setDueDate] = useState<string>("");
-    const [showBudgetAlert, setShowBudgetAlert] = useState(false); // State to control the visibility of the alert
+    const [showBudgetAlert, setShowBudgetAlert] = useState(false); 
 
 
     useEffect(() => {
