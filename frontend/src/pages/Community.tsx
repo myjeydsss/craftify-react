@@ -10,6 +10,7 @@ interface User {
   user_id: string;
   firstname: string;
   lastname: string;
+  role: string;
   profile_image: string | null;
 }
 
@@ -353,7 +354,8 @@ const Community: React.FC = () => {
 
   return (
     <div className="container mx-auto py-16 px-4">
-      <h1 className="text-4xl font-bold text-center text-[#5C0601] mb-10">Community</h1>
+      <h1 className="text-4xl font-bold text-center text-[#5C0601] mb-4">Community</h1>
+        <hr className="border-gray-300 mb-6" />
 
       {error && <div className="text-center text-red-600 font-semibold mb-6">{error}</div>}
 
@@ -465,38 +467,35 @@ const Community: React.FC = () => {
                 </div>
 
                 {/* Kebab Menu for Edit and Delete */}
-                {post.user_id === user?.id && (
-                  <div className="relative">
-                    <HiDotsHorizontal
-                      className="cursor-pointer text-gray-500 hover:text-gray-800"
-                      onClick={() => {
-                        setActionMenus((prev) => ({
-                          ...prev,
-                          [post.id]: !prev[post.id],
-                        }));
-                      }}
-                    />
-                    {actionMenus[post.id] && (
-                      <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-10">
-                        <button
-                          onClick={() => {
-                            setEditPostId(post.id);
-                            setEditPostContent(post.content);
-                          }}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeletePost(post.id)}
-                          className="block px-4 py-2 text-sm text-red-600 hover:bg-red-100 w-full text-left"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+{(post.user_id === user?.id || loggedInUser ?.role === 'Admin') && (
+  <div className="relative">
+    <button
+      onClick={() => setActionMenus((prev) => ({ ...prev, [post.id]: !prev[post.id] }))}
+      className="focus:outline-none"
+    >
+      <HiDotsHorizontal className="text-gray-600" />
+    </button>
+    {actionMenus[post.id] && (
+      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+        <button
+          onClick={() => {
+            setEditPostId(post.id);
+            setEditPostContent(post.content);
+          }}
+          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => handleDeletePost(post.id)}
+          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+        >
+          Delete
+        </button>
+      </div>
+    )}
+  </div>
+)}
               </div>
 
               <div className="mt-2">

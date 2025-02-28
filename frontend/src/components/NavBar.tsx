@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { FaUser, FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell, FaEnvelope, FaHistory } from "react-icons/fa";
+import { FaUser , FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell, FaEnvelope, FaBars, FaTimes, FaHistory } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthProvider";
 import axios from "axios";
@@ -9,7 +9,10 @@ const NavBar: React.FC = () => {
   const { user, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
-  const [cartCount, setCartCount] = useState<number>(0); // Cart count state
+  const [cartCount, setCartCount] = useState<number>(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
+  const [isScrolled, setIsScrolled] = useState(false);  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,8 +46,24 @@ const NavBar: React.FC = () => {
     }
   };
 
+  // Fetch unread notifications count
+  const fetchUnreadNotificationsCount = async () => {
+    if (user) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/notifications/count/${user.id}`);
+        setUnreadNotificationsCount(response.data.count);
+      } catch (error) {
+        console.error("Error fetching unread notifications count:", error);
+        setUnreadNotificationsCount(0);
+      }
+    }
+  };
+
   // Toggle dropdown
   const toggleDropdown = () => setDropdownOpen((prev) => !prev);
+
+  // Toggle mobile menu
+  const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
 
   // Handle outside click to close dropdown
   useEffect(() => {
@@ -57,10 +76,11 @@ const NavBar: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  // Fetch user role and cart count when user changes
+  // Fetch user role, cart count, and unread notifications count when user changes
   useEffect(() => {
     fetchUserRole();
     fetchCartCount();
+    fetchUnreadNotificationsCount();
   }, [user]);
 
   // Handle logout
@@ -74,24 +94,31 @@ const NavBar: React.FC = () => {
     }
   };
 
+  // Handle scroll event to set isScrolled state
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);  
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Render navigation links based on user role
   const renderNavLinks = () => {
     if (!user) {
       return (
-        <div className="absolute inset-x-0 flex justify-center">
-          <div className="flex space-x-6">
-            <Link to="/" className={`${isActive("/") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
-            <Link to="/explore" className={`${isActive("/explore") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Explore</Link>
-            <Link to="/about-us" className={`${isActive("/about-us") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>About Us</Link>
-            <Link to="/how-it-works" className={`${isActive("/how-it-works") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>How It Works</Link>
-          </div>
+        <div className="flex flex-col md:flex-row md:space-x-6">
+          <Link to="/" className={`${isActive("/") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
+          <Link to="/explore" className={`${isActive("/explore") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Explore</Link>
+          <Link to="/about-us" className={`${isActive("/about-us") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>About Us</Link>
+          <Link to="/how-it-works" className={`${isActive("/how-it-works") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>How It Works</Link>
         </div>
       );
     }
 
     if (role === "Artist") {
       return (
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row md:space-x-4">
           <Link to="/artist-dashboard" className={`${isActive("/artist-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
           <Link to="/artist-track-project" className={`${isActive("/artist-track-project") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           <Link to="/community" className={`${isActive("/community") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Community</Link>
@@ -102,7 +129,7 @@ const NavBar: React.FC = () => {
 
     if (role === "Client") {
       return (
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row md:space-x-4">
           <Link to="/client-dashboard" className={`${isActive("/client-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
           <Link to="/client-project-page" className={`${isActive("/client-project-page") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           <Link to="/community" className={`${isActive("/community") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Community</Link>
@@ -112,19 +139,20 @@ const NavBar: React.FC = () => {
 
     if (role === "Admin") {
       return (
-        <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row md:space-x-4">
           <Link to="/admin-dashboard" className={`${isActive("/admin-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
           <Link to="/users-table" className={`${isActive("/users-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Users Table</Link>
           <Link to="/tags-table" className={`${isActive("/tags-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Tags Table</Link>
           <Link to="/arts-table" className={`${isActive("/arts-table") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Arts Table</Link>
-          <Link to="/verification" className={`${isActive("/verification") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Verification</Link>
+          <Link to="/verification" className={`${isActive("/verification") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium `}>Verification</Link>
+          <Link to="/community" className={`${isActive("/community") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Community</Link>
         </div>
       );
     }
   };
 
   return (
-    <nav className="fixed w-full z-50 bg-white shadow-lg">
+    <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "bg-white/70 backdrop-blur-md shadow-lg" : "bg-white shadow-lg"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16">
           {/* Logo */}
@@ -134,8 +162,17 @@ const NavBar: React.FC = () => {
             </Link>
           </div>
 
+          {/* Hamburger Icon for Mobile */}
+          <div className="md:hidden">
+            <button onClick={toggleMobileMenu} className="text-black focus:outline-none">
+              {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+            </button>
+          </div>
+
           {/* Navigation Links */}
-          {renderNavLinks()}
+          <div className={`flex-col md:flex md:flex-row md:space-x-6 ${mobileMenuOpen ? 'flex' : 'hidden'} md:flex`}>
+            {renderNavLinks()}
+          </div>
 
           {/* Right Icons */}
           {user ? (
@@ -144,28 +181,34 @@ const NavBar: React.FC = () => {
                 <Link to="/cart" className="relative text-black px-3 hover:text-gray-700">
                   <FaShoppingCart size={20} />
                   {cartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-md text-[10px]">
                       {cartCount}
                     </span>
                   )}
                 </Link>
               )}
-              <Link to="/transaction-history" className="relative text-black px-3 hover:text-gray-700">
-                <FaHistory size={20} />
-              </Link>
+              {role !== "Admin" && (
+                <Link to="/transaction-history" className="relative text-black hover:text-gray-700">
+                  <FaHistory size={20} />
+                </Link>
+              )}
               <Link to="/messages" className="text-black hover:text-gray-700">
                 <FaEnvelope size={20} />
-                {/* Add notification badge if needed */}
               </Link>
-              <Link to="/notifications" className="text-black hover:text-gray-700">
+              <Link to="/notifications" className="relative text-black px-2 hover:text-gray-700">
                 <FaBell size={20} />
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
               </Link>
               <div ref={dropdownRef} className="relative">
                 <button
                   onClick={toggleDropdown}
                   className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  <FaUser size={20} />
+                  <FaUser  size={20} />
                 </button>
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
@@ -191,7 +234,7 @@ const NavBar: React.FC = () => {
                 onClick={toggleDropdown}
                 className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
               >
-                <FaUser size={20} />
+                <FaUser  size={20} />
               </button>
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
@@ -203,7 +246,7 @@ const NavBar: React.FC = () => {
                   </Link>
                   <Link
                     to="/register"
-                    className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    className="px-4 py- 2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                   >
                     <FaUserPlus className="mr-2" /> Register
                   </Link>

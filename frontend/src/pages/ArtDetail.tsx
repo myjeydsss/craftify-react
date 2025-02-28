@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider";
 import { FaHeart, FaShoppingCart } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 interface Artist {
   user_id: string;
@@ -80,7 +81,7 @@ const ArtDetail: React.FC = () => {
       alert("Please log in to manage your wishlist.");
       return;
     }
-
+  
     try {
       const action = wishlist ? "remove" : "add";
       await axios.post(`${import.meta.env.VITE_API_URL}/wishlist`, {
@@ -89,11 +90,22 @@ const ArtDetail: React.FC = () => {
         action,
       });
       setWishlist(!wishlist);
+  
+      // Show toast notification
+      Swal.fire({
+        icon: 'success',
+        title: wishlist ? 'Removed from Wishlist' : 'Added to Wishlist',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
     } catch (err) {
       console.error("Failed to update wishlist:", err);
     }
   };
-
+  
   const handleAddToCart = async () => {
     if (!user) {
       alert("Please log in to add items to your cart.");
@@ -126,7 +138,16 @@ const ArtDetail: React.FC = () => {
         quantity: selectedQuantity,
       });
   
-      alert("Item added to cart!");
+      // Show toast notification
+      Swal.fire({
+        icon: 'success',
+        title: 'Item added to cart!',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
     } catch (err) {
       console.error("Error adding item to cart:", err);
       alert("Failed to add item to cart.");

@@ -13,6 +13,7 @@ import {
   FaTrash,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
+import Swal from "sweetalert2";
 
 interface ArtistProfileData {
   firstname: string;
@@ -134,19 +135,45 @@ const ArtistProfile: React.FC = () => {
 
   const handleDeleteAllWishlist = async () => {
     if (!user) {
-      alert("Please log in to manage your wishlist.");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Not Logged In',
+        text: 'Please log in to manage your wishlist.',
+        confirmButtonText: 'OK',
+      });
       return;
     }
-
-    if (!window.confirm("Are you sure you want to delete all items from your wishlist?")) return;
-
-    try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`);
-      setWishlist([]);
-      alert("Wishlist cleared successfully!");
-    } catch (err) {
-      console.error("Error clearing wishlist:", err);
-      alert("Failed to clear wishlist. Please try again.");
+  
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel',
+    });
+  
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`);
+        setWishlist([]);
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'Your wishlist has been cleared.',
+          confirmButtonText: 'OK',
+        });
+      } catch (err) {
+        console.error("Error clearing wishlist:", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: 'Failed to clear wishlist. Please try again.',
+          confirmButtonText: 'OK',
+        });
+      }
     }
   };
 

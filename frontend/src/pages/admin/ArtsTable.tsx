@@ -36,12 +36,12 @@ const ArtsTable: React.FC = () => {
   const [artsPerPage] = useState(10);
   const [selectedArt, setSelectedArt] = useState<Art | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const modalRef = useRef<HTMLDivElement | null>(null);
-
+  const imageModalRef = useRef<HTMLDivElement | null>(null);
   const API_BASE_URL = `${import.meta.env.VITE_API_URL}`;
 
   useEffect(() => {
@@ -94,9 +94,16 @@ const ArtsTable: React.FC = () => {
     setIsModalOpen(false);
   };
 
+  const closeImageModal = () => {
+    setIsImageModalOpen(false);
+  };
+
   const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       closeModal();
+    }
+    if (imageModalRef.current && !imageModalRef.current.contains(e.target as Node)) {
+      closeImageModal();
     }
   };
 
@@ -105,7 +112,11 @@ const ArtsTable: React.FC = () => {
       setCurrentPage((prev) => prev + 1);
     } else if (direction === "prev" && currentPage > 1) {
       setCurrentPage((prev) => prev - 1);
-    }
+ }
+  };
+
+  const openImageModal = () => {
+    setIsImageModalOpen(true);
   };
 
   if (loading) {
@@ -117,8 +128,13 @@ const ArtsTable: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-2xl font-bold mb-6">Arts Management</h1>
+    <div className="container mx-auto px-4 py-16">
+
+    {/* Header Section */}
+    <div className="text-center mb-8">
+             <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Arts Management</h1>
+             <hr className="border-gray-300 mb-6" />
+           </div>
 
       {/* Search Bar */}
       <div className="mb-6 flex justify-between">
@@ -211,12 +227,13 @@ const ArtsTable: React.FC = () => {
         >
           <div
             ref={modalRef}
-            className="bg-white p-8 rounded-lg w-full max-w-4xl shadow-lg relative overflow-y-auto max-h-[90vh]"
+            className="bg-white p-8 rounded-lg w-full max-w-5xl shadow-lg relative overflow-y-auto max-h-[ 90vh]"
           >
             {/* Close Button */}
             <button
               onClick={closeModal}
               className="absolute top-3 right-3 text-gray-600 hover:text-gray-800 text-2xl"
+              aria-label="Close modal"
             >
               &times;
             </button>
@@ -228,7 +245,8 @@ const ArtsTable: React.FC = () => {
                 <img
                   src={selectedArt.image_url}
                   alt={selectedArt.title}
-                  className="w-full h-auto max-h-[600px] object-contain rounded-lg shadow-md"
+                  className="w-full h-auto max-h-[600px] object-contain rounded-lg shadow-md cursor-pointer"
+                  onClick={openImageModal}
                 />
               </div>
 
@@ -286,6 +304,32 @@ const ArtsTable: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
+      {isImageModalOpen && selectedArt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+          onClick={closeImageModal}
+        >
+          <div
+            ref={imageModalRef}
+            className="bg-white p-4 rounded-lg max-w-3xl w-full"
+          >
+            <button
+              onClick={closeImageModal}
+              className="absolute top-3 right-3 text-gray-600 hover:text-gray-800 text-2xl"
+              aria-label="Close image modal"
+            >
+              &times;
+            </button>
+            <img
+              src={selectedArt.image_url}
+              alt={selectedArt.title}
+              className="w-full h-auto"
+            />
           </div>
         </div>
       )}

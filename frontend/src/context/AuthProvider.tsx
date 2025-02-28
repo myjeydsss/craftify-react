@@ -71,14 +71,16 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: identifier,
         password,
       });
-
+  
       if (error || !data.user) {
-        return { success: false, error: error?.message || "Login failed." };
+        // Return a user-friendly error message without logging the error
+        return { success: false, error: "Invalid email or password." };
       }
-
-            setToken(data.session?.access_token || null);
+  
+      setToken(data.session?.access_token || null);
       return { success: true, userId: data.user.id };
     } catch (err: any) {
+      // Handle unexpected errors without logging them
       return { success: false, error: "Unexpected error during login." };
     }
   };

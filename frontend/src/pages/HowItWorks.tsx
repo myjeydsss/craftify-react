@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import step1Image from "../assets/step1.png";
 import step2Image from "../assets/step2.png";
 import step3Image from "../assets/step3.png";
@@ -8,6 +9,8 @@ import step6Image from "../assets/step6.png";
 import Footer from "../components/Footer"; 
 
 const HowItWorks: React.FC = () => {
+  const navigate = useNavigate(); // Initialize useNavigate
+
   const steps = [
     {
       title: "Sign Up and Create a Profile",
@@ -53,17 +56,21 @@ const HowItWorks: React.FC = () => {
     },
   ];
 
+  // Function to handle redirection to the login page
+  const handleJoinCraftify = () => {
+    navigate("/login"); // Redirect to the login page
+  };
+
   return (
     <>
       <div className="py-20 min-h-screen font-poppins">
-        {/* Header Tiale */}
+        {/* Header Title */}
         <section className="bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 py-16 text-center">
           <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg">
             HOW IT WORKS
           </h1>
-          <p className="text-lg text-white">
-            Step-by-step guide to using Craftify and connecting with local
-            artists.
+          <p className="text-lg text-white mb-8">
+            Step-by-step guide to using Craftify and connecting with local artists.
           </p>
         </section>
 
@@ -95,7 +102,10 @@ const HowItWorks: React.FC = () => {
 
         {/* Call to Action */}
         <div className="text-center py-8">
-          <button className="bg-[#5C0601] text-white py-3 px-6 rounded-full shadow-lg hover:bg-red-700 transition-all duration-300">
+          <button
+            onClick={handleJoinCraftify} // Corrected onClick handler
+            className="bg-[#5C0601] text-white py-3 px-6 rounded-full shadow-lg hover:bg-red-700 transition-all duration-300"
+          >
             Join Craftify Now
           </button>
         </div>

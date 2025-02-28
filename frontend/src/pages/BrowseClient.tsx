@@ -4,8 +4,9 @@ import Masonry from "react-masonry-css";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider";
+import ClipLoader from "react-spinners/ClipLoader";
 
-// TypeScript Interfaces
+
 interface Client {
   user_id: string;
   firstname: string;
@@ -19,25 +20,26 @@ interface Client {
   phone: string | null;
   profile_image: string | null;
 }
+
 interface Match {
-    client: {
-      id: string;
-      name: string;
-      role: string;
-      address: string | null;
-      profile_image: string | null;
-    };
-    artist: {
-      id: string;
-      name: string;
-      role: string;
-      address: string | null;
-      profile_image: string | null;
-    };
-  }
+  client: {
+    id: string;
+    name: string;
+    role: string;
+    address: string | null;
+    profile_image: string | null;
+  };
+  artist: {
+    id: string;
+    name: string;
+    role: string;
+    address: string | null;
+    profile_image: string | null;
+  };
+}
 
 const BrowseClient: React.FC = () => {
-  const { user } = useAuth(); // Get logged-in artist
+  const { user } = useAuth();  
   const [clients, setClients] = useState<Client[]>([]);
   const [matchedClients, setMatchedClients] = useState<Match[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -51,6 +53,8 @@ const BrowseClient: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState<number>(25);
   const totalItems = clients.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const [userRole, setUserRole] = useState<string | null>(null); 
+  
 
   // Fetch clients from the server
   useEffect(() => {
@@ -70,6 +74,24 @@ const BrowseClient: React.FC = () => {
     fetchClients();
   }, []);
 
+  // Fetch user role
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user && user.id) {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/user-role/${user.id}`);
+          setUserRole(response.data.role);
+          
+        } catch (err: any) {
+          console.error("Error fetching user role:", err.message);
+          setError("Failed to fetch user role.");
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
   // Filter clients by search term
   const filteredClients = clients.filter((client) => {
     const searchLower = search.toLowerCase();
@@ -77,7 +99,7 @@ const BrowseClient: React.FC = () => {
       client.firstname.toLowerCase().includes(searchLower) ||
       client.lastname.toLowerCase().includes(searchLower) ||
       (client.bio && client.bio.toLowerCase().includes(searchLower)) ||
-      (client.address && client.address.toLowerCase().includes(searchLower))
+      (client.address && client .address.toLowerCase().includes(searchLower))
     );
   });
 
@@ -91,10 +113,10 @@ const BrowseClient: React.FC = () => {
     }
   };
 
-  // Fetch best matches using Gale-Shapley Algorithm
+  //  Gale-Shapley Algorithm
   const findMatches = async () => {
     if (!user || !user.id) {
-      setError("User is not authenticated or missing user ID.");
+      setError("User  is not authenticated or missing user ID.");
       return;
     }
 
@@ -113,8 +135,29 @@ const BrowseClient: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-16">Loading...</div>;
-  if (error) return <div className="text-center text-red-500 py-16">{error}</div>;
+  const handleProfileClick = async (clientId: string) => {
+    if (!user || !user.id) {
+        console.error("User  is not authenticated.");
+        return;  
+    }
+
+    try {
+        await axios.post(`${import.meta.env.VITE_API_URL}/log-profile-visit/${clientId}`, {
+            visitorId: user.id 
+        });
+        
+        navigate(`/profile/client/${clientId}`);
+    } catch (error) {
+        console.error("Error logging profile visit:", error);
+    }
+};
+
+if (loading) return (
+  <div className="flex justify-center items-center h-screen bg-gray-50">
+    <ClipLoader color="#3498db" loading={loading} size={80} />
+    <p className="mt-4 text-gray-600">Loading...</p>
+  </div>);  
+    if (error) return <div className="text-center text-red-500 py-16">{error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-16">
@@ -137,19 +180,21 @@ const BrowseClient: React.FC = () => {
             />
             <FaSearch className="absolute left-3 top-3 text-gray-500" />
           </div>
-          <button
-            onClick={findMatches}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-          >
-            Find Match
-          </button>
+{userRole && userRole.trim().toLowerCase() !== "client" && (
+  <button
+    onClick={findMatches}
+    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+  >
+    Find Match
+  </button>
+)}
         </div>
 
         {/* Clients Grid */}
         {currentItems.length > 0 ? (
           <Masonry breakpointCols={{ default: 4, 1100: 3, 700: 2, 500: 1 }} className="my-masonry-grid" columnClassName="my-masonry-grid_column">
             {currentItems.map((client) => (
-              <div key={client.user_id} onClick={() => navigate(`/profile/client/${client.user_id}`)} className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 mb-6 cursor-pointer">
+              <div key={client.user_id} onClick={() => handleProfileClick(client.user_id)} className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 mb-6 cursor-pointer">
                 <div className="relative">
                   {client.profile_image ? (
                     <img src={client.profile_image} alt={`${client.firstname} ${client.lastname}`} className="w-full h-full object-cover" />
@@ -164,7 +209,7 @@ const BrowseClient: React.FC = () => {
                   <p className="text-gray-600 italic text-sm mb-2">{client.bio || "No bio available"}</p>
                   <div className="flex items-center space-x-2 mb-1">
                     <FaMapMarkerAlt className="text-gray-500" />
-                    <p className="text-gray-700 text-sm">{client.address || "No address available"}</p>
+                    <p className="text-gray-700 text -sm">{client.address || "No address available"}</p>
                   </div>
                 </div>
               </div>
@@ -178,93 +223,97 @@ const BrowseClient: React.FC = () => {
 
         {/* Matching Modal */}
         {modalOpen && (
-  <div
-    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-    onClick={() => setModalOpen(false)} // Close modal when clicking outside
-  >
-    <div
-      className="bg-white p-8 rounded-lg shadow-lg max-w-4xl w-full relative"
-      onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking inside
-    >
-      <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-800">
-        Best Match Found
-      </h2>
-      {matching ? (
-        <p className="text-center text-lg text-gray-600">
-          Finding the best matches...
-        </p>
-      ) : matchedClients.length > 0 ? (
-        matchedClients.map((match, index) => (
           <div
-            key={index}
-            className="flex justify-between items-center"
+            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={() => setModalOpen(false)}  
           >
-            {/* Artist Section */}
-            <div className="flex flex-col items-center w-1/2 text-center">
-              {match.artist.profile_image ? (
-                <img
-                  src={match.artist.profile_image}
-                  alt={match.artist.name}
-                  className="w-48 h-48 rounded-full object-cover shadow-lg"
-                />
+            <div
+              className="bg-white p-8 rounded-lg shadow-lg max-w-4xl w-full relative"
+              onClick={(e) => e.stopPropagation()}  
+            >
+              <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-800">
+                Best Match Found
+              </h2>
+              {matching ? (
+                <p className="text-center text-lg text-gray-600">
+                  Finding the best matches...
+                </p>
+              ) : matchedClients.length > 0 ? (
+                matchedClients.map((match, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center"
+                  >
+                    {/* Artist Section */}
+                    <div className="flex flex-col items-center w-1/2 text-center">
+                      {match.artist.profile_image ? (
+                        <img
+                          src={match.artist.profile_image}
+                          alt={match.artist.name}
+                          className="w-48 h-48 rounded-full object-cover shadow-lg"
+                        />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
+                          <FaUserCircle className="text-gray-300 w-28 h-28" />
+                        </div>
+                      )}
+                      <h3 className="text-2xl font-bold text-gray-800 mt-4">
+                        {match.artist.name}
+                        {user?.id === match.artist.id && (
+                          <span className="text-black-600"> (You)</span>
+                        )}
+                      </h3>
+                      <p className="text-lg text-gray-500 mt-1">{match.artist.role}</p>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {match.artist.address || "No address provided"}
+                      </p>
+                    </div>
+
+                    {/* Client Section */}
+                    <div className="flex flex-col items-center w-1/2 text-center">
+                      {match.client.profile_image ? (
+                        <img
+                          src={match.client.profile_image}
+                          alt={match.client.name}
+                          className="w-48 h-48 rounded-full object-cover shadow-lg"
+                        />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
+                          <FaUserCircle className="text-gray-300 w-28 h-28" />
+                        </div>
+                      )}
+                      <h3 className="text-2xl font-bold text-gray-800 mt-4">
+                        {match.client.name}
+                      </h3>
+                      <p className="text-lg text-gray-500 mt-1">{match.client.role}</p>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {match.client.address || "No address provided"}
+                      </p>
+                    </div>
+                  </div>
+                ))
               ) : (
-                <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
-                  <FaUserCircle className="text-gray-300 w-28 h-28" />
+                <p className="text-center text-lg text-gray-600">No matches found.</p>
+              )}
+              {/* Centered View Profile Button */}
+              {matchedClients.length > 0 && (
+                <div className="flex justify-center mt-8">
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/profile/client/${matchedClients[0].client.id || "Unknown"}`
+                      )
+                    }
+                    className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                  >
+                    View Client Profile
+                  </button>
                 </div>
               )}
-              <h3 className="text-2xl font-bold text-gray-800 mt-4">
-                {match.artist.name}
-              </h3>
-              <p className="text-lg text-gray-500 mt-1">{match.artist.role}</p>
-              <p className="text-gray-600 text-sm mt-1">
-                {match.artist.address || "No address provided"}
-              </p>
-            </div>
-            <div className="w-1 h-48 bg-gray-200 mx-8" />
-            {/* Client Section */}
-            <div className="flex flex-col items-center w-1/2 text-center">
-              {match.client.profile_image ? (
-                <img
-                  src={match.client.profile_image}
-                  alt={match.client.name}
-                  className="w-48 h-48 rounded-full object-cover shadow-lg"
-                />
-              ) : (
-                <div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded-full shadow-lg">
-                  <FaUserCircle className="text-gray-300 w-28 h-28" />
-                </div>
-              )}
-              <h3 className="text-2xl font-bold text-gray-800 mt-4">
-                {match.client.name}
-              </h3>
-              <p className="text-lg text-gray-500 mt-1">{match.client.role}</p>
-              <p className="text-gray-600 text-sm mt-1">
-                {match.client.address || "No address provided"}
-              </p>
             </div>
           </div>
-        ))
-      ) : (
-        <p className="text-center text-lg text-gray-600">No matches found.</p>
-      )}
-      {/* Centered View Profile Button */}
-      {matchedClients.length > 0 && (
-        <div className="flex justify-center mt-8">
-          <button
-            onClick={() =>
-              navigate(
-                `/profile/client/${matchedClients[0].client.id || "Unknown"}`
-              )
-            }
-            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-          >
-            View Client Profile
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+        )}
+
         {/* Pagination Controls */}
         <div className="flex justify-between items-center py-4 mt-4">
           <p className="text-gray-600">
@@ -272,7 +321,7 @@ const BrowseClient: React.FC = () => {
           </p>
           <div className="flex items-center space-x-2">
             {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i + 1} onClick={() => handlePageChange(i + 1)} className={`px-3 py-1 border ${currentPage === i + 1 ? "bg-gray-300" : "bg-white"} rounded-md`}>
+              <button key={i + 1} onClick={() => handlePageChange(i + 1)} className={`px-3 py-1 border ${ currentPage === i + 1 ? "bg-gray-300" : "bg-white"} rounded-md`}>
                 {i + 1}
               </button>
             ))}

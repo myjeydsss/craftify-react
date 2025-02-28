@@ -1,7 +1,8 @@
-// MessagePopup.tsx
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { supabase } from '../../client';
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
 interface MessagePopupProps {
     onClose: () => void;
     sender_id: string;
@@ -14,7 +15,6 @@ const MessagePopup: React.FC<MessagePopupProps> = ({ onClose, sender_id, receive
     const [sending, setSending] = useState(false);
     const { auth } = useAuth();
 
-//***** DON'T TOUCH ITS ALREADY WORKING*/
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -85,10 +85,34 @@ const MessagePopup: React.FC<MessagePopupProps> = ({ onClose, sender_id, receive
                 throw new Error('Failed to send message');
             }
 
+            // Show success toast
+            Swal.fire({
+                icon: 'success',
+                title: 'Message Sent!',
+                text: 'Your message has been sent successfully.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+
             setMessage('');
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to send message');
+
+            // Show error toast
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Sending Message',
+                text: 'Failed to send message. Please try again.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
         } finally {
             setSending(false);
         }

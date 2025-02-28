@@ -12,8 +12,7 @@ const { galeShapley } = require("./utils/galeShapley");
 const app = express();
 const PORT = process.env.PORT || 8081;
 
-// Middleware
-const allowedOrigins = [
+ const allowedOrigins = [
   "http://localhost:5173",
   "https://craftify-react-git-main-myjeydsss-projects.vercel.app",
   "https://craftify-react.vercel.app",
@@ -30,78 +29,98 @@ app.use(
 
 app.use(express.json());
 
-// Supabase client setup
-const supabase = createClient(
+ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_API_KEY
 );
 
-// Paymongo setup
-const Paymongo = require('paymongo');
+ const Paymongo = require('paymongo');
 const paymongo = new Paymongo(process.env.VITE_PAYMONGO_SECRET_KEY);
 
-// Root endpoint
-app.get("/", (req, res) => {
+ app.get("/", (req, res) => {
   res.send("Supabase API is running...");
 });
 
-// Storage settings
-const storage = multer.memoryStorage();
+ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Start the server
-app.listen(PORT, "0.0.0.0", () => {
+ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
 
 // ****** REGISTER USER ****** 
 app.post("/register", async (req, res) => {
   const { email, password, firstName, lastName, username, role } = req.body;
 
-  // Validate required fields
-  if (!email || !password || !firstName || !lastName || !username || !role) {
+   if (!email || !password || !firstName || !lastName || !username || !role) {
     return res.status(400).json({ error: "All fields are required." });
   }
 
   try {
-    // Create the user in Supabase Auth
-    const { data, error } = await supabase.auth.signUp({ email, password });
+     const { data, error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
+      console.error("Supabase Auth Error:", error.message); 
       return res.status(400).json({ error: error.message });
     }
 
     const user = data.user;
     if (!user) {
-      return res.status(400).json({ error: "User registration failed." });
+      return res.status(400).json({ error: "User  registration failed." });
     }
 
-    // Determine the table based on the role
-    const table = role === "Artist" ? "artist" : "client";
+     const table = role === "Artist" ? "artist" : "client";
 
-    // Insert additional user details into the appropriate table
-    const { error: insertError } = await supabase.from(table).insert({
+     const { error: insertError } = await supabase.from(table).insert({
       user_id: user.id,
       firstname: firstName,
       lastname: lastName,
       email,
       username,
       role,
-      bio: "", // Default value for bio
+      bio: "",  
     });
 
     if (insertError) {
+      console.error("Database Insert Error:", insertError.message);  
       return res.status(500).json({ error: insertError.message });
     }
 
-    res.status(201).json({ message: "User registered successfully!" });
+    res.status(201).json({ message: "User  registered successfully!" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Unexpected Error:", err.message);  
+    res.status(500).json({ error: "An unexpected error occurred. Please try again." });
+  }
+});
+
+// Check if email is already registered
+app.get("/check-email", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+      
+      const { data, error } = await supabase
+          .from("users")  
+          .select("email")
+          .eq("email", email);
+
+      if (error) {
+          return res.status(500).json({ error: "Error checking email." });
+      }
+
+      const emailExists = data.length > 0;
+      res.status(200).json({ exists: emailExists });
+  } catch (err) {
+      console.error("Unexpected error:", err);
+      res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
 // ****** REGISTER USER END... ****** 
+
 
 // ****** LOGIN USER ****** 
 app.post("/login", async (req, res) => {
@@ -129,15 +148,12 @@ app.post("/login", async (req, res) => {
 });
 // ****** LOGIN USER END... ****** 
 
-
-
 // ****** NAVBAR ENDPOINT ******
-// User Role Base Endpoint
 app.get("/user-role/:userId", async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // Query all three tables at once
+    
     const { data: artistData } = await supabase
       .from("artist")
       .select("role")
@@ -168,7 +184,7 @@ app.get("/user-role/:userId", async (req, res) => {
       return res.status(200).json({ role: adminData.role });
     }
 
-    // If no role is found
+    
     console.error(`User ID ${userId} does not exist in artist, client, or admin tables.`);
     return res.status(404).json({ error: "User role not found." });
 
@@ -178,26 +194,6 @@ app.get("/user-role/:userId", async (req, res) => {
   }
 });
 
-// User Cart Count
-app.get("/cart/count/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const { count, error } = await supabase
-      .from("cart")
-      .select("*", { count: "exact" })
-      .eq("user_id", userId);
-
-    if (error) return res.status(400).json({ error: error.message });
-
-    res.status(200).json({ count });
-  } catch (err) {
-    console.error("Error fetching cart count:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// Handle user logout
 app.post("/logout", async (req, res) => {
   try {
     const { error } = await supabase.auth.signOut();
@@ -210,10 +206,8 @@ app.post("/logout", async (req, res) => {
 // ****** NAVBAR ENDPOINT END... ******
 
 
-
 // ****** ARTIST UPLOAD PROFILE IMAGE ******
-// Ensure the uploads directory exists
-const UPLOADS_DIR = path.join(__dirname, "uploads/artist-profile");
+ const UPLOADS_DIR = path.join(__dirname, "uploads/artist-profile");
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
@@ -221,8 +215,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 // Serve static files for uploaded images
 app.use("/uploads", express.static(UPLOADS_DIR));
 
-// Profile Image Upload Endpoint
-app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res) => {
+ app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res) => {
   const { userId } = req.params;
 
   if (!req.file) {
@@ -250,8 +243,7 @@ app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res
 
     console.log("File uploaded to Supabase successfully:", `${userId}/${storageFilePath}`);
 
-    // Fetch old profile image
-    const { data: artistData, error: fetchError } = await supabase
+     const { data: artistData, error: fetchError } = await supabase
       .from("artist")
       .select("profile_image")
       .eq("user_id", userId)
@@ -264,8 +256,7 @@ app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res
 
     const oldProfileImage = artistData?.profile_image;
 
-    // Delete the old profile image if it exists
-    if (oldProfileImage) {
+     if (oldProfileImage) {
       const { error: deleteError } = await supabase.storage
         .from("artist-profile")
         .remove([`${userId}/${oldProfileImage}`]);
@@ -277,8 +268,7 @@ app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res
       }
     }
 
-    // Update the artist profile in the database with the new file path
-    const { error: updateError } = await supabase
+     const { error: updateError } = await supabase
       .from("artist")
       .update({ profile_image: storageFilePath })
       .eq("user_id", userId);
@@ -299,17 +289,14 @@ app.post("/upload-profile-image/:userId", upload.single("file"), async (req, res
 
 
 // ****** CLIENT UPLOAD PROFILE IMAGE ******
-// Ensure the uploads directory exists
-const CLIENT_UPLOADS_DIR = path.join(__dirname, "uploads/client-profile");
+ const CLIENT_UPLOADS_DIR = path.join(__dirname, "uploads/client-profile");
 if (!fs.existsSync(CLIENT_UPLOADS_DIR)) {
   fs.mkdirSync(CLIENT_UPLOADS_DIR, { recursive: true });
 }
 
-// Serve static files for uploaded images
-app.use("/uploads/client-profile", express.static(CLIENT_UPLOADS_DIR));
+ app.use("/uploads/client-profile", express.static(CLIENT_UPLOADS_DIR));
 
-// Profile Image Upload Endpoint
-app.post("/upload-client-profile-image/:userId", upload.single("file"), async (req, res) => {
+ app.post("/upload-client-profile-image/:userId", upload.single("file"), async (req, res) => {
   const { userId } = req.params;
 
   if (!req.file) {
@@ -322,8 +309,7 @@ app.post("/upload-client-profile-image/:userId", upload.single("file"), async (r
 
     console.log("Uploading file:", storageFilePath);
 
-    // Upload file to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("client-profile")
       .upload(`${userId}/${storageFilePath}`, req.file.buffer, {
         contentType: req.file.mimetype,
@@ -337,8 +323,7 @@ app.post("/upload-client-profile-image/:userId", upload.single("file"), async (r
 
     console.log("File uploaded to Supabase successfully:", `${userId}/${storageFilePath}`);
 
-    // Fetch old profile image
-    const { data: clientData, error: fetchError } = await supabase
+     const { data: clientData, error: fetchError } = await supabase
       .from("client")
       .select("profile_image")
       .eq("user_id", userId)
@@ -351,8 +336,7 @@ app.post("/upload-client-profile-image/:userId", upload.single("file"), async (r
 
     const oldProfileImage = clientData?.profile_image;
 
-    // Delete the old profile image if it exists
-    if (oldProfileImage) {
+     if (oldProfileImage) {
       const { error: deleteError } = await supabase.storage
         .from("client-profile")
         .remove([`${userId}/${oldProfileImage}`]);
@@ -364,7 +348,6 @@ app.post("/upload-client-profile-image/:userId", upload.single("file"), async (r
       }
     }
 
-    // Update the client profile in the database with the new file path
     const { error: updateError } = await supabase
       .from("client")
       .update({ profile_image: storageFilePath })
@@ -387,8 +370,7 @@ app.post("/upload-client-profile-image/:userId", upload.single("file"), async (r
 
 // ****** ARTIST PROFILE ENDPOINT ****** 
 // Get Artist Profile
-// Backend: Always return JSON
-app.get("/artist-profile/:userId", async (req, res) => {
+ app.get("/artist-profile/:userId", async (req, res) => {
   const { userId } = req.params;
   const CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
 
@@ -404,7 +386,6 @@ app.get("/artist-profile/:userId", async (req, res) => {
       return res.status(404).json({ error: "Artist profile not found." });
     }
 
-      // Fetch the verification status if verification_id exists
     if (artistData.verification_id) {
       const { data: verificationData, error: verificationError } = await supabase
         .from("artist_verification")
@@ -419,8 +400,7 @@ app.get("/artist-profile/:userId", async (req, res) => {
       }
     }
 
-    // Append CDN URL only when sending the response, not when storing
-    if (artistData.profile_image) {
+     if (artistData.profile_image) {
       artistData.profile_image = `${CDNURL}${userId}/${artistData.profile_image}`;
     }
 
@@ -446,13 +426,13 @@ app.get("/artist-preferences/:userId", async (req, res) => {
 
     if (error || !data) {
       console.warn(`Preferences not found for userId: ${userId}`);
-      return res.status(200).json({ preferences: null }); // Return JSON
+      return res.status(200).json({ preferences: null });  
     }
 
-    res.status(200).json(data); // Return JSON
+    res.status(200).json(data); 
   } catch (err) {
     console.error("Error fetching preferences:", err);
-    res.status(500).json({ error: "Failed to fetch preferences." }); // Return JSON
+    res.status(500).json({ error: "Failed to fetch preferences." });  
   }
 });
 
@@ -511,61 +491,58 @@ app.post("/artist-preferences/create-default", async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
-
 app.put("/artist-profile", async (req, res) => {
   const { userId, profile, preferences } = req.body;
 
+  // Validate userId
   if (!userId) {
-    return res.status(400).json({ error: "User ID is required." });
+    return res.status(400).json({ error: "User  ID is required." });
   }
 
   try {
-    // ✅ Fetch the existing profile
+    // Fetch existing artist profile
     const { data: existingProfile, error: fetchProfileError } = await supabase
       .from("artist")
-      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image") // Removed 'status' and 'verification_id'
+      .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
       .eq("user_id", userId)
       .single();
 
     if (fetchProfileError || !existingProfile) {
       console.error("Error fetching existing profile:", fetchProfileError);
-      return res.status(500).json({ error: "Failed to fetch existing profile." });
+      return res.status(404).json({ error: "Artist profile not found." });
     }
 
-    // ✅ Ensure profile_image is stored as filename, not full URL
-    let updatedProfileImage = existingProfile.profile_image;
-    if (profile.profile_image) {
-      updatedProfileImage = profile.profile_image.includes("http")
-        ? existingProfile.profile_image // Ignore if it's a full URL
-        : profile.profile_image; // Store only filename
-    }
+    // Determine the updated profile image
+    const updatedProfileImage = profile.profile_image && !profile.profile_image.includes("http")
+      ? profile.profile_image
+      : existingProfile.profile_image;
 
-    // ✅ Prepare the update payload (Explicitly allowed fields only)
+    // Prepare updated profile data
     const updatedProfile = {
-      firstname: profile.firstname ?? existingProfile.firstname,
-      lastname: profile.lastname ?? existingProfile.lastname,
-      bio: profile.bio ?? existingProfile.bio,
-      gender: profile.gender ?? existingProfile.gender,
-      date_of_birth: profile.date_of_birth ?? existingProfile.date_of_birth,
-      email: profile.email ?? existingProfile.email,
-      role: profile.role ?? existingProfile.role,
-      address: profile.address ?? existingProfile.address,
-      phone: profile.phone ?? existingProfile.phone,
-      profile_image: updatedProfileImage, // Ensure consistency
+      firstname: profile.firstname || existingProfile.firstname,
+      lastname: profile.lastname || existingProfile.lastname,
+      bio: profile.bio || existingProfile.bio,
+      gender: profile.gender || existingProfile.gender,
+      date_of_birth: profile.date_of_birth || existingProfile.date_of_birth,
+      email: profile.email || existingProfile.email,
+      role: profile.role || existingProfile.role,
+      address: profile.address || existingProfile.address,
+      phone: profile.phone || existingProfile.phone,
+      profile_image: updatedProfileImage,
     };
 
-    // ✅ Update the profile in the database
-    const { error: profileError } = await supabase
+    // Update artist profile in the database
+    const { error: profileUpdateError } = await supabase
       .from("artist")
       .update(updatedProfile)
       .eq("user_id", userId);
 
-    if (profileError) {
-      console.error("Error updating artist profile:", profileError);
+    if (profileUpdateError) {
+      console.error("Error updating artist profile:", profileUpdateError);
       return res.status(500).json({ error: "Failed to update artist profile." });
     }
 
-    // ✅ Handle preferences (if provided)
+    // Handle preferences if provided
     if (preferences && Object.keys(preferences).length > 0) {
       const { data: existingPreferences, error: fetchPreferencesError } = await supabase
         .from("artist_preferences")
@@ -579,10 +556,11 @@ app.put("/artist-profile", async (req, res) => {
       }
 
       const updatedPreferences = {
-        ...(existingPreferences || {}), // Use existing preferences or an empty object
+        ...(existingPreferences || {}),
         ...preferences,
       };
 
+      // Update or insert preferences
       if (existingPreferences) {
         const { error: updateError } = await supabase
           .from("artist_preferences")
@@ -605,6 +583,7 @@ app.put("/artist-profile", async (req, res) => {
       }
     }
 
+    // Successful response
     res.status(200).json({ message: "Profile and preferences updated successfully." });
   } catch (err) {
     console.error("Unexpected error updating profile/preferences:", err);
@@ -665,11 +644,9 @@ app.delete("/api/arts/:artId", async (req, res) => {
   const { artId } = req.params;
 
   try {
-    // Begin transaction for atomic deletion
-    const supabaseTransaction = supabase;
+     const supabaseTransaction = supabase;
 
-    // Step 1: Delete all related tags from `art_tags`
-    const { error: tagsDeleteError } = await supabaseTransaction
+     const { error: tagsDeleteError } = await supabaseTransaction
       .from("art_tags")
       .delete()
       .eq("art_id", artId);
@@ -679,8 +656,7 @@ app.delete("/api/arts/:artId", async (req, res) => {
       return res.status(400).json({ error: "Failed to delete related tags." });
     }
 
-    // Step 2: Delete the art itself
-    const { error: artDeleteError } = await supabaseTransaction
+     const { error: artDeleteError } = await supabaseTransaction
       .from("arts")
       .delete()
       .eq("art_id", artId);
@@ -690,8 +666,7 @@ app.delete("/api/arts/:artId", async (req, res) => {
       return res.status(400).json({ error: "Failed to delete the art." });
     }
 
-    // Step 3: Respond to the client with success
-    res.status(200).json({ message: "Art deleted successfully." });
+     res.status(200).json({ message: "Art deleted successfully." });
   } catch (err) {
     console.error("Unexpected error during deletion:", err);
     res.status(500).json({ error: "An unexpected error occurred while deleting the art." });
@@ -713,8 +688,7 @@ app.put("/api/arts/:artId", async (req, res) => {
   } = req.body;
 
   try {
-    // Update the art details in the database
-    const { error: updateError } = await supabase
+     const { error: updateError } = await supabase
       .from("arts")
       .update({
         title,
@@ -732,11 +706,10 @@ app.put("/api/arts/:artId", async (req, res) => {
       return res.status(400).json({ error: updateError.message });
     }
 
-    // Safely parse tags and update the art_tags table
-    if (tags) {
+     if (tags) {
       let tagList = [];
       try {
-        tagList = JSON.parse(tags); // Attempt to parse tags as JSON
+        tagList = JSON.parse(tags);  
         if (!Array.isArray(tagList)) {
           throw new Error("Tags must be an array.");
         }
@@ -745,8 +718,7 @@ app.put("/api/arts/:artId", async (req, res) => {
         return res.status(400).json({ error: "Invalid tags format. Must be a JSON array." });
       }
 
-      // Delete old tags
-      const { error: deleteTagsError } = await supabase
+       const { error: deleteTagsError } = await supabase
         .from("art_tags")
         .delete()
         .eq("art_id", artId);
@@ -756,8 +728,7 @@ app.put("/api/arts/:artId", async (req, res) => {
         return res.status(400).json({ error: deleteTagsError.message });
       }
 
-      // Insert new tags
-      for (const tagId of tagList) {
+       for (const tagId of tagList) {
         const { error: insertTagError } = await supabase
           .from("art_tags")
           .insert({ art_id: artId, tag_id: tagId });
@@ -777,13 +748,11 @@ app.put("/api/arts/:artId", async (req, res) => {
   }
 });
 
-/// Fetch a single art
-app.get("/api/art/:artId", async (req, res) => {
+ app.get("/api/art/:artId", async (req, res) => {
   const { artId } = req.params;
 
   try {
-    // Fetch art details
-    const { data: art, error } = await supabase
+     const { data: art, error } = await supabase
       .from("arts")
       .select("*")
       .eq("art_id", artId)
@@ -791,15 +760,14 @@ app.get("/api/art/:artId", async (req, res) => {
 
     if (error || !art) return res.status(404).json({ error: "Art not found." });
 
-    // Fetch tags for the art
-    const { data: artTags, error: tagError } = await supabase
+     const { data: artTags, error: tagError } = await supabase
       .from("art_tags")
       .select("tag_id, tags (name)")
       .eq("art_id", artId);
 
     if (tagError) return res.status(400).json({ error: tagError.message });
 
-    // Map tags into an array of tag IDs and names
+     
     const tags = artTags.map((tag) => ({
       id: tag.tag_id,
       name: tag.tags.name,
@@ -827,8 +795,7 @@ app.get("/api/tags", async (req, res) => {
   }
 });
 
-// Upload art (it works already)
-app.post("/api/upload-art", upload.single("file"), async (req, res) => {
+ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
   const {
     title,
     description,
@@ -853,8 +820,7 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
 
     console.log("Uploading file:", storageFilePath);
 
-    // Upload file to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("artist-arts")
       .upload(storageFilePath, file.buffer, {
         contentType: file.mimetype,
@@ -868,8 +834,7 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
 
     console.log("File uploaded to Supabase successfully:", storageFilePath);
 
-    // Generate the public URL for the uploaded file
-    const { data: publicUrlData, error: publicUrlError } = supabase.storage
+     const { data: publicUrlData, error: publicUrlError } = supabase.storage
       .from("artist-arts")
       .getPublicUrl(storageFilePath);
 
@@ -881,8 +846,7 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
     const publicURL = publicUrlData.publicUrl;
     console.log("Public URL generated successfully:", publicURL);
 
-    // Fetch the artist_id using the provided userId
-    const { data: artistData, error: artistError } = await supabase
+     const { data: artistData, error: artistError } = await supabase
       .from("artist")
       .select("artist_id")
       .eq("user_id", userId)
@@ -895,12 +859,11 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
 
     const artistId = artistData.artist_id;
 
-    // Insert the new art into the "arts" table
-    const { data: insertedArt, error: insertError } = await supabase
+     const { data: insertedArt, error: insertError } = await supabase
       .from("arts")
       .insert({
         user_id: userId,
-        artist_id: artistId, // Store the artist_id
+        artist_id: artistId,  
         title,
         description,
         price: parseFloat(price),
@@ -908,7 +871,7 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
         art_style,
         medium,
         subject,
-        image_url: publicURL, // Store the public URL in the "image_url" column
+        image_url: publicURL,  
         created_at: new Date(),
       })
       .select();
@@ -920,8 +883,7 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
 
     const newArtId = insertedArt[0].art_id;
 
-    // Insert the associated tags into the "art_tags" table
-    const tagList = JSON.parse(tags);
+     const tagList = JSON.parse(tags);
     for (const tagId of tagList) {
       const { error: tagInsertError } = await supabase
         .from("art_tags")
@@ -942,8 +904,8 @@ app.post("/api/upload-art", upload.single("file"), async (req, res) => {
 });
 // ****** ARTIST POST ARTS END... ******
 
-// ****** CLIENT PROFILE ENDPOINTS ******
 
+// ****** CLIENT PROFILE ENDPOINTS ******
 // Get Client Profile
 app.get("/client-profile/:userId", async (req, res) => {
   const { userId } = req.params;
@@ -960,8 +922,7 @@ app.get("/client-profile/:userId", async (req, res) => {
       return res.status(404).json({ error: "Client profile not found." });
     }
 
-    // If profile_image exists, prepend CDN URL
-    if (clientData.profile_image) {
+     if (clientData.profile_image) {
       clientData.profile_image = `${CDNURL}${userId}/${clientData.profile_image}`;
     }
 
@@ -1000,8 +961,7 @@ app.get("/client-preferences/:userId", async (req, res) => {
   }
 });
 
-
-// ****** UPDATE CLIENT PROFILE ******
+// ****** EDIT CLIENT PROFILE ******
 app.put("/client-profile", async (req, res) => {
   const { userId, profile, preferences } = req.body;
 
@@ -1010,8 +970,7 @@ app.put("/client-profile", async (req, res) => {
   }
 
   try {
-    // Fetch the existing profile
-    const { data: existingProfile, error: fetchProfileError } = await supabase
+     const { data: existingProfile, error: fetchProfileError } = await supabase
       .from("client")
       .select("firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image")
       .eq("user_id", userId)
@@ -1022,16 +981,14 @@ app.put("/client-profile", async (req, res) => {
       return res.status(500).json({ error: "Failed to fetch existing profile." });
     }
 
-    // Ensure profile_image is stored as filename, not full URL
-    let updatedProfileImage = existingProfile.profile_image;
+     let updatedProfileImage = existingProfile.profile_image;
     if (profile.profile_image) {
       updatedProfileImage = profile.profile_image.includes("http")
-        ? existingProfile.profile_image // Ignore if it's a full URL
-        : profile.profile_image; // Store only filename
+        ? existingProfile.profile_image  
+        : profile.profile_image;  
     }
 
-    // Prepare the update payload
-    const updatedProfile = {
+     const updatedProfile = {
       firstname: profile.firstname ?? existingProfile.firstname,
       lastname: profile.lastname ?? existingProfile.lastname,
       bio: profile.bio ?? existingProfile.bio,
@@ -1041,7 +998,7 @@ app.put("/client-profile", async (req, res) => {
       role: profile.role ?? existingProfile.role,
       address: profile.address ?? existingProfile.address,
       phone: profile.phone ?? existingProfile.phone,
-      profile_image: updatedProfileImage, // Ensure consistency
+      profile_image: updatedProfileImage,  
     };
 
     // Update the profile in the database
@@ -1055,8 +1012,7 @@ app.put("/client-profile", async (req, res) => {
       return res.status(500).json({ error: "Failed to update client profile." });
     }
 
-    // Handle preferences (if provided)
-    if (preferences && Object.keys(preferences).length > 0) {
+     if (preferences && Object.keys(preferences).length > 0) {
       const { data: existingPreferences, error: fetchPreferencesError } = await supabase
         .from("client_preferences")
         .select("*")
@@ -1069,7 +1025,7 @@ app.put("/client-profile", async (req, res) => {
       }
 
       const updatedPreferences = {
-        ...(existingPreferences || {}), // Use existing preferences or an empty object
+        ...(existingPreferences || {}),  
         ...preferences,
       };
 
@@ -1103,7 +1059,7 @@ app.put("/client-profile", async (req, res) => {
 });
 // ****** UPDATE CLIENT PROFILE END... ******
 
-// ****** CREATE DEFAULT CLIENT PREFERENCES ******
+// create default client preferences
 app.post("/client-preferences/create-default", async (req, res) => {
   const { userId } = req.body;
 
@@ -1112,8 +1068,7 @@ app.post("/client-preferences/create-default", async (req, res) => {
   }
 
   try {
-    // Check if preferences already exist
-    const { data: existingPreferences, error: fetchError } = await supabase
+     const { data: existingPreferences, error: fetchError } = await supabase
       .from("client_preferences")
       .select("*")
       .eq("user_id", userId)
@@ -1123,8 +1078,7 @@ app.post("/client-preferences/create-default", async (req, res) => {
       return res.status(200).json({ message: "Preferences already exist." });
     }
 
-    // Create default preferences
-    const defaultPreferences = {
+     const defaultPreferences = {
       user_id: userId,
       preferred_art_style: [],
       project_requirements: "",
@@ -1151,10 +1105,7 @@ app.post("/client-preferences/create-default", async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
-// ****** CREATE DEFAULT CLIENT PREFERENCES END... ******
-
 // ****** CLIENT PROFILE ENDPOINT END... *******
-
 
 
 // ****** ADMIN USER TABLE ******
@@ -1240,8 +1191,7 @@ app.post("/tags", async (req, res) => {
   }
 
   try {
-    // Check if the tag already exists
-    const { data: existingTags } = await supabase
+     const { data: existingTags } = await supabase
       .from("tags")
       .select("*")
       .eq("name", name);
@@ -1250,8 +1200,7 @@ app.post("/tags", async (req, res) => {
       return res.status(409).json({ error: "Tag already exists" });
     }
 
-    // Insert the new tag
-    const { data, error } = await supabase.from("tags").insert({ name }).single();
+     const { data, error } = await supabase.from("tags").insert({ name }).single();
     if (error) throw error;
 
     res.status(201).json(data);
@@ -1334,8 +1283,7 @@ app.get("/api/arts", async (req, res) => {
       return res.status(400).json({ error: tagsError.message });
     }
 
-    // Combine arts with their tags
-    const artsWithTags = arts.map((art) => ({
+     const artsWithTags = arts.map((art) => ({
       ...art,
       tags: artTags
         .filter((tag) => tag.art_id === art.art_id)
@@ -1379,8 +1327,7 @@ app.get("/artists", async (req, res) => {
       return res.status(500).json({ error: "Failed to fetch artists." });
     }
 
-    // Format artist data and fetch verification statuses
-    const formattedArtists = await Promise.all(
+     const formattedArtists = await Promise.all(
       artistsData.map(async (artist) => {
         if (artist.profile_image) {
           artist.profile_image = `${CDNURL}${artist.user_id}/${artist.profile_image}`;
@@ -1438,8 +1385,7 @@ app.get("/view-artist-preferences/:userId", async (req, res) => {
       });
     }
 
-    // Return preferences as is (No need for JSON.parse here, as it's already stored as jsonb)
-    res.status(200).json(data);
+     res.status(200).json(data);
   } catch (err) {
     console.error("Error fetching preferences:", err);
     res.status(500).json({ error: "Failed to fetch preferences." });
@@ -1476,8 +1422,7 @@ app.get("/clients", async (req, res) => {
       return res.status(500).json({ error: "Failed to fetch clients." });
     }
 
-    // Format client data
-    const formattedClients = clientsData.map(client => {
+     const formattedClients = clientsData.map(client => {
       if (client.profile_image) {
         client.profile_image = `${CDNURL}${client.user_id}/${client.profile_image}`;
       }
@@ -1519,8 +1464,7 @@ app.get('/arts', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch arts.' });
     }
 
-    // Format the arts data to extract tag names
-    const formattedArts = arts.map((art) => ({
+     const formattedArts = arts.map((art) => ({
       ...art,
       tags: art.art_tags.map((tagRelation) => ({
         id: tagRelation.tags.id,
@@ -1549,7 +1493,7 @@ app.get('/wishlist/:userId', async (req, res) => {
     const { data, error } = await supabase
       .from('wishlist')
       .select('art_id')
-      .eq('user_id', userId); // Fetch only the wishlist for the logged-in user
+      .eq('user_id', userId);  
 
     if (error) {
       return res.status(500).json({ error: 'Failed to fetch wishlist.' });
@@ -1565,15 +1509,13 @@ app.get('/wishlist/:userId', async (req, res) => {
 app.post('/wishlist', async (req, res) => {
   const { userId, artId, action } = req.body;
 
-  // Validate request payload
-  if (!userId || !artId || !action) {
+   if (!userId || !artId || !action) {
     return res.status(400).json({ error: 'User ID, Art ID, and action are required.' });
   }
 
   try {
     if (action === 'add') {
-      // Insert both user_id and art_id into the table
-      const { error } = await supabase
+       const { error } = await supabase
         .from('wishlist')
         .insert([{ user_id: userId, art_id: artId }]);
 
@@ -1584,8 +1526,7 @@ app.post('/wishlist', async (req, res) => {
 
       return res.status(200).json({ message: 'Added to wishlist.' });
     } else if (action === 'remove') {
-      // Remove based on user_id and art_id
-      const { error } = await supabase
+       const { error } = await supabase
         .from('wishlist')
         .delete()
         .eq('user_id', userId)
@@ -1632,14 +1573,14 @@ app.delete('/wishlist/:userId/all', async (req, res) => {
 });
 // WISHLIST FUNCTION END
 
-// ARTDETAIL FUNCTION - FINAL CLEAN VERSION
+
+// ARTs DETAIL FUNCTION - FINAL CLEAN VERSION
 app.get('/art/:artId', async (req, res) => {
   const { artId } = req.params;
   const CDN_URL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
 
   try {
-    // Fetch art details with artist and tags relations
-    const { data, error } = await supabase
+     const { data, error } = await supabase
       .from('arts')
       .select(
         `
@@ -1672,19 +1613,17 @@ app.get('/art/:artId', async (req, res) => {
         `
       )
       .eq('art_id', artId)
-      .single(); // Expecting a single result
+      .single();  
 
     if (error || !data) {
       return res.status(404).json({ error: 'Art not found.' });
     }
 
-    // Construct the full URL for the artist's profile image if available
-    if (data.artist?.profile_image) {
+     if (data.artist?.profile_image) {
       data.artist.profile_image = `${CDN_URL}${data.artist.user_id}/${data.artist.profile_image}`;
     }
 
-    // Transform the nested tags structure
-    const artDetails = {
+     const artDetails = {
       ...data,
       tags: data.art_tags ? data.art_tags.map((tagRelation) => tagRelation.tags) : [],
     };
@@ -1794,6 +1733,21 @@ app.get("/user/:userId", async (req, res) => {
       return res.status(200).json(clientData);
     }
 
+    // If not found in "artist", check in the "client" table
+    let { data: adminData, error: adminError } = await supabase
+      .from("admin")
+      .select("firstname, lastname, role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (adminError) {
+      console.error("Supabase client query error:", adminError.message);
+    }
+
+    if (adminData) {
+      return res.status(200).json(adminData);
+    }
+
     // If user is not found in either table
     return res.status(404).json({ error: "User not found." });
   } catch (err) {
@@ -1873,8 +1827,8 @@ app.post('/create-checkout-session', async (req, res) => {
                             },
                         ],
                         payment_method_types: ['card', 'gcash'],
-                        success_url: 'http://localhost:5173/success', // Update with your success URL
-                        cancel_url: 'http://localhost:5173/checkout' // Update with your cancel URL
+                        success_url: 'http://localhost:5173/success', // Update this for actual success URL
+                        cancel_url: 'http://localhost:5173/checkout' // Update this for actual cancel URL
                     }
                 }
             },
@@ -1927,13 +1881,10 @@ app.post("/order", async (req, res) => {
         res.status(500).json({ error: "Failed to process order." });
     }
 });
-
-
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
 
 // ***** BROWSE ARTIST MATCHING ALGORITHM ******
-
 app.get("/match-artists/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -1952,8 +1903,7 @@ app.get("/match-artists/:userId", async (req, res) => {
       return res.status(404).json({ error: "Client not found." });
     }
 
-    // Add CDN URL to client's profile image
-    const processedClient = {
+     const processedClient = {
       ...client,
       profile_image: client.profile_image
         ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
@@ -1969,8 +1919,7 @@ app.get("/match-artists/:userId", async (req, res) => {
       return res.status(400).json({ error: "No artists available for matching." });
     }
 
-    // Add CDN URL to artists' profile images
-    const processedArtists = artists.map((artist) => ({
+     const processedArtists = artists.map((artist) => ({
       ...artist,
       profile_image: artist.profile_image
         ? `${ARTIST_CDN_URL}${artist.user_id}/${artist.profile_image}`
@@ -1988,16 +1937,13 @@ app.get("/match-artists/:userId", async (req, res) => {
       preferences: [processedClient.user_id], // Match with the client
     }));
 
-    // Ensure at least one matchable artist exists
-    if (!clientData.preferences.length || !artistData.length) {
+     if (!clientData.preferences.length || !artistData.length) {
       return res.status(400).json({ error: "No valid matches found." });
     }
 
-    // Run Gale-Shapley algorithm
-    const matches = galeShapley([clientData], artistData);
+     const matches = galeShapley([clientData], artistData);
 
-    // Format matched data for the modal
-    const formattedMatches = Object.entries(matches).map(([artistId, clientId]) => {
+     const formattedMatches = Object.entries(matches).map(([artistId, clientId]) => {
       const artist = processedArtists.find((a) => a.user_id === artistId);
       const clientMatch = processedClient.user_id === clientId ? processedClient : null;
 
@@ -2019,7 +1965,7 @@ app.get("/match-artists/:userId", async (req, res) => {
       };
     });
 
-    console.log("Formatted Matches:", formattedMatches); // Debug log
+    console.log("Formatted Matches:", formattedMatches);  
 
     res.status(200).json({ matches: formattedMatches });
   } catch (error) {
@@ -2027,13 +1973,11 @@ app.get("/match-artists/:userId", async (req, res) => {
     res.status(500).json({ error: "Matchmaking failed." });
   }
 });
-
 // ***** BROWSE ARTIST MATCHING ALGORITHM END... ******
 
 
 
 // ***** BROWSE CLIENT MATCHING ALGORITHM ******
-
 app.get("/match-clients/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -2052,8 +1996,7 @@ app.get("/match-clients/:userId", async (req, res) => {
       return res.status(404).json({ error: "Artist not found." });
     }
 
-    // Add CDN URL to artist's profile image
-    const processedArtist = {
+     const processedArtist = {
       ...artist,
       profile_image: artist.profile_image
         ? `${ARTIST_CDN_URL}${artist.user_id}/${artist.profile_image}`
@@ -2069,8 +2012,7 @@ app.get("/match-clients/:userId", async (req, res) => {
       return res.status(400).json({ error: "No clients available for matching." });
     }
 
-    // Add CDN URL to clients' profile images
-    const processedClients = clients.map((client) => ({
+     const processedClients = clients.map((client) => ({
       ...client,
       profile_image: client.profile_image
         ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
@@ -2088,16 +2030,13 @@ app.get("/match-clients/:userId", async (req, res) => {
       preferences: [processedArtist.user_id], // Match with the artist
     }));
 
-    // Ensure at least one matchable client exists
-    if (!artistData.preferences.length || !clientData.length) {
+     if (!artistData.preferences.length || !clientData.length) {
       return res.status(400).json({ error: "No valid matches found." });
     }
 
-    // Run Gale-Shapley algorithm
-    const matches = galeShapley([artistData], clientData);
+     const matches = galeShapley([artistData], clientData);
 
-    // Format matched data for the modal
-    const formattedMatches = Object.entries(matches).map(([clientId, artistId]) => {
+     const formattedMatches = Object.entries(matches).map(([clientId, artistId]) => {
       const client = processedClients.find((c) => c.user_id === clientId);
       const artistMatch = processedArtist.user_id === artistId ? processedArtist : null;
 
@@ -2119,7 +2058,7 @@ app.get("/match-clients/:userId", async (req, res) => {
       };
     });
 
-    console.log("Formatted Matches:", formattedMatches); // Debug log
+    console.log("Formatted Matches:", formattedMatches); 
 
     res.status(200).json({ matches: formattedMatches });
   } catch (error) {
@@ -2127,12 +2066,10 @@ app.get("/match-clients/:userId", async (req, res) => {
     res.status(500).json({ error: "Matchmaking failed." });
   }
 });
-
 // ***** BROWSE CLIENT MATCHING ALGORITHM END... ******
 
 
 // ****** SEND PROPOSAL ENDPOINT ******
-
 // Proposal Endpoint
 app.post("/send-proposal", async (req, res) => {
   const { sender_id, recipient_id, project_name, project_description, budget, due_date, status } = req.body;
@@ -2142,7 +2079,33 @@ app.post("/send-proposal", async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase.from("proposals").insert([
+     let senderName;
+    let { data: senderData, error: senderError } = await supabase
+      .from("artist")
+      .select("firstname, lastname")  
+      .eq("user_id", sender_id)
+      .single();
+
+     if (senderError || !senderData) {
+      ({ data: senderData, error: senderError } = await supabase
+        .from("client")
+        .select("firstname, lastname")  
+        .eq("user_id", sender_id)
+        .single());
+    }
+
+     if (senderError || !senderData) {
+      console.error("Error fetching sender's name:", senderError);
+      return res.status(500).json({ error: "Failed to fetch sender's name." });
+    }
+
+     if (senderData.firstname && senderData.lastname) {
+      senderName = `${senderData.firstname} ${senderData.lastname}`;  
+    } else {
+      senderName = senderData.name;  
+    }
+
+     const { data, error } = await supabase.from("proposals").insert([
       { sender_id, recipient_id, project_name, project_description, budget, due_date, status }
     ]);
 
@@ -2150,15 +2113,30 @@ app.post("/send-proposal", async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // Update the proposals state
-    const { data: proposalsData, error: proposalsError } = await supabase
+     const notificationMessage = `You have received a new proposal from ${senderName}.`;
+    const { error: notificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: recipient_id,
+        type: "Proposal",
+        message: notificationMessage,
+        is_read: false,  
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
+     const { data: proposalsData, error: proposalsError } = await supabase
       .from('proposals')
       .select('*')
       .eq('recipient_id', recipient_id);
 
     if (proposalsError) {
       console.error("Error fetching proposals:", proposalsError);
-      throw proposalsError;
+      return res.status(500).json({ error: "Failed to fetch proposals." });
     }
 
     const proposalsWithProfiles = await Promise.all(
@@ -2170,6 +2148,7 @@ app.post("/send-proposal", async (req, res) => {
 
     res.status(201).json({ message: "Proposal sent successfully!", data: proposalsWithProfiles });
   } catch (err) {
+    console.error("Internal server error:", err);
     res.status(500).json({ error: "Internal server error." });
   }
 });
@@ -2177,16 +2156,14 @@ app.post("/send-proposal", async (req, res) => {
 
 
 // ****** COMMUNITY ENDPOINT ******
-
-// **CDN URLs**
-const ARTIST_CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+ const ARTIST_CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
 const CLIENT_CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
 const POST_CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/community_post_photos/";
 
 // **GET Community Posts with User Details & Comments**
 app.get("/community-posts", async (req, res) => {
-  const { page = 1, limit = 5 } = req.query; // Get page and limit from query parameters
-  const offset = (page - 1) * limit; // Calculate offset for pagination
+  const { page = 1, limit = 5 } = req.query;  
+  const offset = (page - 1) * limit;  
 
   try {
     // Fetch posts with pagination
@@ -2198,20 +2175,18 @@ app.get("/community-posts", async (req, res) => {
         community_likes (user_id)
       `)
       .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1); // Apply pagination
+      .range(offset, offset + limit - 1);  
 
     if (postsError) {
       console.error("Error fetching posts:", postsError);
       return res.status(500).json({ error: "Failed to fetch posts" });
     }
 
-    // Fetch total count of posts for pagination
-    const { count: totalCount } = await supabase
+     const { count: totalCount } = await supabase
       .from("community_posts")
       .select("id", { count: "exact", head: true });
 
-    // Extract unique user IDs from posts and comments
-    const userIds = [
+     const userIds = [
       ...new Set(
         postsData.flatMap((post) => [
           post.user_id,
@@ -2220,7 +2195,7 @@ app.get("/community-posts", async (req, res) => {
       ),
     ];
 
-    // Fetch user details (both artists and clients)
+    // Fetch user details (artists, clients, and admins)
     const { data: artistData } = await supabase
       .from("artist")
       .select("user_id, firstname, lastname, profile_image")
@@ -2231,8 +2206,12 @@ app.get("/community-posts", async (req, res) => {
       .select("user_id, firstname, lastname, profile_image")
       .in("user_id", userIds);
 
-    // Create user map with fallback for missing users
-    const userMap = [...(artistData || []), ...(clientData || [])].reduce((acc, user) => {
+    const { data: adminData } = await supabase
+      .from("admin")
+      .select("user_id, firstname, lastname")
+      .in("user_id", userIds);
+
+     const userMap = [...(artistData || []), ...(clientData || []), ...(adminData || [])].reduce((acc, user) => {
       const isArtist = artistData?.some((artist) => artist.user_id === user.user_id);
       acc[user.user_id] = {
         firstname: user.firstname,
@@ -2249,17 +2228,16 @@ app.get("/community-posts", async (req, res) => {
       ...post,
       images: post.images ? (Array.isArray(post.images) ? post.images : JSON.parse(post.images)) : [],
       likes: post.community_likes ? post.community_likes.map((like) => like.user_id) : [],
-      user: userMap[post.user_id] || { firstname: "Unknown", lastname: "User  ", profile_image: null },
+      user: userMap[post.user_id] || { firstname: "Unknown", lastname: "User ", profile_image: null },
       comments: post.community_comments
         ? post.community_comments.map((comment) => ({
             ...comment,
-            user: userMap[comment.user_id] || { firstname: "Unknown", lastname: "User  ", profile_image: null },
+            user: userMap[comment.user_id] || { firstname: "Unknown", lastname: "User ", profile_image: null },
           }))
         : [],
     }));
 
-    // Return posts and total count
-    res.status(200).json({ posts: postsWithDetails, total: totalCount });
+     res.status(200).json({ posts: postsWithDetails, total: totalCount });
   } catch (err) {
     console.error("Error fetching posts:", err);
     res.status(500).json({ error: "Failed to fetch community posts" });
@@ -2283,7 +2261,13 @@ app.get("/user/:user_id", async (req, res) => {
       .eq("user_id", user_id)
       .single();
 
-    const userData = artistData || clientData;
+      const { data: adminData } = await supabase
+      .from("admin")
+      .select("user_id, firstname, lastname, profile_image")
+      .eq("user_id", user_id)
+      .single();
+
+    const userData = artistData || clientData || adminData;
     if (!userData) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -2304,12 +2288,11 @@ app.get("/user/:user_id", async (req, res) => {
 app.post("/community-posts", upload.array("images"), async (req, res) => {
   try {
     const { user_id, content } = req.body;
-    if (!user_id) return res.status(400).json({ error: "User ID is required" });
+    if (!user_id) return res.status(400).json({ error: "User  ID is required" });
 
     let imageUrls = [];
 
-    // Upload images to Supabase Storage
-    if (req.files.length > 0) {
+     if (req.files.length > 0) {
       for (const file of req.files) {
         const fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`;
         const filePath = `${user_id}/${fileName}`;
@@ -2330,13 +2313,12 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
       }
     }
 
-    // Insert into the database with correct jsonb format
-    const { data: newPost, error: insertError } = await supabase
+     const { data: newPost, error: insertError } = await supabase
       .from("community_posts")
       .insert({
         user_id,
         content,
-        images: imageUrls, // ✅ Insert array directly into jsonb column
+        images: imageUrls,  
       })
       .select("id, content, images, created_at, user_id")
       .single();
@@ -2346,11 +2328,9 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
       return res.status(500).json({ error: "Failed to create post" });
     }
 
-    // Fetch user data for this post (artist or client)
-    let userData = null;
+     let userData = null;
 
-    // First check if the user exists in the artist table
-    const { data: artistData, error: artistError } = await supabase
+     const { data: artistData, error: artistError } = await supabase
       .from("artist")
       .select("firstname, lastname, profile_image")
       .eq("user_id", user_id)
@@ -2359,8 +2339,7 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
     if (artistData) {
       userData = artistData;
     } else {
-      // If not found in artist table, check in the client table
-      const { data: clientData, error: clientError } = await supabase
+       const { data: clientData, error: clientError } = await supabase
         .from("client")
         .select("firstname, lastname, profile_image")
         .eq("user_id", user_id)
@@ -2368,15 +2347,25 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
 
       if (clientData) {
         userData = clientData;
+      } else {
+         const { data: adminData, error: adminError } = await supabase
+          .from("admin")
+          .select("firstname, lastname")
+          .eq("user_id", user_id)
+          .single();
+
+        if (adminData) {
+          userData = adminData;
+          userData.profile_image = null;  
+        }
       }
     }
 
     if (!userData) {
-      return res.status(404).json({ error: "User not found in artist or client table" });
+      return res.status(404).json({ error: "User  not found in artist, client, or admin table" });
     }
 
-    // Include profile image URL based on artist or client
-    const isArtist = !!artistData;
+     const isArtist = !!artistData;
     userData.profile_image = userData.profile_image
       ? `${isArtist ? ARTIST_CDNURL : CLIENT_CDNURL}${user_id}/${userData.profile_image}`
       : null;
@@ -2385,7 +2374,7 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
       message: "Post created successfully",
       post: {
         ...newPost,
-        user: userData,  // Attach user data with post
+        user: userData,   
         likes: [],
         comments: [],
       },
@@ -2396,11 +2385,12 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
   }
 });
 
-// **LIKE/UNLIKE a Post**
+// **LIKE a Post**
 app.post("/community-posts/like", async (req, res) => {
   const { post_id, user_id } = req.body;
 
   try {
+    //  Check if the user already liked the post
     const { data: existingLikes, error: fetchError } = await supabase
       .from("community_likes")
       .select("id")
@@ -2412,8 +2402,8 @@ app.post("/community-posts/like", async (req, res) => {
       return res.status(500).json({ error: "Error checking like status" });
     }
 
+    //  If the user already liked the post, unlike it
     if (existingLikes.length > 0) {
-      // Unlike: Remove the like
       const { error: deleteError } = await supabase
         .from("community_likes")
         .delete()
@@ -2424,7 +2414,7 @@ app.post("/community-posts/like", async (req, res) => {
         return res.status(500).json({ error: "Error removing like" });
       }
     } else {
-      // Like: Add a new like
+      //  If not liked, add a new like
       const { error: insertError } = await supabase
         .from("community_likes")
         .insert({ post_id, user_id });
@@ -2433,9 +2423,72 @@ app.post("/community-posts/like", async (req, res) => {
         console.error("Error adding like:", insertError);
         return res.status(500).json({ error: "Error adding like" });
       }
+
+      //   Fetch the post owner
+      const { data: postData, error: postFetchError } = await supabase
+        .from("community_posts")
+        .select("user_id")
+        .eq("id", post_id)
+        .single();
+
+      if (postFetchError || !postData) {
+        console.error("Error fetching post owner:", postFetchError);
+        return res.status(500).json({ error: "Error fetching post owner" });
+      }
+
+      const postOwnerId = postData.user_id;
+
+      //  Check if the liker is the post owner
+      if (postOwnerId !== user_id) {
+        // Fetch the liker’s name from both tables
+        let likerData = null;
+
+        // Check in the client table
+        const { data: clientData } = await supabase
+          .from("client")
+          .select("firstname, lastname")
+          .eq("user_id", user_id)
+          .single();
+
+        if (clientData) {
+          likerData = clientData;
+        } else {
+          // If not found in client, check in the artist table
+          const { data: artistData } = await supabase
+            .from("artist")
+            .select("firstname, lastname")
+            .eq("user_id", user_id)
+            .single();
+          if (artistData) {
+            likerData = artistData;
+          }
+        }
+
+        if (!likerData) {
+          console.error("Liker not found in client or artist table");
+          return res.status(404).json({ error: "Liker not found" });
+        }
+
+        //  Create a notification for the post owner
+        const notificationMessage = `${likerData.firstname} ${likerData.lastname} likes your post.`;
+        const { error: notificationError } = await supabase.from("notifications").insert([
+          {
+            user_id: postOwnerId,  
+            type: "Post Liked",
+            message: notificationMessage,
+            is_read: false, 
+            created_at: new Date().toISOString(),
+          }
+        ]);
+
+        if (notificationError) {
+          console.error("Error creating notification:", notificationError);
+          return res.status(500).json({ error: "Failed to create notification." });
+        }
+      }
     }
 
-    // Fetch updated likes
+    //   Fetch updated likes
     const { data: updatedLikes, error: fetchUpdatedLikesError } = await supabase
       .from("community_likes")
       .select("user_id")
@@ -2452,7 +2505,6 @@ app.post("/community-posts/like", async (req, res) => {
     res.status(500).json({ error: "Unexpected error" });
   }
 });
-
 // **POST a Comment on a Post**
 app.post("/community-comments", async (req, res) => {
   const { post_id, user_id, content } = req.body;
@@ -2462,17 +2514,79 @@ app.post("/community-comments", async (req, res) => {
   }
 
   try {
-    const { data: newComment, error } = await supabase
+    //  Insert the new comment
+    const { data: newComment, error: insertError } = await supabase
       .from("community_comments")
       .insert({ post_id, user_id, content })
       .select("id, content, user_id, created_at")
       .single();
 
-    if (error) {
-      console.error("Error adding comment:", error);
+    if (insertError) {
+      console.error("Error adding comment:", insertError);
       return res.status(500).json({ error: "Failed to add comment" });
     }
 
+    //  Fetch the post owner
+    const { data: postData, error: postFetchError } = await supabase
+      .from("community_posts")
+      .select("user_id")
+      .eq("id", post_id)
+      .single();
+
+    if (postFetchError || !postData) {
+      console.error("Error fetching post owner:", postFetchError);
+      return res.status(500).json({ error: "Error fetching post owner" });
+    }
+
+    const postOwnerId = postData.user_id;
+
+    //   Check if the commenter is the post owner
+    if (postOwnerId !== user_id) {
+       let commenterData = null;
+
+       const { data: clientData } = await supabase
+        .from("client")
+        .select("firstname, lastname")
+        .eq("user_id", user_id)
+        .single();
+
+      if (clientData) {
+        commenterData = clientData;
+      } else {
+         const { data: artistData } = await supabase
+          .from("artist")
+          .select("firstname, lastname")
+          .eq("user_id", user_id)
+          .single();
+        if (artistData) {
+          commenterData = artistData;
+        }
+      }
+
+      if (!commenterData) {
+        console.error("Commenter not found in client or artist table");
+        return res.status(404).json({ error: "Commenter not found" });
+      }
+
+      //  Create a notification for the post owner
+      const notificationMessage = `${commenterData.firstname} ${commenterData.lastname} commented on your post.`;
+      const { error: notificationError } = await supabase.from("notifications").insert([
+        {
+          user_id: postOwnerId,  
+          type: "Post Commented",
+          message: notificationMessage,
+          is_read: false,  
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+      if (notificationError) {
+        console.error("Error creating notification:", notificationError);
+        return res.status(500).json({ error: "Failed to create notification." });
+      }
+    }
+
+    //   Return the new comment
     res.status(201).json({ comment: newComment });
   } catch (err) {
     console.error("Unexpected error while adding comment:", err);
@@ -2511,8 +2625,7 @@ app.delete("/community-posts/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Fetch the post to get the images
-    const { data: postData, error: fetchError } = await supabase
+     const { data: postData, error: fetchError } = await supabase
       .from("community_posts")
       .select("images")
       .eq("id", id)
@@ -2523,25 +2636,20 @@ app.delete("/community-posts/:id", async (req, res) => {
       return res.status(500).json({ error: "Failed to fetch post data" });
     }
 
-    // Parse the images from the post (assuming images are stored as an array in jsonb format)
-    const imagesToDelete = postData.images ? postData.images : [];
+     const imagesToDelete = postData.images ? postData.images : [];
 
-    // Delete images from Supabase storage
-    for (const image of imagesToDelete) {
-      // Extract the file path, without deleting the entire user folder
-      const imagePath = image.replace(`${POST_CDNURL}`, ""); // Remove CDN URL to get storage path
+     for (const image of imagesToDelete) {
+       const imagePath = image.replace(`${POST_CDNURL}`, ""); 
       const { error: deleteImageError } = await supabase.storage
         .from("community_post_photos")
         .remove([imagePath]);
 
       if (deleteImageError) {
         console.error(`Error deleting image ${imagePath}:`, deleteImageError);
-        // Continue deletion even if some images fail
-      }
+       }
     }
 
-    // Delete the post from the database
-    const { error: deletePostError } = await supabase
+     const { error: deletePostError } = await supabase
       .from("community_posts")
       .delete()
       .eq("id", id);
@@ -2551,29 +2659,25 @@ app.delete("/community-posts/:id", async (req, res) => {
       return res.status(500).json({ error: "Failed to delete post" });
     }
 
-    // Return a success response
-    res.status(204).send(); // No content (successful deletion)
+     res.status(204).send(); 
   } catch (err) {
     console.error("Unexpected error while deleting post:", err);
     res.status(500).json({ error: "Unexpected error" });
   }
 });
-
 // ****** COMMUNITY ENDPOINT END ******
 
 
-// ****** PROJECT MANAGEMENT ENDPOINT ******
 
-// CDN URLs for profile images
-const CDNURL_ARTIST = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+// ****** PROJECT MANAGEMENT ENDPOINT ******
+ const CDNURL_ARTIST = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
 const CDNURL_CLIENT = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
 
 // Endpoint to fetch projects for a specific artist
 app.get('/api/artist-projects/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    // Fetch projects where the artist is assigned
-    const { data: projectsData, error } = await supabase
+     const { data: projectsData, error } = await supabase
       .from('projects')
       .select('*')
       .eq('artist_id', userId);
@@ -2593,8 +2697,7 @@ app.get('/api/artist-projects/:userId', async (req, res) => {
 app.get('/api/client-projects/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    // Fetch projects where the artist is assigned
-    const { data: projectsData, error } = await supabase
+     const { data: projectsData, error } = await supabase
       .from('projects')
       .select('*')
       .eq('client_id', userId);
@@ -2615,8 +2718,7 @@ app.get('/api/client-projects/:userId', async (req, res) => {
 app.get('/api/proposals/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    // Fetch proposals where the user is the recipient and the status is "Pending"
-    const { data: proposalsData, error } = await supabase
+     const { data: proposalsData, error } = await supabase
       .from('proposals')
       .select('*')
       .eq('recipient_id', userId)
@@ -2626,8 +2728,7 @@ app.get('/api/proposals/:userId', async (req, res) => {
       throw error;
     }
 
-    // Fetch sender profiles for each proposal
-    const proposalsWithProfiles = await Promise.all(
+     const proposalsWithProfiles = await Promise.all(
       proposalsData.map(async (proposal) => {
         const profile = await fetchProfileDetails(proposal.sender_id);
         return { ...proposal, senderProfile: profile };
@@ -2641,11 +2742,9 @@ app.get('/api/proposals/:userId', async (req, res) => {
   }
 });
 
-// Function to fetch profile details for a given user ID
-const fetchProfileDetails = async (userId) => {
+ const fetchProfileDetails = async (userId) => {
   try {
-    // Check if the sender is an artist
-    const { data: artistProfile } = await supabase
+     const { data: artistProfile } = await supabase
       .from("artist")
       .select("user_id, firstname, lastname, address, profile_image")
       .eq("user_id", userId)
@@ -2661,8 +2760,7 @@ const fetchProfileDetails = async (userId) => {
       };
     }
 
-    // Check if the sender is a client
-    const { data: clientProfile } = await supabase
+     const { data: clientProfile } = await supabase
       .from("client")
       .select("user_id, firstname, lastname, address, profile_image")
       .eq("user_id", userId)
@@ -2685,13 +2783,12 @@ const fetchProfileDetails = async (userId) => {
   }
 };
 
-
 // Endpoint to accept a proposal and create a project
 app.post('/api/proposals/accept', async (req, res) => {
   const { proposal } = req.body;
 
   try {
-    // Step 1: Insert into the `projects` table and get the new project ID
+    // nsert into the `projects` table and get the new project ID
     const { data: newProject, error: projectError } = await supabase
       .from("projects")
       .insert([
@@ -2715,7 +2812,7 @@ app.post('/api/proposals/accept', async (req, res) => {
       throw new Error(`Error creating project: ${projectError.message}`);
     }
 
-    // Step 2: Update the `proposals` table with the `project_id` and `updated_at`
+    //  Update the `proposals` table with the `project_id` and `updated_at`
     const { error: proposalError } = await supabase
       .from("proposals")
       .update({
@@ -2727,6 +2824,23 @@ app.post('/api/proposals/accept', async (req, res) => {
 
     if (proposalError) {
       throw new Error(`Error updating proposal: ${proposalError.message}`);
+    }
+
+    //  Create a notification for the recipient
+    const notificationMessage = `Your proposal for "${proposal.project_name}" has been accepted and a project has been created.`;
+    const { error: notificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: proposal.sender_id,  
+        type: "Proposal Accepted",
+        message: notificationMessage,
+        is_read: false,  
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
     }
 
     res.status(200).json({ newProject });
@@ -2741,7 +2855,19 @@ app.post('/api/proposals/reject', async (req, res) => {
   const { proposalId } = req.body;
 
   try {
-    // Update the proposal status to "Rejected"
+    // Fetch the proposal to get the recipient's ID and project name
+    const { data: proposalData, error: fetchError } = await supabase
+      .from("proposals")
+      .select("sender_id, project_name")
+      .eq("proposal_id", proposalId)
+      .single();
+
+    if (fetchError || !proposalData) {
+      console.error("Error fetching proposal:", fetchError);
+      return res.status(404).json({ error: "Proposal not found." });
+    }
+
+    //  Update the proposal status to "Rejected"
     const { error } = await supabase
       .from("proposals")
       .update({ status: "Rejected" })
@@ -2751,6 +2877,23 @@ app.post('/api/proposals/reject', async (req, res) => {
       throw new Error(`Error rejecting proposal: ${error.message}`);
     }
 
+    // Create a notification for the recipient
+    const notificationMessage = `Your proposal for "${proposalData.project_name}" has been rejected.`;
+    const { error: notificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: proposalData.sender_id, 
+        type: "Proposal Rejected",
+        message: notificationMessage,
+        is_read: false,  
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
     res.status(200).json({ message: 'Proposal rejected.' });
   } catch (err) {
     console.error("Error rejecting proposal:", err);
@@ -2758,12 +2901,24 @@ app.post('/api/proposals/reject', async (req, res) => {
   }
 });
 
-
 // Endpoint to update project status
 app.post('/api/projects/update-status', async (req, res) => {
   const { project_id, status } = req.body;
 
   try {
+    //  Fetch the project to get the client and artist IDs
+    const { data: projectData, error: fetchError } = await supabase
+      .from("projects")
+      .select("client_id, artist_id, project_name")  
+      .eq("project_id", project_id)
+      .single();
+
+    if (fetchError || !projectData) {
+      console.error("Error fetching project:", fetchError);
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    // Update the project status
     const { error } = await supabase
       .from("projects")
       .update({ status, updated_at: new Date() })
@@ -2771,6 +2926,44 @@ app.post('/api/projects/update-status', async (req, res) => {
 
     if (error) {
       throw new Error(`Error updating project status: ${error.message}`);
+    }
+
+    // Create a notification for the client
+    const notificationMessage = `The status for the project "${projectData.project_name}" has been updated to "${status}".`;
+    
+    // Notify the client
+    const { error: clientNotificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: projectData.client_id,  
+        type: "Project Status Updated",
+        message: notificationMessage,
+        is_read: false,  
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (clientNotificationError) {
+      console.error("Error creating client notification:", clientNotificationError);
+      return res.status(500).json({ error: "Failed to create client notification." });
+    }
+
+    //  Notify the artist only if the status is "Confirmed"
+    if (status === "Confirmed") {
+      const artistNotificationMessage = `The project "${projectData.project_name}" has been confirmed.`;
+      const { error: artistNotificationError } = await supabase.from("notifications").insert([
+        {
+          user_id: projectData.artist_id,  
+          type: "Project Confirmed",
+          message: artistNotificationMessage,
+          is_read: false,  
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+      if (artistNotificationError) {
+        console.error("Error creating artist notification:", artistNotificationError);
+        return res.status(500).json({ error: "Failed to create artist notification." });
+      }
     }
 
     res.status(200).json({ success: true });
@@ -2785,6 +2978,19 @@ app.post('/api/projects/update-priority', async (req, res) => {
   const { project_id, priority } = req.body;
 
   try {
+    //  Fetch the project to get the client and artist IDs
+    const { data: projectData, error: fetchError } = await supabase
+      .from("projects")
+      .select("client_id, artist_id, project_name")  
+      .eq("project_id", project_id)
+      .single();
+
+    if (fetchError || !projectData) {
+      console.error("Error fetching project:", fetchError);
+      return res.status(404).json({ error: "Project not found." });
+    }
+
+    //  Update the project priority
     const { error } = await supabase
       .from("projects")
       .update({ priority, updated_at: new Date() })
@@ -2794,19 +3000,39 @@ app.post('/api/projects/update-priority', async (req, res) => {
       throw new Error(`Error updating project priority: ${error.message}`);
     }
 
+    //  Create a notification for the client and artist
+    const notificationMessage = `The priority for the project "${projectData.project_name}" has been updated to "${priority}".`;
+    
+    // Notify the client
+    const { error: clientNotificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: projectData.client_id,  
+        type: "Project Priority Updated",
+        message: notificationMessage,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (clientNotificationError) {
+      console.error("Error creating client notification:", clientNotificationError);
+      return res.status(500).json({ error: "Failed to create client notification." });
+    }
+
+
     res.status(200).json({ success: true });
   } catch (err) {
     console.error("Error updating project priority:", err);
     res.status(500).json({ error: 'Failed to update project priority.' });
   }
 });
+
 // Endpoint to fetch project details along with sender information
 app.get('/api/projects/:projectId/details', async (req, res) => {
   const { projectId } = req.params;
 
   try {
-    // Fetch project details
-    const { data: projectData, error: projectError } = await supabase
+     const { data: projectData, error: projectError } = await supabase
       .from('projects')
       .select('*')
       .eq('project_id', projectId)
@@ -2816,8 +3042,7 @@ app.get('/api/projects/:projectId/details', async (req, res) => {
       throw new Error(`Error fetching project: ${projectError.message}`);
     }
 
-    // Fetch proposal details to get the budget
-    const { data: proposalData, error: proposalError } = await supabase
+     const { data: proposalData, error: proposalError } = await supabase
       .from('proposals')
       .select('budget, sender_id')
       .eq('proposal_id', projectData.proposal_id)
@@ -2827,11 +3052,9 @@ app.get('/api/projects/:projectId/details', async (req, res) => {
       throw new Error(`Error fetching proposal details: ${proposalError.message}`);
     }
 
-    // Fetch sender profile details
-    const senderProfile = await fetchProfileDetails(proposalData.sender_id);
+     const senderProfile = await fetchProfileDetails(proposalData.sender_id);
 
-    // Combine project data with proposal budget and sender profile
-    const projectDetails = {
+     const projectDetails = {
       ...projectData,
       budget: proposalData.budget,
       senderProfile: senderProfile,
@@ -2843,7 +3066,6 @@ app.get('/api/projects/:projectId/details', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch project details.' });
   }
 });
-
 // ****** PROJECT MANAGEMENT ENDPOINT END... ******
 
 
@@ -2919,13 +3141,11 @@ app.get("/messages/:conversationId", async (req, res) => {
 // ***** MESSAGE FUNCTION END ******
 
 //***** TRANSACTION FUNCTION ******/
-
 app.get("/orders/:userId", async (req, res) => {
     const { userId } = req.params;
 
     try {
-        console.log("Fetching orders for userId:", userId); // Log the userId
-
+        console.log("Fetching orders for userId:", userId);  
         const { data: orders, error } = await supabase
             .from("orders")
             .select(`
@@ -2942,7 +3162,7 @@ app.get("/orders/:userId", async (req, res) => {
             return res.status(400).json({ error: "Failed to fetch orders." });
         }
 
-        console.log("Orders fetched:", orders); // Log the fetched orders
+        console.log("Orders fetched:", orders); 
 
         // Check if orders are empty and log a message
         if (orders.length === 0) {
@@ -2953,7 +3173,7 @@ app.get("/orders/:userId", async (req, res) => {
         const formattedOrders = orders.map(order => ({
             id: order.id,
             date: order.created_at,
-            amount: order.amount / 100, // Format amount to 2 decimal places
+            amount: order.amount / 100,  
             status: order.status,
             description: order.description,
         }));
@@ -2964,3 +3184,672 @@ app.get("/orders/:userId", async (req, res) => {
         res.status(500).json({ error: "Failed to fetch orders." });
     }
 });
+
+// ****** COLLABORATIVE FILTERING ENDPOINT ******
+app.get("/recommend-clients/:userId", async (req, res) => {
+  const { userId } = req.params;  
+  const visitorId = req.query.visitorId;  
+
+  const CLIENT_CDN_URL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
+
+  try {
+    // Fetch the user's likes, comments, and visits
+    const [likes, comments, visits] = await Promise.all([
+      supabase.from("community_likes").select("post_id").eq("user_id", userId),
+      supabase.from("community_comments").select("post_id").eq("user_id", userId),
+      supabase.from("profile_visits").select("visited_id").eq("visitor_id", visitorId)  
+    ]);
+
+    // Check if visits.data is null or undefined
+    if (!visits.data) {
+      return res.status(200).json([]);  
+    }
+
+     const postIds = [...new Set([
+      ...likes.data.map(item => item.post_id),
+      ...comments.data.map(item => item.post_id),
+    ])];
+
+     const visitedClientIds = visits.data.map(item => item.visited_id);
+
+ 
+     if (postIds.length === 0 && visitedClientIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+     const { data: recommendedClientsLikes, error: likesError } = await supabase
+      .from("community_likes")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId); 
+
+    const { data: recommendedClientsComments, error: commentsError } = await supabase
+      .from("community_comments")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId);  
+
+    if (likesError || commentsError) {
+      console.error("Error fetching recommended clients:", likesError || commentsError);
+      return res.status(500).json({ error: "Failed to fetch recommendations." });
+    }
+
+    // Combine the results from likes, comments, and visits
+    const allRecommendedClients = [
+      ...recommendedClientsLikes,
+      ...recommendedClientsComments,
+      ...visitedClientIds.map(visitedId => ({ user_id: visitedId }))  
+    ];
+
+    // Get unique user IDs from the recommendations
+    const uniqueClientIds = [...new Set(allRecommendedClients.map(client => client.user_id))];
+
+    // Fetch client details for the recommended clients
+    const { data: clientsDetails, error: clientsError } = await supabase
+      .from("client")
+      .select("*")
+      .in("user_id", uniqueClientIds);
+
+    if (clientsError) {
+      console.error("Error fetching client details:", clientsError);
+      return res.status(500).json({ error: "Failed to fetch client details." });
+    }
+
+    // If no recommendations found, return an empty array
+    if (clientsDetails.length === 0) {
+      return res.status(200).json([]);
+    }
+
+     const processedClientsDetails = clientsDetails.map(client => ({
+      ...client,
+      profile_image: client.profile_image
+        ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
+        : null,
+    }));
+
+    // Count visit frequencies for each client
+    const visitCounts = visits.data.reduce((acc, visit) => {
+      acc[visit.visited_id] = (acc[visit.visited_id] || 0) + 1; // Increment the count for each visited client
+      return acc;
+    }, {});
+
+    // Add visit counts to processed clients
+    const clientsWithCounts = processedClientsDetails.map(client => ({
+      ...client,
+      visit_count: visitCounts[client.user_id] || 0 // Add visit count
+    }));
+
+    // Filter out the currently visited client from the recommendations
+    const filteredClientsDetails = clientsWithCounts.filter(client => 
+      client.user_id !== userId // Exclude the currently visited client
+    );
+
+    // Sort clients by visit count in descending order
+    filteredClientsDetails.sort((a, b) => b.visit_count - a.visit_count);
+
+    // Return the filtered and sorted recommended clients directly
+    res.status(200).json(filteredClientsDetails);
+  } catch (err) {
+    console.error("Unexpected error in recommendations:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+
+// visit profile endpoint
+app.post("/log-profile-visit/:userId", async (req, res) => {
+  const { userId } = req.params;  
+  const { visitorId } = req.body;  
+
+  console.log("Logging visit for userId:", userId, "by visitorId:", visitorId);  
+  if (!visitorId) {
+      return res.status(400).json({ error: "Visitor ID is required." });
+  }
+
+  try {
+      // Log the profile visit
+      const { error } = await supabase
+          .from("profile_visits")
+          .insert([{ visitor_id: visitorId, visited_id: userId, visited_at: new Date() }]);  
+
+      if (error) {
+          return res.status(500).json({ error: "Failed to log profile visit." });
+      }
+
+      res.status(200).json({ message: "Profile visit logged successfully." });
+  } catch (err) {
+      console.error("Error logging profile visit:", err);
+      res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+// ****** COLLABORATIVE FILTERING ENDPOINT END ******
+
+
+// ****** COLLABORATIVE FILTERING ENDPOINT ARTIST ******
+app.get("/recommend-artists/:userId", async (req, res) => {
+  const { userId } = req.params;  
+  const visitorId = req.query.visitorId; 
+
+  const CDNURL_ARTIST = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+
+  
+  try {
+    // Fetch the user's likes, comments, and visits
+    const [likes, comments, visits] = await Promise.all([
+      supabase.from("community_likes").select("post_id").eq("user_id", userId),
+      supabase.from("community_comments").select("post_id").eq("user_id", userId),
+      supabase.from("profile_visits").select("visited_id").eq("visitor_id", visitorId)  
+    ]);
+
+   
+     if (!visits.data) {
+      console.warn("No visits found for visitorId:", visitorId);
+      return res.status(200).json([]);  
+    }
+
+     const postIds = [...new Set([
+      ...likes.data.map(item => item.post_id),
+      ...comments.data.map(item => item.post_id),
+    ])];
+
+     const visitedArtistIds = visits.data.map(item => item.visited_id);
+ 
+    // If no interactions, return an empty array
+    if (postIds.length === 0 && visitedArtistIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // Fetch artists who have liked or commented on the same posts
+    const { data: recommendedArtistsLikes, error: likesError } = await supabase
+      .from("community_likes")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId);  
+    const { data: recommendedArtistsComments, error: commentsError } = await supabase
+      .from("community_comments")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId);  
+
+    if (likesError || commentsError) {
+      console.error("Error fetching recommended artists:", likesError || commentsError);
+      return res.status(500).json({ error: "Failed to fetch recommendations." });
+    }
+
+    // Combine the results from likes, comments, and visits
+    const allRecommendedArtists = [
+      ...recommendedArtistsLikes,
+      ...recommendedArtistsComments,
+      ...visitedArtistIds.map(visitedId => ({ user_id: visitedId }))  
+    ];
+
+    // Get unique user IDs from the recommendations
+    const uniqueArtistIds = [...new Set(allRecommendedArtists.map(artist => artist.user_id))];
+
+    // Fetch artist details for the recommended artists
+    const { data: artistsDetails, error: artistsError } = await supabase
+      .from("artist")
+      .select("*")
+      .in("user_id", uniqueArtistIds);
+
+    if (artistsError) {
+      console.error("Error fetching artist details:", artistsError);
+      return res.status(500).json({ error: "Failed to fetch artist details." });
+    }
+
+    // If no recommendations found, return an empty array
+    if (artistsDetails.length === 0) {
+      return res.status(200).json([]);
+    }
+
+     const processedArtistsDetails = artistsDetails.map(artist => ({
+      ...artist,
+      profile_image: artist.profile_image
+        ? `${CDNURL_ARTIST}${artist.user_id}/${artist.profile_image}`
+        : null,
+    }));
+
+    // Count visit frequencies for each artist
+    const visitCounts = visits.data.reduce((acc, visit) => {
+      acc[visit.visited_id] = (acc[visit.visited_id] || 0) + 1; // Increment the count for each visited artist
+      return acc;
+    }, {});
+
+    // Add visit counts to processed artists
+    const artistsWithCounts = processedArtistsDetails.map(artist => ({
+      ...artist,
+      visit_count: visitCounts[artist.user_id] || 0  
+    }));
+
+    // Filter out the currently visited artist from the recommendations
+    const filteredArtistsDetails = artistsWithCounts.filter(artist => 
+      artist.user_id !== userId // Exclude the currently visited artist
+    );
+
+    // Sort artists by visit count in descending order
+    filteredArtistsDetails.sort((a, b) => b.visit_count - a.visit_count);
+
+    // Return the filtered and sorted recommended artists directly
+    res.status(200).json(filteredArtistsDetails);
+  } catch (err) {
+    console.error("Unexpected error in recommendations:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+// ****** COLLABORATIVE FILTERING ENDPOINT ARTIST END ******
+
+//***** TRANSACTION FUNCTION ******/
+app.get("/orders/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+      console.log("Fetching orders for userId:", userId);  
+      const { data: orders, error } = await supabase
+          .from("orders")
+          .select(`
+              id,
+              created_at,
+              amount,
+              status,
+              description
+          `)
+          .eq("user_id", userId);
+
+      if (error) {
+          console.error("Error fetching orders:", error);
+          return res.status(400).json({ error: "Failed to fetch orders." });
+      }
+
+      console.log("Orders fetched:", orders); 
+
+       if (orders.length === 0) {
+          console.warn(`No orders found for userId: ${userId}`);
+      }
+
+      // Format the orders data
+      const formattedOrders = orders.map(order => ({
+          id: order.id,
+          date: order.created_at,
+          amount: order.amount,
+          status: order.status,
+          description: order.description,
+      }));
+
+      res.status(200).json(formattedOrders);
+  } catch (err) {
+      console.error("Unexpected error fetching orders:", err);
+      res.status(500).json({ error: "Failed to fetch orders." });
+  }
+});
+//***** TRANSACTION FUNCTION END...******/
+
+
+//***** NOTIFICATION FUNCTION ******
+// Fetch notifications for a user
+app.get("/notifications/:userId", async (req, res) => {
+  const { userId } = req.params; // Get userId from the request parameters
+
+  try {
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ error: "Error fetching notifications." });
+    }
+
+    res.status(200).json({ notifications: data });
+  } catch (err) {
+    console.error("Error fetching notifications:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// Mark all notifications as read for a user
+app.put("/notifications/:userId/mark-all-as-read", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+      const { error } = await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("user_id", userId);
+
+      if (error) {
+          return res.status(500).json({ error: "Error marking notifications as read." });
+      }
+
+      res.status(200).json({ message: "All notifications marked as read." });
+  } catch (err) {
+      console.error("Error marking notifications as read:", err);
+      res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// Delete a single notification
+app.delete("/notifications/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Convert id to a number for an int8 column
+  const notificationId = Number(id);
+  if (isNaN(notificationId)) {
+      return res.status(400).json({ error: "Invalid notification ID." });
+  }
+
+  try {
+      // Check if the notification exists
+      const { data: existingNotification, error: fetchError } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("id", notificationId)
+          .single();
+
+      if (fetchError) {
+          return res.status(500).json({ error: "Error fetching notification." });
+      }
+
+      if (!existingNotification) {
+          return res.status(404).json({ error: "Notification not found." });
+      }
+
+      // Delete the notification
+      const { error: deleteError } = await supabase
+          .from("notifications")
+          .delete()
+          .eq("id", notificationId);
+
+      if (deleteError) {
+          return res.status(500).json({ error: "Error deleting notification." });
+      }
+
+      res.status(200).json({ message: "Notification deleted." });
+  } catch (err) {
+      res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// Fetch the count of unread notifications for a user
+app.get("/notifications/count/:userId", async (req, res) => {
+  const { userId } = req.params;  
+
+  try {
+    // Count unread notifications
+    const { count, error } = await supabase
+      .from("notifications")
+      .select("id", { count: 'exact', head: true }) 
+      .eq("user_id", userId)
+      .eq("is_read", false);  
+
+    if (error) {
+      return res.status(500).json({ error: "Error fetching notifications count." });
+    }
+
+    res.status(200).json({ count: count || 0 }); 
+  } catch (err) {
+    console.error("Error fetching notifications count:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// User Cart Count
+app.get("/cart/count/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { count, error } = await supabase
+      .from("cart")
+      .select("*", { count: "exact" })
+      .eq("user_id", userId);
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(200).json({ count });
+  } catch (err) {
+    console.error("Error fetching cart count:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+//***** NOTIFICATION FUNCTION END... ******
+
+
+// ***** ARTIST VERIFICATION FUNCTION ******
+const VERIFY_CDNURL = "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-verification/";
+
+app.post(
+  "/api/artist-verification/:userId",
+  upload.fields([{ name: "document" }, { name: "valid_id" }]),
+  async (req, res) => {
+    const { userId } = req.params;
+    const files = req.files;
+
+    if (!userId || !files || !files.document || !files.valid_id) {
+      return res.status(400).json({ error: "User  ID, portfolio, and valid ID are required." });
+    }
+
+    try {
+      // Upload portfolio to Supabase storage
+      const documentFile = files.document[0];
+      const documentFileName = `${Date.now()}-${documentFile.originalname}`;
+      const documentPath = `portfolio/${userId}/${documentFileName}`;
+
+      const { error: documentUploadError } = await supabase.storage
+        .from("artist-verification")
+        .upload(documentPath, documentFile.buffer, {
+          contentType: documentFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (documentUploadError) {
+        return res.status(500).json({ error: "Failed to upload portfolio." });
+      }
+
+      // Upload valid ID to Supabase storage
+      const validIdFile = files.valid_id[0];
+      const validIdFileName = `${Date.now()}-${validIdFile.originalname}`;
+      const validIdPath = `valid_id/${userId}/${validIdFileName}`;
+
+      const { error: validIdUploadError } = await supabase.storage
+        .from("artist-verification")
+        .upload(validIdPath, validIdFile.buffer, {
+          contentType: validIdFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (validIdUploadError) {
+        return res.status(500).json({ error: "Failed to upload valid ID." });
+      }
+
+      // Insert verification request and get the returned ID
+      const { data: verificationData, error: verificationError } = await supabase
+        .from('artist_verification')
+        .insert({
+          user_id: userId,
+          document_url: `portfolio/${userId}/${documentFileName}`,
+          valid_id: `valid_id/${userId}/${validIdFileName}`,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        })
+        .select('verification_id');  
+      if (verificationError) {
+        return res.status(500).json({ error: 'Failed to save verification request' });
+      }
+
+      // Add verification ID to existing artist record
+      const { error: artistUpdateError } = await supabase
+        .from('artist')
+        .update({ verification_id: verificationData[0].verification_id })
+        .eq('user_id', userId);
+
+      if (artistUpdateError) {
+        return res.status(500).json({ error: "Failed to update artist verification ID." });
+      }
+
+      // Fetch the sender's name for the notification
+      const { data: userData, error: userError } = await supabase
+        .from('artist')
+        .select('firstname, lastname')
+        .eq('user_id', userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error("Error fetching user data:", userError);
+        return res.status(500).json({ error: "Failed to fetch user data for notification." });
+      }
+
+      const senderName = `${userData.firstname} ${userData.lastname}`;
+
+      // Notify admins about the new verification request
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin')
+        .select('user_id');  
+
+      if (adminError) {
+        console.error("Error fetching admin users:", adminError);
+        return res.status(500).json({ error: "Failed to fetch admin users." });
+      }
+
+      // Create notifications for each admin
+      const notificationPromises = adminData.map(async (admin) => {
+        const notificationMessage = `New verification request submitted by ${senderName}.`;
+        return supabase.from("notifications").insert([
+          {
+            user_id: admin.user_id,
+            type: "Verification",
+            message: notificationMessage,
+            is_read: false, 
+            created_at: new Date().toISOString(),
+          }
+        ]);
+      });
+
+      // Wait for all notifications to be created
+      await Promise.all(notificationPromises);
+
+      res.status(200).json({
+        success: true,
+        message: "Verification request submitted successfully.",
+      });
+    } catch (err) {
+      console.error("An unexpected error occurred during verification:", err);
+      res.status(500).json({ error: "An unexpected error occurred during verification." });
+    }
+  }
+);
+
+// **Fetch all artist verifications**
+app.get("/api/artist-verifications", async (req, res) => {
+  try {
+    const { data: verifications, error } = await supabase
+      .from("artist_verification")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    // Enrich verifications with artist details
+    const enrichedVerifications = await Promise.all(
+      verifications.map(async (verification) => {
+        const { data: artistData, error: artistError } = await supabase
+          .from("artist")
+          .select("firstname, lastname, role")
+          .eq("user_id", verification.user_id)
+          .single();
+
+        if (artistError) {
+          console.error(`Error fetching artist data for verification ${verification.verification_id}:`, artistError);
+          return { ...verification, artist: null };
+        }
+
+        // Construct full URLs for document and valid ID
+        const documentUrl = `${VERIFY_CDNURL}${verification.document_url}`;
+        const validIdUrl = `${VERIFY_CDNURL}${verification.valid_id}`;
+
+        return { 
+          ...verification, 
+          artist: artistData,
+          document_url: documentUrl,
+          valid_id: validIdUrl
+        };
+      })
+    );
+
+    res.status(200).json(enrichedVerifications);
+  } catch (err) {
+    console.error("Failed to fetch artist verifications:", err);
+    res.status(500).json({ error: "Failed to fetch artist verifications." });
+  }
+});
+
+// Endpoint to approve or reject artist verification
+app.post("/api/artist-verification/:verificationId/:action", async (req, res) => {
+  const { verificationId, action } = req.params;
+
+  if (!['approved', 'rejected'].includes(action)) {
+    return res.status(400).json({ error: "Invalid action. Use 'approved' or 'rejected'." });
+  }
+
+  try {
+    // Fetch the user ID associated with the verification request
+    const { data: verificationData, error: fetchError } = await supabase
+      .from('artist_verification')
+      .select('user_id')
+      .eq('verification_id', verificationId)
+      .single();
+
+    if (fetchError || !verificationData) {
+      return res.status(404).json({ error: "Verification request not found." });
+    }
+
+    const userId = verificationData.user_id;
+
+    // Update the verification status
+    const { error } = await supabase
+      .from('artist_verification')
+      .update({ status: action })
+      .eq('verification_id', verificationId);
+
+    if (error) {
+      return res.status(500).json({ error: "Failed to update verification status." });
+    }
+
+    // Notify the user about the status change
+    const { data: userData, error: userFetchError } = await supabase
+      .from('artist')
+      .select('firstname, lastname')
+      .eq('user_id', userId)
+      .single();
+
+    if (userFetchError || !userData) {
+      console.error("Error fetching user data:", userFetchError);
+      return res.status(500).json({ error: "Failed to fetch user data for notification." });
+    }
+
+    const userName = `${userData.firstname} ${userData.lastname}`;
+    const notificationMessage = `Your verification request has been ${action}.`;
+
+    const { error: notificationError } = await supabase
+      .from("notifications")
+      .insert([
+        {
+          user_id: userId,
+          type: "Verification",
+          message: notificationMessage,
+          is_read: false, // Set to false initially
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
+    res.status(200).json({ success: true, message: `Verification has been ${action}.` });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+
+// ****** ARTIST UPLOAD VERIFICATION END... ******

@@ -24,7 +24,7 @@ const TransactionHistory: React.FC = () => {
 
     const fetchOrders = async () => {
         if (!user) {
-            setError("User not logged in.");
+            setError("User  not logged in.");
             setLoading(false);
             return;
         }
@@ -63,39 +63,41 @@ const TransactionHistory: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">Order History</h2>
+        <div className="min-h-screen bg-gray-50 px-6 py-16">
+            <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
+                <h1 className="text-4xl font-bold text-gray-900 mb-8">Transaction History</h1>
 
-            {orders.length > 0 ? (
-                <div className="overflow-y-auto h-96 border border-gray-300 rounded-md">
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr className="bg-gray-100 text-left text-gray-600">
-                                <th className="p-3">Date</th>
-                                <th className="p-3">Description</th>
-                                <th className="p-3">Amount</th>
-                                <th className="p-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.map((order) => (
-                                <tr key={order.id} className="border-t hover:bg-gray-50">
-                                    <td className="p-3">{new Date(order.date).toLocaleDateString()}</td>
-                                    <td className="p-3">{order.description}</td>
-                                    <td className="p-3">₱{order.amount.toFixed(2)}</td>
-                                    <td className="p-3">
-                                        <span className={`px-2 py-1 rounded-full text-sm ${statusColors[order.status] || "bg-gray-200 text-gray-700"}`}>
-                                            {order.status}
-                                        </span>
-                                    </td>
+                {orders.length > 0 ? (
+                    <div className="overflow-y-auto h-96 border border-gray-300 rounded-md">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-gray-100 text-left text-gray-600">
+                                    <th className="p-4">Date</th>
+                                    <th className="p-4">Description</th>
+                                    <th className="p-4">Amount</th>
+                                    <th className="p-4">Status</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            ) : (
-                <p className="text-gray-700">No orders found.</p>
-            )}
+                            </thead>
+                            <tbody>
+                                {orders.map((order) => (
+                                    <tr key={order.id} className="border-t hover:bg-gray-50 transition duration-200">
+                                        <td className="p-4">{new Date(order.date).toLocaleDateString()}</td>
+                                        <td className="p-4">{order.description}</td>
+                                        <td className="p-4">₱{order.amount.toFixed(2)}</td>
+                                        <td className="p-4">
+                                            <span className={`px-3 py-1 rounded-full text-sm ${statusColors[order.status] || "bg-gray-200 text-gray-700"}`}>
+                                                {order.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-gray-700">No orders found.</p>
+                )}
+            </div>
         </div>
     );
 };

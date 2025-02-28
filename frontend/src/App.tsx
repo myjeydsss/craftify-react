@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom";
+import './App.css'
+import './index.css'
 import HomePage from "./pages/HomePage";
 import NavBar from "./components/NavBar";
 import Explore from "./pages/Explore";
@@ -38,6 +40,7 @@ import Messages from "./pages/Messages";
 import MessagePopup from "./pages/MessagePopup";
 
 import TransactionHistory from "./pages/TransactionHistory";
+import Verification from "./pages/admin/Verification";
 
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
@@ -80,6 +83,7 @@ const App = () => {
                         <Route path="/users-table" element={<UserTable />} />
                         <Route path="/tags-table" element={<TagTable />} />
                         <Route path="/arts-table" element={<ArtsTable />} />
+                        <Route path="/verification" element={<Verification />} />
 
 
                     {/* Client routes */}
@@ -100,6 +104,7 @@ const App = () => {
                     <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
 
                     <Route path="/community" element={<Community />} />
+                    
                     {/* Notification routes */}
                     <Route path="/notifications" element={<Notification />} />
 

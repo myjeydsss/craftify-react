@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";  
 import hireArtist from "../assets/hire-artist.png";
 import findClient from "../assets/find-client.png";
 import collab from "../assets/collab.png";
@@ -7,9 +8,15 @@ import marketplace from "../assets/marketplace.png";
 import art1 from "../assets/artwork-1.png";
 import art2 from "../assets/artwork-2.png";
 import art3 from "../assets/artwork-3.png";
-import Footer from "../components/Footer"; // Adjust the path if necessary
+import Footer from "../components/Footer";  
 
 const Explore: React.FC = () => {
+  const navigate = useNavigate();  
+  
+  const handleJoinNow = () => {
+    navigate("/login");  
+  };
+
   return (
     <>
       <div className="min-h-screen py-20 font-poppins">
@@ -21,7 +28,10 @@ const Explore: React.FC = () => {
           <p className="text-xl text-white mb-6">
             Join a growing community of artists and discover numerous opportunities.
           </p>
-          <button className="py-3 px-6 bg-white text-red-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-all duration-300">
+          <button
+            onClick={handleJoinNow}  
+            className="py-3 px-6 bg-white text-red-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-all duration-300"
+          >
             Join Now
           </button>
         </section>
@@ -49,7 +59,10 @@ const Explore: React.FC = () => {
                 <p className="text-gray-600 mb-6">
                   Connect with talented artists and bring your creative vision to life.
                 </p>
-                <button className="bg-[#5C0601] text-white py-2 px-4 rounded-md hover:bg-[#5c0601ed]">
+                <button
+                  onClick={handleJoinNow}  
+                  className="bg-[#5C0601] text-white py-2 px-4 rounded-md hover:bg-[#5c0601ed]"
+                >
                   HIRE ARTIST NOW
                 </button>
               </div>
@@ -73,14 +86,17 @@ const Explore: React.FC = () => {
                   <span className="h-2 w-2 bg-gray-300 rounded-full mx-1"></span>
                 </div>
               </div>
-              <div className="text-center md:text-right md:flex-1">
+              <div className="text-center md :text-right md:flex-1">
                 <h2 className="text-3xl font-bold text-orange-600 mb-4">
                   FIND CLIENT
                 </h2>
                 <p className="text-gray-600 mb-6">
                   Find the perfect clients for your creative projects and grow your portfolio.
                 </p>
-                <button className="bg-[#5C0601] text-white py-2 px-4 rounded-md hover:bg-[#5c0601ed]">
+                <button
+                  onClick={handleJoinNow}  
+                  className="bg-[#5C0601] text-white py-2 px-4 rounded-md hover:bg-[#5c0601ed]"
+                >
                   FIND CLIENT NOW
                 </button>
               </div>
@@ -100,15 +116,21 @@ const Explore: React.FC = () => {
               { src: marketplace, title: "Creative Marketplace" },
             ].map((item, index) => (
               <div
-          key={index}
-          className="transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+                key={index}
+                className="transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
               >
-          <img
-            src={item.src}
-            alt={item.title}
-            className="h-64 w-full object-cover rounded-md"
-          />
-          <p className="mt-2 font-semibold">{item.title}</p>
+                <img
+                  src={item.src}
+                  alt={item.title}
+                  className="h-64 w-full object-cover rounded-md"
+                />
+                <p className="mt-2 font-semibold">{item.title}</p>
+                <button
+                  onClick={handleJoinNow} 
+                  className="mt-4 bg-[#5C0601] text-white py-2 px-4 rounded-md hover:bg-[#5c0601ed]"
+                >
+                  LEARN MORE
+                </button>
               </div>
             ))}
           </div>
@@ -122,15 +144,21 @@ const Explore: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
             {[art1, art2, art3].map((art, index) => (
               <div
-          key={index}
-          className="bg-white shadow-md p-6 rounded-md hover:shadow-lg transition-all duration-300 border border-orange-600"
+                key={index}
+                className="bg-white shadow-md p-6 rounded-md hover:shadow-lg transition-all duration-300 border border-orange-600"
               >
-          <img
-            src={art}
-            alt={`Artwork ${index + 1}`}
-            className="mx-auto h-64 w-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
-          />
-          <p className="text-orange-600 mt-2 font-semibold">₱1,000.00</p>
+                <img
+                  src={art}
+                  alt={`Artwork ${index + 1}`}
+                  className="mx-auto h-64 w-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
+                />
+                <p className="text-orange-600 mt-2 font-semibold">₱1,000.00</p>
+                <button
+                  onClick={handleJoinNow}  
+                  className="mt-4 bg-[#5C0601] text-white py-2 px-4 rounded-md hover:bg-[#5c0601ed]"
+                >
+                  BUY NOW
+                </button>
               </div>
             ))}
           </div>
@@ -138,7 +166,10 @@ const Explore: React.FC = () => {
 
         {/* Call to Action */}
         <div className="w-full text-center py-6">
-          <button className="py-3 px-6 bg-[#5C0601] text-white font-semibold rounded-full shadow-md hover:bg-[#5c0601ed] transition-all duration-300">
+          <button
+            onClick={handleJoinNow}  
+            className="py-3 px-6 bg-[#5C0601] text-white font-semibold rounded-full shadow-md hover:bg-[#5c0601ed] transition-all duration-300"
+          >
             JOIN CRAFTIFY NOW
           </button>
         </div>

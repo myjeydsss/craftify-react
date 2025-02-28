@@ -9,11 +9,11 @@ import {
   FaFilter,
 } from "react-icons/fa";
 import { useAuth } from "../context/AuthProvider";
-import { useNavigate } from "react-router-dom"; // Import navigation hook
+import { useNavigate } from "react-router-dom"; 
+import Swal from "sweetalert2";
+import ClipLoader from "react-spinners/ClipLoader";
 
 
-
-// TypeScript Interfaces
 interface Artist {
   firstname: string;
   lastname: string;
@@ -132,7 +132,7 @@ const BrowseArts: React.FC = () => {
       const action = wishlist.includes(artId) ? "remove" : "add";
   
       await axios.post(`${import.meta.env.VITE_API_URL}/wishlist`, {
-        userId: user.id, // Use the logged-in user's ID
+        userId: user.id,
         artId,
         action,
       });
@@ -140,6 +140,22 @@ const BrowseArts: React.FC = () => {
       setWishlist((prev) =>
         action === "add" ? [...prev, artId] : prev.filter((id) => id !== artId)
       );
+  
+      // Show SweetAlert toast notification
+      Swal.fire({
+        position: 'top-end',
+        icon: 'success',
+        title: action === "add" ? 'Added to Wishlist!' : 'Removed from Wishlist!',
+        showConfirmButton: false,
+        timer: 1500,
+        toast: true,
+        background: '#fff',
+        color: '#000',
+        iconColor: '#CA5310',
+        customClass: {
+          popup: 'swal-popup',
+        },
+      });
     } catch (err) {
       console.error("Error updating wishlist:", err);
     }
@@ -193,9 +209,12 @@ const BrowseArts: React.FC = () => {
 
   const handlePageChange = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  if (loading) {
-    return <div className="text-center py-16 text-gray-600">Loading arts...</div>;
-  }
+  if (loading) return (
+    <div className="flex justify-center items-center h-screen bg-gray-50">
+      <ClipLoader color="#3498db" loading={loading} size={80} />
+      <p className="mt-4 text-gray-600">Loading...</p>
+    </div>);  
+  
 
   if (error) {
     return <div className="text-center text-red-500 py-16">{error}</div>;

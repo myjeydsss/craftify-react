@@ -1,7 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import Footer from "../components/Footer"; // Adjust the path if necessary
 
 const AboutUs: React.FC = () => {
+  const navigate = useNavigate(); // Initialize useNavigate
+
+  // Function to handle redirection to the login page
+  const handleGetStarted = () => {
+    navigate("/login"); // Redirect to the login page
+  };
+
   return (
     <>
       <div className="py-20 min-h-screen font-poppins">
@@ -12,6 +20,12 @@ const AboutUs: React.FC = () => {
             <p className="text-lg mb-8">
               Bringing Artists and Art Lovers Together through a Personalized Commissioning Platform.
             </p>
+            <button
+              onClick={handleGetStarted} // Added onClick handler
+              className="py-3 px-6 bg-white text-red-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-all duration-300"
+            >
+              Join Our Community
+            </button>
           </div>
         </section>
 
@@ -62,7 +76,7 @@ const AboutUs: React.FC = () => {
                     "Connect with your chosen artist. Share your ideas, preferences, and specific needs to personalize the artwork.",
                 },
                 {
-                  title: "Commission",
+                  title : "Commission",
                   description:
                     "Finalize the details and commission your personalized piece of art. Enjoy a seamless and secure process from start to finish.",
                 },
@@ -96,6 +110,22 @@ const AboutUs: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Call to Action */}
+        <section className="py-20 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 text-white">
+          <div className="container mx-auto text-center">
+            <h2 className="text-4xl font-bold mb-6">Join Us Today!</h2>
+            <p className="text-lg mb-8">
+              Become a part of our vibrant community of artists and art lovers. Sign up now to start your journey with Craftify!
+            </p>
+            <button
+              onClick={handleGetStarted} // Added onClick handler for redirection
+              className="py-3 px-6 bg-white text-red-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-all duration-300"
+            >
+              Get Started
+            </button>
           </div>
         </section>
       </div>

@@ -1,5 +1,4 @@
 import React from "react";
-
 import art1 from "../assets/artwork-1.png";
 import art2 from "../assets/artwork-2.png";
 import art3 from "../assets/artwork-3.png";
@@ -12,12 +11,10 @@ import heroImage8 from "../assets/hero8.png";
 import heroImage9 from "../assets/hero9.png";
 import heroImage10 from "../assets/hero10.png";
 import Footer from "../components/Footer";
-<<<<<<< Updated upstream
-=======
 import { useNavigate } from "react-router-dom";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { Carousel } from "react-responsive-carousel";
->>>>>>> Stashed changes
+import { useNavigate } from "react-router-dom";
 
 const HomePage: React.FC = () => {
   const categories: string[] = [
@@ -52,25 +49,33 @@ const HomePage: React.FC = () => {
       description: "Enjoy secure and encrypted payment transactions.",
     },
   ];
+  
+  const navigate = useNavigate(); // Initialize useNavigate
+
+  // Function to handle redirection to the login page
+  const handleGetStarted = () => {
+    navigate("/login"); // Redirect to the login page
+  };
 
   return (
     <>
       <div className="min-h-screen py-20 font-poppins">
         {/* Hero Section */}
-<<<<<<< Updated upstream
+
         <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500">
           <div className="flex justify-center space-x-4 mb-8">
+        <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 relative">
+          <div className="flex justify-center space-x-4 mb-8 relative z-10">
             {[art1, art2, art3].map((image, index) => (
               <img
                 key={index}
                 src={image}
-                alt="Person painting on canvas"
+                alt="Artwork"
                 className="h-64 w-64 object-cover rounded-md shadow-lg hover:shadow-xl transition-all duration-300"
               />
             ))}
           </div>
           <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg">
-=======
         <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 relative">
             <div className="relative z-10 mb-8">
               <div className="carousel-wrapper">
@@ -94,12 +99,15 @@ const HomePage: React.FC = () => {
                 ))}
               </Carousel>
               </div>
-            </div>
+          </div>
+            
           <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg z-10">
->>>>>>> Stashed changes
             DISCOVER THE PERFECT LOCAL ARTIST
           </h1>
-          <button className="py-3 px-6 bg-white text-red-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-all duration-300">
+          <button
+            onClick={handleGetStarted} // Added onClick handler
+            className="py-3 px-6 bg-white text-red-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-all duration-300 z-10"
+          >
             Get Started
           </button>
         </section>
@@ -124,11 +132,11 @@ const HomePage: React.FC = () => {
         </section>
 
         {/* Artist Collaboration Section */}
-        <section className="flex flex-col md:flex-row items-center justify-between p-8 bg-white">
+        <section className="flex flex-col md:flex-row items-center justify-between p-8 bg-white shadow-lg rounded-lg">
           <div className="relative w-full md:w-1/2">
             <img
               src={portrait}
-              alt="Luis 'Junyee' Yee, Jr."
+              alt="Artist Portrait"
               className="w-full h-auto object-cover rounded-lg shadow-md"
             />
             <div className="absolute top-0 left-0 w-full h-full mix-blend-multiply"></div>
@@ -137,6 +145,12 @@ const HomePage: React.FC = () => {
             <h1 className="text-4xl font-bold mb-4 text-[#CA5310]">
               UNLOCK CREATIVE COLLABORATIONS WITH ARTISTIC TALENTS
             </h1>
+            <p className="text-gray-600 mb-4">
+              Connect with talented artists and explore unique opportunities for collaboration. Whether you're looking for a specific style or want to create something entirely new, our platform makes it easy to find the right match.
+            </p>
+            <button className="py-2 px-4 bg-[#CA5310] text-white font-semibold rounded-full shadow-md hover:bg-[#B84A0C] transition-all duration-300">
+              Learn More
+            </button>
           </div>
         </section>
 
@@ -151,7 +165,7 @@ const HomePage: React.FC = () => {
               <img
                 key={index}
                 src={image}
-                alt="Artist working on painting"
+                alt="Personalized Artwork"
                 className="h-64 w-64 object-cover rounded-md shadow-lg transition-transform transform hover:scale-105"
               />
             ))}
@@ -161,6 +175,9 @@ const HomePage: React.FC = () => {
         {/* Features Section */}
         <section className="py-16 bg-white">
           <div className="container mx-auto text-center">
+            <h2 className="text-4xl font-bold mb-12 text-gray-700">
+              Our Features
+            </h2>
             <div className="flex flex-wrap justify-center">
               {features.map((feature, index) => (
                 <div key={index} className="w-full md:w-1/4 p-6">
