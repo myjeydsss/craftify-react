@@ -12,6 +12,12 @@ import heroImage8 from "../assets/hero8.png";
 import heroImage9 from "../assets/hero9.png";
 import heroImage10 from "../assets/hero10.png";
 import Footer from "../components/Footer";
+<<<<<<< Updated upstream
+=======
+import { useNavigate } from "react-router-dom";
+import "react-responsive-carousel/lib/styles/carousel.min.css";
+import { Carousel } from "react-responsive-carousel";
+>>>>>>> Stashed changes
 
 const HomePage: React.FC = () => {
   const categories: string[] = [
@@ -51,6 +57,7 @@ const HomePage: React.FC = () => {
     <>
       <div className="min-h-screen py-20 font-poppins">
         {/* Hero Section */}
+<<<<<<< Updated upstream
         <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500">
           <div className="flex justify-center space-x-4 mb-8">
             {[art1, art2, art3].map((image, index) => (
@@ -63,6 +70,33 @@ const HomePage: React.FC = () => {
             ))}
           </div>
           <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg">
+=======
+        <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 relative">
+            <div className="relative z-10 mb-8">
+              <div className="carousel-wrapper">
+              <Carousel
+                showArrows={true}
+                showThumbs={false}
+                infiniteLoop={true}
+                autoPlay={true}
+                interval={3000}
+                transitionTime={500}
+                showStatus={false}
+              >
+                {[art1, art2, art3].map((image, index) => (
+                <div key={index}>
+                  <img
+                  src={image}
+                  alt="Artwork"
+                  className="h-96 w-64 object-cover rounded-md shadow-lg"
+                  />
+                </div>
+                ))}
+              </Carousel>
+              </div>
+            </div>
+          <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg z-10">
+>>>>>>> Stashed changes
             DISCOVER THE PERFECT LOCAL ARTIST
           </h1>
           <button className="py-3 px-6 bg-white text-red-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-all duration-300">

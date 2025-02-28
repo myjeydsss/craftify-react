@@ -20,7 +20,11 @@ const Footer: React.FC = () => {
               <h3 className="font-bold text-[#CA5310] mb-2">Quick Links</h3>
               <ul className="space-y-2">
                 <li>
+<<<<<<< Updated upstream
                   <a href="#" className="text-gray-600 hover:text-[#CA5310]">
+=======
+                  <Link to="/home" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+>>>>>>> Stashed changes
                     Home
                   </a>
                 </li>
@@ -38,6 +42,11 @@ const Footer: React.FC = () => {
                   <a href="#" className="text-gray-600 hover:text-[#CA5310]">
                     Privacy Policy
                   </a>
+                </li>
+                <li>
+                  <Link to="/terms-and-condition" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                    Terms and Condition
+                  </Link>
                 </li>
               </ul>
             </div>

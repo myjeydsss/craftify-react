@@ -39,6 +39,9 @@ import MessagePopup from "./pages/MessagePopup";
 
 import TransactionHistory from "./pages/TransactionHistory";
 
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndConditions from "./pages/TermsAndConditions";
+
 const App = () => {
   
     return (
@@ -54,7 +57,9 @@ const App = () => {
                     <Route path="/how-it-works" element={<HowItWorks />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/login" element={<Login />} />
-
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="/terms-and-condition" element={<TermsAndConditions />} />
+                
                     {/* Protected routes */}
                     <Route element={<AuthRoute />}>
                     
@@ -112,8 +117,6 @@ const App = () => {
                     {/* Transaction history */}
                     <Route path="/transaction-history" element={<TransactionHistory />} />
                     
-
-
                     </Route>
                 </Routes>
             </div>
