@@ -21,35 +21,35 @@ const Login: React.FC = () => {
       setErrorMsg("Please enter your email and password.");
       return;
     }
-  
+
     try {
       setLoading(true);
       setErrorMsg("");
-  
+
       const { success, error, userId } = await login(
         emailRef.current.value,
         passwordRef.current.value
       );
-  
+
       if (!success) {
         setErrorMsg(error || "Login failed. Please try again.");
         return;
       }
-  
-      if (!userId) throw new Error("User  ID not found after login.");
-  
+
+      if (!userId) throw new Error("User ID not found after login.");
+
       localStorage.setItem("userId", userId);
-  
+
       const API_BASE_URL = import.meta.env.VITE_API_URL;
       const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
       const { role } = response.data;
-  
+
       const roleRoutes: Record<string, string> = {
         Artist: "/artist-dashboard",
         Client: "/client-dashboard",
         Admin: "/admin-dashboard",
       };
-  
+
       navigate(roleRoutes[role] || "/");
     } catch (err: any) {
       setErrorMsg("Unexpected error during login.");
@@ -59,7 +59,6 @@ const Login: React.FC = () => {
   };
 
   return (
-
     <>
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 px-4">
         <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
@@ -123,30 +122,6 @@ const Login: React.FC = () => {
             </Link>
           </div>
 
-          {errorMsg && <p className="text-sm text-red-600 bg-red-100 p-2 rounded">{errorMsg}</p>}
-
- <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 text-white bg-red-400 rounded-md shadow hover:bg-red-500 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition"
-          >
-            {loading ? <FaSpinner className="animate-spin mx-auto text-white" /> : "Log In"}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <Link to="/register" className="text-sm text-blue-500 hover:text-blue-700 transition">
-            Don't have an account? Sign up here
-          </Link>
-        </div>
-
-        <div className="mt-4 text-center">
-          <Link to="/forgot-password" className="text-sm text-blue-500 hover:text-blue-700 transition">
-            Forgot Password?
-          </Link>
-        </div>
-      </div>
-    </div>
           <div className="mt-4 text-center">
             <Link to="/forgot-password" className="text-sm text-blue-500 hover:text-blue-700 transition">
               Forgot Password?
@@ -155,9 +130,6 @@ const Login: React.FC = () => {
         </div>
       </div>
       <Footer />
-    </>
-    <Footer />
-
     </>
   );
 };

@@ -1,7 +1,7 @@
 import React from "react";
 import logo from "../assets/logo.png"; // Adjust the path as necessary
 import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn } from "react-icons/fa"; // Import social media icons
-import { Link } from "react-router";
+import { Link } from "react-router-dom"; // Corrected import from "react-router-dom"
 
 const Footer: React.FC = () => {
   return (
@@ -22,12 +22,7 @@ const Footer: React.FC = () => {
               <h3 className="font-bold text-[#CA5310] mb-2">Quick Links</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-[#CA5310]">
-
-                  <Link to="/home" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
-
                   <Link to="/" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
-
                     Home
                   </Link>
                 </li>
@@ -47,8 +42,8 @@ const Footer: React.FC = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/terms-and-condition" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
-                    Terms and Condition
+                  <Link to="/terms-and-conditions" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                    Terms and Conditions
                   </Link>
                 </li>
               </ul>

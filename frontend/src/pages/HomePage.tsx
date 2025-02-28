@@ -14,7 +14,6 @@ import Footer from "../components/Footer";
 import { useNavigate } from "react-router-dom";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { Carousel } from "react-responsive-carousel";
-import { useNavigate } from "react-router-dom";
 
 const HomePage: React.FC = () => {
   const categories: string[] = [
@@ -49,7 +48,7 @@ const HomePage: React.FC = () => {
       description: "Enjoy secure and encrypted payment transactions.",
     },
   ];
-  
+
   const navigate = useNavigate(); // Initialize useNavigate
 
   // Function to handle redirection to the login page
@@ -61,24 +60,9 @@ const HomePage: React.FC = () => {
     <>
       <div className="min-h-screen py-20 font-poppins">
         {/* Hero Section */}
-
-        <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500">
-          <div className="flex justify-center space-x-4 mb-8">
         <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 relative">
-          <div className="flex justify-center space-x-4 mb-8 relative z-10">
-            {[art1, art2, art3].map((image, index) => (
-              <img
-                key={index}
-                src={image}
-                alt="Artwork"
-                className="h-64 w-64 object-cover rounded-md shadow-lg hover:shadow-xl transition-all duration-300"
-              />
-            ))}
-          </div>
-          <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg">
-        <section className="text-center py-16 bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 relative">
-            <div className="relative z-10 mb-8">
-              <div className="carousel-wrapper">
+          <div className="relative z-10 mb-8">
+            <div className="carousel-wrapper">
               <Carousel
                 showArrows={true}
                 showThumbs={false}
@@ -89,18 +73,17 @@ const HomePage: React.FC = () => {
                 showStatus={false}
               >
                 {[art1, art2, art3].map((image, index) => (
-                <div key={index}>
-                  <img
-                  src={image}
-                  alt="Artwork"
-                  className="h-96 w-64 object-cover rounded-md shadow-lg"
-                  />
-                </div>
+                  <div key={index}>
+                    <img
+                      src={image}
+                      alt="Artwork"
+                      className="h-96 w-64 object-cover rounded-md shadow-lg"
+                    />
+                  </div>
                 ))}
               </Carousel>
-              </div>
+            </div>
           </div>
-            
           <h1 className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg z-10">
             DISCOVER THE PERFECT LOCAL ARTIST
           </h1>
