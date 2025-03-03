@@ -123,7 +123,7 @@ const ArtistProject: React.FC = () => {
       });
     }
   };
-  
+
   const onRejectProposal = async (proposal: Proposal) => {
     try {
         await axios.post(`${API_BASE_URL}/api/proposals/reject`, { proposalId: proposal.proposal_id });
@@ -230,7 +230,6 @@ const ArtistProject: React.FC = () => {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Project Dashboard</h1>
           <hr className="border-gray-300 mb-6" />
-
         </div>
   
         {/* Stats Overview */}

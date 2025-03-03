@@ -70,7 +70,7 @@ const ArtistDashboard: React.FC = () => {
 
     {/* Header Section */}
     <div className="text-center mb-8">
-             <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Welcome, {user?.email}!</h1>
+             <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Welcome to Craftify!</h1>
              <p className="text-gray-500 mb-5">Explore, manage, and showcase your art.</p>
              <hr className="border-gray-300 mb-6" />
            </div>
