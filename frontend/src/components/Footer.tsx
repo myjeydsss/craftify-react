@@ -1,7 +1,7 @@
 import React from "react";
 import logo from "../assets/logo.png"; // Adjust the path as necessary
 import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn } from "react-icons/fa"; // Import social media icons
-import { Link } from "react-router";
+import { Link } from "react-router-dom"; // Corrected import from "react-router-dom"
 
 const Footer: React.FC = () => {
   return (
@@ -39,6 +39,11 @@ const Footer: React.FC = () => {
                 <li>
                   <Link to="/privacy-policy" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms-and-conditions" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                    Terms and Conditions
                   </Link>
                 </li>
               </ul>
