@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
+import ClipLoader from "react-spinners/ClipLoader";
 
 interface CartItem {
   id: string;
@@ -173,10 +174,12 @@ const Checkout: React.FC = () => {
             console.error("Error creating notification:", err);
         }
     };
-  if (loading) {
-    return <div className="text-center py-16 text-gray-600">Loading...</div>;
-  }
-
+    if (loading) return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <ClipLoader color="#3498db" loading={loading} size={80} />
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>);  
+    
   if (error) {
     return <div className="text-center py-16 text-red-500">{error}</div>;
   }
@@ -196,9 +199,9 @@ const Checkout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-16">
+    <div className="min-h-screen px-6 py-16">
       <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Checkout</h1>
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-8">Checkout</h1>
 
         {/* Shipping Information */}
         <div className="mb-8">

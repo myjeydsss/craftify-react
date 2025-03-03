@@ -2796,8 +2796,8 @@ app.post('/api/proposals/accept', async (req, res) => {
           proposal_id: proposal.proposal_id,
           project_name: proposal.project_name,
           description: proposal.project_description,
-          client_id: proposal.sender_id,
-          artist_id: proposal.recipient_id,
+          client_id: proposal.recipient_id,
+          artist_id: proposal.sender_id,
           due_date: proposal.due_date,
           status: "To Do", // Default value
           priority: "Normal", // Default value

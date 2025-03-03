@@ -61,7 +61,7 @@ const App = () => {
                     <Route path="/register" element={<Register />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                    <Route path="/terms-and-condition" element={<TermsAndConditions />} />
+                    <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 
                     {/* Protected routes */}
                     <Route element={<AuthRoute />}>

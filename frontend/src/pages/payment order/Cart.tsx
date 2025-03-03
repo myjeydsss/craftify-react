@@ -3,12 +3,14 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthProvider";
 import { FaTrashAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import ClipLoader from "react-spinners/ClipLoader";
+import Swal from "sweetalert2";
 
 interface CartItem {
   id: string;
   art_id: string;
   quantity: number;
-    arts: {
+  arts: {
     user_id: string;
     title: string;
     image_url: string;
@@ -49,9 +51,18 @@ const Cart: React.FC = () => {
         prevItems.filter((item) => item.art_id !== artId)
       );
       setSelectedItems((prev) => prev.filter((item) => item.art_id !== artId));
+
+      // Show success toast
+      Toast.fire({
+        icon: "success",
+        title: "Item removed from cart.",
+      });
     } catch (err) {
       console.error("Error removing item from cart:", err);
-      alert("Failed to remove item from cart.");
+      Toast.fire({
+        icon: "error",
+        title: "Failed to remove item from cart.",
+      });
     }
   };
 
@@ -74,7 +85,10 @@ const Cart: React.FC = () => {
 
   const proceedToCheckout = () => {
     if (selectedItems.length === 0) {
-      alert("Please select items to proceed.");
+      Toast.fire({
+        icon: "warning",
+        title: "Please select items to proceed.",
+      });
       return;
     }
 
@@ -89,9 +103,12 @@ const Cart: React.FC = () => {
     fetchCartItems();
   }, [user]);
 
-  if (loading) {
-    return <div className="text-center py-16 text-gray-600">Loading...</div>;
-  }
+  if (loading) return (
+    <div className="flex justify-center items-center h-screen bg-gray-50">
+      <ClipLoader color="#3498db" loading={loading} size={80} />
+      <p className="mt-4 text-gray-600">Loading...</p>
+    </div>
+  );  
 
   if (error) {
     return <div className="text-center py-16 text-red-500">{error}</div>;
@@ -105,11 +122,23 @@ const Cart: React.FC = () => {
     );
   }
 
+  // SweetAlert Toast configuration
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    }
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-16">
+    <div className="min-h-screen px-6 py-16">
       <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Your Cart</h1>
-        <div className="space-y-6">
+      <h1 className="text-4xl font-bold text-[#5C0601] mb-8">Your Art Collection</h1>        <div className="space-y-6">
           {cartItems.map((item) => (
             <div
               key={item.id}

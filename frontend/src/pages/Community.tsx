@@ -5,6 +5,7 @@ import moment from 'moment';
 import { FaUserCircle, FaComment, FaHeart, FaSpinner, FaTimes } from 'react-icons/fa';
 import { HiDotsHorizontal } from 'react-icons/hi';
 import Swal from 'sweetalert2';
+import ModalCommunity from '../components/ModalCommunity';
 
 interface User {
   user_id: string;
@@ -53,6 +54,10 @@ const Community: React.FC = () => {
   const [editPostId, setEditPostId] = useState<string | null>(null); // ID of the post being edited
   const [editPostContent, setEditPostContent] = useState<string>(''); // Content of the post being edited
   const [actionMenus, setActionMenus] = useState<{ [key: string]: boolean }>({}); // State for action menus
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); // State for the selected image
+  const [showImageModal, setShowImageModal] = useState<boolean>(false); // State to control the image modal
+
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -352,6 +357,17 @@ const Community: React.FC = () => {
     }
   };
 
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setShowImageModal(true);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
+    setShowImageModal(false);
+  };
+
+
   return (
     <div className="container mx-auto py-16 px-4">
       <h1 className="text-4xl font-bold text-center text-[#5C0601] mb-4">Community</h1>
@@ -435,8 +451,8 @@ const Community: React.FC = () => {
         </div>
       </div>
 
-      {/* Posts List */}
-      <div className="space-y-8">
+     {/* Posts List */}
+     <div className="space-y-8">
         {loading ? (
           <div className="flex justify-center items-center h-40">
             <FaSpinner className="animate-spin text-4xl text-[#5C0601]" />
@@ -460,42 +476,42 @@ const Community: React.FC = () => {
 
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-gray-800">
-                      {post.user?.firstname || "Unknown"} {post.user?.lastname || "User    "}
+                      {post.user?.firstname || "Unknown"} {post.user?.lastname || "User  "}
                     </h3>
                     <p className="text-sm text-gray-500">{moment(post.created_at).fromNow()}</p>
                   </div>
                 </div>
 
                 {/* Kebab Menu for Edit and Delete */}
-{(post.user_id === user?.id || loggedInUser ?.role === 'Admin') && (
-  <div className="relative">
-    <button
-      onClick={() => setActionMenus((prev) => ({ ...prev, [post.id]: !prev[post.id] }))}
-      className="focus:outline-none"
-    >
-      <HiDotsHorizontal className="text-gray-600" />
-    </button>
-    {actionMenus[post.id] && (
-      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
-        <button
-          onClick={() => {
-            setEditPostId(post.id);
-            setEditPostContent(post.content);
-          }}
-          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => handleDeletePost(post.id)}
-          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-        >
-          Delete
-        </button>
-      </div>
-    )}
-  </div>
-)}
+                {(post.user_id === user?.id || loggedInUser ?.role === 'Admin') && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setActionMenus((prev) => ({ ...prev, [post.id]: !prev[post.id] }))}
+                      className="focus:outline-none"
+                    >
+                      <HiDotsHorizontal className="text-gray-600" />
+                    </button>
+                    {actionMenus[post.id] && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                        <button
+                          onClick={() => {
+                            setEditPostId(post.id);
+                            setEditPostContent(post.content);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mt-2">
@@ -526,7 +542,8 @@ const Community: React.FC = () => {
                       key={`${post.id}-image-${index}`} // Ensure unique key for images
                       src={image}
                       alt={`Post ${index + 1}`}
-                      className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-300 cursor-pointer"
+                      onClick={() => handleImageClick(image)} // Handle image click to open modal
                     />
                   ))}
                 </div>
@@ -540,15 +557,20 @@ const Community: React.FC = () => {
                   }`}
                   onClick={() => handleLike(post.id)}
                 >
-                  <FaHeart className="mr-2" /> {post.likes ? post.likes.length : 0} Likes
+                  <FaHeart className="mr-2" /> {post.likes.length} Likes
                 </div>
                 <div
                   className="flex items-center cursor-pointer"
                   onClick={() => toggleComments(post.id)}
                 >
-                  <FaComment className="mr-2" /> {post.comments ? post.comments.length : 0} Comments
+                  <FaComment className="mr-2" /> {post.comments.length} Comments
                 </div>
               </div>
+    
+
+   {/* Image Modal */}
+   <ModalCommunity show={showImageModal} onClose={closeImageModal} imageSrc={selectedImage} />
+
 
               {/* Comments Section */}
               {expandedComments[post.id] && (
