@@ -4,13 +4,15 @@ import { useNavigate } from "react-router-dom";
 import {
   FaUserCircle,
   FaPalette,
-  FaUser,
+  FaUser ,
   FaMapMarkerAlt,
   FaEdit,
   FaHeart,
   FaTrash,
+  FaShoppingCart,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
+import TransactionHistory from '../TransactionHistory'; // Adjust the path as necessary
 
 interface ClientProfileData {
   firstname: string;
@@ -48,109 +50,109 @@ interface WishlistItem {
 }
 
 const ClientProfile: React.FC = () => {
-    const [clientProfile, setClientProfile] = useState<ClientProfileData | null>(null);
-    const [preferences, setPreferences] = useState<ClientPreferences | null>(null);
-    const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string>("");
-    const [activeSection, setActiveSection] = useState<
-      "profile" | "preferences" | "address" | "wishlist"
-    >("profile");
-    const { user } = useAuth();
-    const navigate = useNavigate();
-  
-    useEffect(() => {
-      const fetchProfileAndPreferences = async () => {
-        if (!user) {
-          setError("User not logged in.");
-          setLoading(false);
-          return;
-        }
-    
-        const API_BASE_URL = import.meta.env.VITE_API_URL;
-    
-        try {
-          const [profileResponse, preferencesResponse, wishlistResponse] = await Promise.all([
-            axios.get(`${API_BASE_URL}/client-profile/${user.id}`),
-            axios.get(`${API_BASE_URL}/client-preferences/${user.id}`),
-            axios.get(`${API_BASE_URL}/wishlist/${user.id}`),
-          ]);
-  
-          setClientProfile(profileResponse.data);
-  
-          const preferencesData = preferencesResponse.data;
-          if (preferencesData.preferences === null) {
-            setPreferences(null);
-          } else {
-            setPreferences({
-              ...preferencesData,
-              preferred_art_style: preferencesData.preferred_art_style || [],
-              communication_preferences: preferencesData.communication_preferences || [],
-              project_type: preferencesData.project_type || [],
-            });
-          }
-    
-          // Fetch wishlist items
-          const wishlistIds = wishlistResponse.data;
-          const wishlistItems = await Promise.all(
-            wishlistIds.map(async (artId: string) => {
-              const artResponse = await axios.get(`${API_BASE_URL}/art/${artId}`);
-              return artResponse.data;
-            })
-          );
-          setWishlist(wishlistItems);
-        } catch (err: any) {
-          console.error("Error fetching client data:", err);
-          setError(err.response?.data?.error || "Failed to fetch client data.");
-        } finally {
-          setLoading(false);
-        }
-      };
-  
-      fetchProfileAndPreferences();
-    }, [user]);
-  
-    const handleEditClick = () => {
-      navigate("/edit-client-profile");
-    };
-  
-    const handleArtClick = (artId: string) => {
-      navigate(`/art/${artId}`);
-    };
-  
-    const handleDeleteAllWishlist = async () => {
+  const [clientProfile, setClientProfile] = useState<ClientProfileData | null>(null);
+  const [preferences, setPreferences] = useState<ClientPreferences | null>(null);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [activeSection, setActiveSection] = useState<
+    "profile" | "preferences" | "address" | "wishlist" | "orders"
+  >("profile");
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProfileAndPreferences = async () => {
       if (!user) {
-        alert("Please log in to manage your wishlist.");
+        setError("User  not logged in.");
+        setLoading(false);
         return;
       }
-      
-      if (!window.confirm("Are you sure you want to delete all items from your wishlist?")) return;
-  
+
+      const API_BASE_URL = import.meta.env.VITE_API_URL;
+
       try {
-        await axios.delete(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`);
-        setWishlist([]);
-        alert("Wishlist cleared successfully!");
-      } catch (err) {
-        console.error("Error clearing wishlist:", err);
-        alert("Failed to clear wishlist. Please try again.");
+        const [profileResponse, preferencesResponse, wishlistResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/client-profile/${user.id}`),
+          axios.get(`${API_BASE_URL}/client-preferences/${user.id}`),
+          axios.get(`${API_BASE_URL}/wishlist/${user.id}`),
+        ]);
+
+        setClientProfile(profileResponse.data);
+
+        const preferencesData = preferencesResponse.data;
+        if (preferencesData.preferences === null) {
+          setPreferences(null);
+        } else {
+          setPreferences({
+            ...preferencesData,
+            preferred_art_style: preferencesData.preferred_art_style || [],
+            communication_preferences: preferencesData.communication_preferences || [],
+            project_type: preferencesData.project_type || [],
+          });
+        }
+
+        // Fetch wishlist items
+        const wishlistIds = wishlistResponse.data;
+        const wishlistItems = await Promise.all(
+          wishlistIds.map(async (artId: string) => {
+            const artResponse = await axios.get(`${API_BASE_URL}/art/${artId}`);
+            return artResponse.data;
+          })
+        );
+        setWishlist(wishlistItems);
+      } catch (err: any) {
+        console.error("Error fetching client data:", err);
+        setError(err.response?.data?.error || "Failed to fetch client data.");
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (loading) {
-        return (
-          <div className="flex justify-center items-center h-screen">
-            <div className="text-gray-500 text-lg">Loading client profile...</div>
-          </div>
-        );
-      }
-    
-      if (error) {
-        return (
-          <div className="flex justify-center items-center h-screen">
-            <div className="text-red-500 text-lg">{error}</div>
-          </div>
-        );
-      }
+    fetchProfileAndPreferences();
+  }, [user]);
+
+  const handleEditClick = () => {
+    navigate("/edit-client-profile");
+  };
+
+  const handleArtClick = (artId: string) => {
+    navigate(`/art/${artId}`);
+  };
+
+  const handleDeleteAllWishlist = async () => {
+    if (!user) {
+      alert("Please log in to manage your wishlist.");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete all items from your wishlist?")) return;
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`);
+      setWishlist([]);
+      alert("Wishlist cleared successfully!");
+    } catch (err) {
+      console.error("Error clearing wishlist:", err);
+      alert("Failed to clear wishlist. Please try again.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-gray-500 text-lg">Loading client profile...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-red-500 text-lg">{error}</div>
+      </div>
+    );
+  }
 
   const renderProfile = () => (
     <div className="space-y-4">
@@ -286,11 +288,17 @@ const ClientProfile: React.FC = () => {
     </div>
   );
 
+  const renderOrders = () => (
+    <div className="space-y-4">
+      <TransactionHistory />
+    </div>
+  );
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="flex">
+      <div className="flex flex-col md:flex-row">
         {/* Sidebar Section */}
-        <aside className="w-64 p-4 bg-white shadow-md rounded-lg mr-6">
+        <aside className="w-full md:w-64 p-4 bg-white shadow-md rounded-lg mb-6 md:mb-0 md:mr-6">
           <div className="flex flex-col items-center mb-8">
             <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg mb-2">
               {clientProfile?.profile_image ? (
@@ -319,13 +327,13 @@ const ClientProfile: React.FC = () => {
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >
-              <FaUser /> <span>Profile</span>
+              <FaUser  /> <span>Profile</span>
             </button>
             <button
               onClick={() => setActiveSection("preferences")}
               className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
                 activeSection === "preferences"
-                  ? "bg-blue-600 text-white font-semibold"
+                  ? "bg-blue- 600 text-white font-semibold"
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >
@@ -340,6 +348,16 @@ const ClientProfile: React.FC = () => {
               }`}
             >
               <FaMapMarkerAlt /> <span>Address & Contact</span>
+            </button>
+            <button
+              onClick={() => setActiveSection("orders")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "orders"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaShoppingCart /> <span>Orders</span>
             </button>
             <button
               onClick={() => setActiveSection("wishlist")}
@@ -362,6 +380,8 @@ const ClientProfile: React.FC = () => {
             ? renderPreferences()
             : activeSection === "address"
             ? renderAddress()
+            : activeSection === "orders"
+            ? renderOrders()
             : renderWishlist()}
         </main>
       </div>

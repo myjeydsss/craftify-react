@@ -187,7 +187,8 @@ const EditClientProfile: React.FC = () => {
       <form onSubmit={handleSave} className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-3xl font-semibold text-gray-800">My Profile</h2>
+        <h2 className="text-3xl font-semibold text-[#5C0601] mb-4">My Profile</h2>
+        <hr className="border-gray-300 mb-6" />
         </div>
 
         {/* Profile Picture Upload Section */}
@@ -454,17 +455,17 @@ const EditClientProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="text-center">
+         {/* Save Button */}
+        <div className="text-center flex flex-col md:flex-row md:justify-center md:space-x-4">
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-200"
+            className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-200 mb-2 md:mb-0"
           >
             Save Changes
           </button>
           <Link
             to="/client-profile"
-            className="px-6 py-2 ml-4 bg-gray-500 text-white rounded-lg shadow hover:bg-gray-600 transition duration-200"
+            className="w-full md:w-auto px-6 py-2 bg-gray-500 text-white rounded-lg shadow hover:bg-gray-600 transition duration-200"
           >
             Cancel
           </Link>

@@ -136,16 +136,17 @@ const Cart: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen px-6 py-16">
+    <div className="min-h-screen px-4 py-16">
       <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
-      <h1 className="text-4xl font-bold text-[#5C0601] mb-8">Your Art Collection</h1>        <div className="space-y-6">
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-8">Your Art Collection</h1>
+        <div className="space-y-6">
           {cartItems.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between border-b pb-4"
+              className="flex flex-col md:flex-row items-center justify-between border-b pb-4"
             >
               {/* Item Details */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 w-full">
                 <input
                   type="checkbox"
                   checked={selectedItems.some(
@@ -160,7 +161,7 @@ const Cart: React.FC = () => {
                   className="w-24 h-24 object-cover rounded-lg shadow-md cursor-pointer"
                   onClick={() => handleViewArtDetails(item.art_id)}
                 />
-                <div>
+                <div className="flex-1">
                   <h2 className="text-lg font-bold text-gray-900">
                     {item.arts.title}
                   </h2>
@@ -172,7 +173,7 @@ const Cart: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-6 mt-4 md:mt-0">
                 <p className="text-lg font-medium text-gray-900">
                   ₱
                   {(

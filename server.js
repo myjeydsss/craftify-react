@@ -680,6 +680,7 @@ app.put("/api/arts/:artId", async (req, res) => {
     title,
     description,
     price,
+    quantity,
     location,
     art_style,
     medium,
@@ -694,6 +695,7 @@ app.put("/api/arts/:artId", async (req, res) => {
         title,
         description,
         price: price ? parseFloat(price) : null,
+        quantity: quantity ? parseFloat(quantity) : null,
         location,
         art_style,
         medium,
@@ -800,6 +802,7 @@ app.get("/api/tags", async (req, res) => {
     title,
     description,
     price,
+    quantity,
     location,
     art_style,
     medium,
@@ -867,6 +870,7 @@ app.get("/api/tags", async (req, res) => {
         title,
         description,
         price: parseFloat(price),
+        quantity,      
         location,
         art_style,
         medium,
@@ -1449,6 +1453,11 @@ app.get('/arts', async (req, res) => {
         title,
         description,
         price,
+        quantity,
+        art_style,
+        medium,
+        subject,
+        created_at,
         image_url,
         artist (
           firstname,
@@ -2783,8 +2792,75 @@ app.get('/api/proposals/:userId', async (req, res) => {
   }
 };
 
+// Endpoint to accept a proposal and create a project (artist to client)
+app.post('/artist/proposals/accept', async (req, res) => {
+  const { proposal } = req.body;
+
+  try {
+    // nsert into the `projects` table and get the new project ID
+    const { data: newProject, error: projectError } = await supabase
+      .from("projects")
+      .insert([
+        {
+          proposal_id: proposal.proposal_id,
+          project_name: proposal.project_name,
+          description: proposal.project_description,
+          client_id: proposal.sender_id,
+          artist_id: proposal.recipient_id,
+          due_date: proposal.due_date,
+          status: "To Do", // Default value
+          priority: "Normal", // Default value
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ])
+      .select("*")
+      .single();
+
+    if (projectError) {
+      throw new Error(`Error creating project: ${projectError.message}`);
+    }
+
+    //  Update the `proposals` table with the `project_id` and `updated_at`
+    const { error: proposalError } = await supabase
+      .from("proposals")
+      .update({
+        status: "Accepted",
+        project_id: newProject.project_id,
+        updated_at: new Date(),
+      })
+      .eq("proposal_id", proposal.proposal_id);
+
+    if (proposalError) {
+      throw new Error(`Error updating proposal: ${proposalError.message}`);
+    }
+
+    //  Create a notification for the recipient
+    const notificationMessage = `Your proposal for "${proposal.project_name}" has been accepted and a project has been created.`;
+    const { error: notificationError } = await supabase.from("notifications").insert([
+      {
+        user_id: proposal.sender_id,  
+        type: "Proposal Accepted",
+        message: notificationMessage,
+        is_read: false,  
+        created_at: new Date().toISOString(),
+      }
+    ]);
+
+    if (notificationError) {
+      console.error("Error creating notification:", notificationError);
+      return res.status(500).json({ error: "Failed to create notification." });
+    }
+
+    res.status(200).json({ newProject });
+  } catch (err) {
+    console.error("Error accepting proposal:", err);
+    res.status(500).json({ error: 'Failed to accept proposal.' });
+  }
+});
+
 // Endpoint to accept a proposal and create a project
-app.post('/api/proposals/accept', async (req, res) => {
+app.post('/client/proposals/accept', async (req, res) => {
   const { proposal } = req.body;
 
   try {

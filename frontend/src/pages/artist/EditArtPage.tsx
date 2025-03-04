@@ -16,6 +16,7 @@ interface Art {
   title: string;
   description: string;
   price: number | null;
+  quantity: number | null;
   location: string;
   image_url: string;
   art_style: string;
@@ -25,9 +26,9 @@ interface Art {
 }
 
 // Constants for dropdown options
-const ART_STYLES = ["Abstract", "Realism", "Impressionism", "Pop Art", "Cubism"];
-const MEDIUMS = ["Oil", "Canvas", "Acrylic", "Watercolor", "Digital", "Charcoal"];
-const SUBJECTS = ["Landscape", "Portrait", "Still Life", "Animals", "Fantasy"];
+const ART_STYLES = ["Abstract", "Realism", "Impressionism", "Pop Art", "Cubism", "Others..."];
+const MEDIUMS = ["Oil", "Canvas", "Acrylic", "Watercolor", "Wood", "Paper", "Digital", "Charcoal", "Others..."];
+const SUBJECTS = ["Nature", "Landscape", "Portrait", "Still Life", "Animals", "Fantasy", "Others..."];
 
 const EditArtPage: React.FC = () => {
   const { artId } = useParams<{ artId: string }>();
@@ -55,6 +56,7 @@ const EditArtPage: React.FC = () => {
         setValue("title", artData.title);
         setValue("description", artData.description);
         setValue("price", artData.price);
+        setValue("quantity", artData.quantity);
         setValue("location", artData.location);
         setValue("art_style", artData.art_style);
         setValue("medium", artData.medium);
@@ -101,6 +103,7 @@ const EditArtPage: React.FC = () => {
         title: data.title,
         description: data.description,
         price: data.price,
+        quantity: data.quantity,
         location: data.location,
         art_style: data.art_style,
         medium: data.medium,
@@ -185,13 +188,16 @@ const EditArtPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-semibold mb-8 text-center text-gray-800">Edit Art</h1>
+    <div className="container mx-auto px-4 py-16">
+      {/* Header Section */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Uploaded Arts</h1>
+        <hr className="border-gray-300 mb-6" />
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-lg mx-auto">
         {/* Display Current Art Image */}
         <div className="flex flex-col mb-4">
-          <label className="text-gray-700 font-medium mb-2">Current Art Image</label>
           {imagePreview && (
             <div>
               <img
@@ -246,6 +252,21 @@ const EditArtPage: React.FC = () => {
             {...register("price", { required: true })}
             className="border border-gray-300 rounded-lg p-3"
             placeholder="Enter price (e.g., 10000)"
+            required
+          />
+        </div>
+
+ {/* Quantity */}
+ <div className="flex flex-col mb-4">
+          <label htmlFor="price" className="text-gray-700 font-medium mb-2">
+            Quantity
+          </label>
+          <input
+            id="quantity"
+            type="number"
+            {...register("quantity", { required: true })}
+            className="border border-gray-300 rounded-lg p-3"
+            placeholder="Enter Quantity"
             required
           />
         </div>

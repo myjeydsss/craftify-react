@@ -11,6 +11,7 @@ interface Art {
   title: string;
   description: string;
   price: number | null;
+  quantity: number | null;
   location: string;
   image_url: string;
   art_style: string;
@@ -112,6 +113,9 @@ const MyArts: React.FC = () => {
                 {art.price ? `₱${art.price.toLocaleString ()}` : "Price not available"}
               </p>
               <p className="text-sm text-gray-700 mt-2">
+                <strong>Quantity:</strong> {art.quantity}
+              </p>
+              <p className="text-sm text-gray-700 mt-2">
                 <strong>Art Style:</strong> {art.art_style}
               </p>
               <p className="text-sm text-gray-700">
@@ -189,6 +193,9 @@ const MyArts: React.FC = () => {
                 <p className="text-gray-800">
                   <strong>Price:</strong>{" "}
                   {selectedArt.price ? `₱${selectedArt.price.toLocaleString()}` : "N/A"}
+                </p>
+                <p className="text-gray-800">
+                  <strong>Quantity:</strong> {selectedArt.quantity}
                 </p>
                 <p className="text-gray-800">
                   <strong>Art Style:</strong> {selectedArt.art_style}

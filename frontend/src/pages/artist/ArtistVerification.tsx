@@ -63,9 +63,14 @@ const ArtistVerification: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-3xl font-semibold mb-8 text-center text-gray-800">Get Verified</h1>
-
+    <div className="container mx-auto px-4 py-16">
+        
+    {/* Header Section */}
+    <div className="text-center mb-8">
+      <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Get Verified</h1>
+      <hr className="border-gray-300 mb-6" />
+    </div>
+    
       {/* Explanation about verification */}
       <div className="bg-white shadow-lg rounded-lg p-6 mb-8 max-w-xl mx-auto">
         <h2 className="text-2xl font-bold mb-4">Why Get Verified?</h2>
