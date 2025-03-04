@@ -71,11 +71,10 @@ const TransactionHistory: React.FC = () => {
     const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
 
     return (
-        <div className="min-h-screen px-6 py-20">
-            <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
-                <h1 className="text-4xl font-bold text-[#5C0601]  mb-8">Transaction History</h1>
+        <div className="min-h-screen px-4 py-20">
+            <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-[#5C0601] mb-6">Transaction History</h1>
                 <hr className="border-gray-300 mb-6" />
-
 
                 {currentOrders.length > 0 ? (
                     <div className="space-y-4">
@@ -96,26 +95,26 @@ const TransactionHistory: React.FC = () => {
                     <p className="text-gray-700">No orders found.</p>
                 )}
 
-              {/* Pagination Controls */}
-<div className="flex justify-between items-center mt-6">
-    <button
-        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-        disabled={currentPage === 1}
-        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50"
-    >
-        Previous
-    </button>
-    <span className="text-gray-700">
-        Page {currentPage} of {totalPages}
-    </span>
-    <button
-        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-        disabled={currentPage === totalPages}
-        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50"
-    >
-        Next
-    </button>
-</div>
+                {/* Pagination Controls */}
+                <div className="flex flex-col md:flex-row justify-between items-center mt-6">
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50 mb-2 md:mb-0"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-gray-700">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
         </div>
     );

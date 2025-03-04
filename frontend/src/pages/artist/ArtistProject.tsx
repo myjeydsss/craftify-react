@@ -14,8 +14,8 @@ interface Project {
   status: string;
   priority: string;
   proposal_id: string;
-  budget?: string; // Optional budget field
-  senderProfile?: any; // Optional sender profile field
+  budget?: string; 
+  senderProfile?: any; 
 }
 
 interface Proposal {
@@ -27,7 +27,7 @@ interface Proposal {
   sender_id: string;
   recipient_id: string;
   status: string;
-  senderProfile?: any; // Improve later by defining Profile interface
+  senderProfile?: any; 
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL; // Ensure API URL is correctly set
@@ -100,7 +100,7 @@ const ArtistProject: React.FC = () => {
 
    const onAcceptProposal = async (proposal: Proposal) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/proposals/accept`, { proposal });
+      const response = await axios.post(`${API_BASE_URL}/artist/proposals/accept`, { proposal });
       const newProject = response.data.newProject;
 
       // Update frontend state
@@ -273,7 +273,7 @@ const ArtistProject: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Completed Projects</p>
               <p className="text-2xl font-bold">
-                {projects.filter(project => project.status === "Confirmed").length}
+                {projects.filter(project => project.status === "Done").length}
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
@@ -313,11 +313,14 @@ const ArtistProject: React.FC = () => {
 {/* Board View */}
 {activeView === "Board" && (
   <div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {["To Do", "In Progress", "Done", "Failed"].map((status) => (
-        <div key={status} className="bg-white p-4 rounded-md shadow-md">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">{status}</h3>
-          <div className="space-y-4">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {["To Do", "In Progress", "Artist Completed the Project", "Artist Unable to Complete"].map((status) => (
+                <div key={status} className="bg-white p-4 rounded-md shadow-md">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                        {status === "Artist Unable to Complete" ? "Failed" :
+                         status === "Artist Completed the Project" ? "Done" : status} {/* Change label here */}
+                    </h3>
+                    <div className="space-y-4">
             {projects
               .filter((project) => project.status === status)
               .map((project) => (
@@ -360,8 +363,8 @@ const ArtistProject: React.FC = () => {
                     >
                       <option value="To Do">To Do</option>
                       <option value="In Progress">In Progress</option>
-                      <option value="Done">Done</option>
-                      <option value="Failed">Failed</option>
+                      <option value="Artist Completed the Project">Done</option>
+                      <option value="Artist Unable to Complete">Failed</option>
                     </select>
                     {/* Priority Dropdown */}
                     <select

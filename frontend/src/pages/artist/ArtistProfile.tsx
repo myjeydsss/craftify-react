@@ -12,6 +12,7 @@ import {
   FaHeart,
   FaTrash,
   FaShoppingCart,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 import Swal from "sweetalert2";
@@ -328,7 +329,6 @@ const ArtistProfile: React.FC = () => {
 
   const renderOrders = () => (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-700">Your Orders</h2>
       <TransactionHistory />
     </div>
   );
@@ -354,28 +354,45 @@ const ArtistProfile: React.FC = () => {
             </h2>
             <p className="text-sm text-gray-500">{artistProfile?.email}</p>
 
-            {/* Verification Button */}
-            <div className="mt-4">
-              {artistProfile?.verification_id ? (
-                artistProfile?.status === "pending" ? (
-                  <div className="flex items-center justify-center gap-2 text-yellow-600 font-medium">
-                    <FaTimesCircle className="text-yellow-600" /> Verification Pending
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
-                    <FaCheckCircle /> Verified Artist
-                  </div>
-                )
-              ) : (
-                <button
-                  onClick={handleVerificationClick}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
-                >
-                  <FaTimesCircle className="text-blue-600" /> Get Verified Now
-                </button>
-              )}
-            </div>
+
+{/* Verification Button */}
+<div className="mt-4">
+  {artistProfile?.verification_id ? (
+    artistProfile?.status === "pending" ? (
+      <div className="flex items-center justify-center gap-2 text-yellow-600 font-semibold">
+        <FaTimesCircle className="text-yellow-600" /> Verification Pending
+      </div>
+    ) : artistProfile?.status === "rejected" ? ( 
+      <div className="flex items-center justify-center gap-2">
+        
+        <button
+          onClick={handleVerificationClick}
+          className="flex items-center justify-center font-semibold gap-2 text-red-600 hover:bg-red-50 transition"
+        >
+          <div className="text-red-600" /> Verification Rejected
+        </button>
+        <div className="relative group">
+          <FaInfoCircle className="text-red-600 cursor-pointer" />
+          <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-48 bg-gray-800 text-white text-sm rounded-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Credentials invalid. Please review your information and try submitting again.
           </div>
+        </div>
+      </div>
+    ) : (
+      <div className="flex items-center justify-center gap-2 text-green-600 font-semibold">
+        <FaCheckCircle /> Verified Artist
+      </div>
+    )
+  ) : (
+    <button
+      onClick={handleVerificationClick}
+      className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
+    >
+      <FaTimesCircle className="text-blue-600" /> Get Verified Now
+    </button>
+  )}
+</div>
+</div>
 
           {/* Navigation Links */}
           <nav className="space-y-4">

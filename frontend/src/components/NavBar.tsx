@@ -124,7 +124,7 @@ const NavBar: React.FC = () => {
     if (role === "Artist") {
       return (
         <div className="hidden md:flex md:space-x-4">
-          <Link to="/artist-dashboard" className={`${isActive("/artist-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
+          <Link to="/artist-dashboard" className={`${isActive("/artist-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
           <Link to="/artist-track-project" className={`${isActive("/artist-track-project") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           <Link to="/artist-arts" className={`${isActive("/artist-arts") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Arts</Link>
           {commonLinks.map(link => (
@@ -137,7 +137,7 @@ const NavBar: React.FC = () => {
     if (role === "Client") {
       return (
         <div className="hidden md:flex md:space-x-4">
-          <Link to="/client-dashboard" className={`${isActive("/client-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Home</Link>
+          <Link to="/client-dashboard" className={`${isActive("/client-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
           <Link to="/client-project-page" className={`${isActive("/client-project-page") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           {commonLinks.map(link => (
             <Link key={link.to} to={link.to} className={`${isActive(link.to) ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>{link.label}</Link>
@@ -225,14 +225,13 @@ const NavBar: React.FC = () => {
   };
 
   return (
+    <>
     <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "bg-white/70 backdrop-blur-md shadow-lg" : "bg-white shadow-lg"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0 hidden md:block">
-            <Link to="/">
               <img src={logo} alt="Logo" className="h-10" />
-            </Link>
           </div>
 
           {/* Hamburger Icon for Mobile */}
@@ -240,14 +239,6 @@ const NavBar: React.FC = () => {
             <button onClick={toggleMobileMenu} className="text-black focus:outline-none">
               {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
             </button>
-          </div>
-
-          {/* Off-canvas Sidebar */}
-          <div className={`fixed inset-0 z-40 bg-black bg-opacity-50 transition-opacity ${mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={toggleMobileMenu}></div>
-          <div className={`fixed top-0 left-0 z-50 w-64 h-full bg-white shadow-lg transform transition-transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="p-4">
-              {renderMobileNavLinks()}
-            </div>
           </div>
 
           {/* Desktop Navigation Links */}
@@ -363,6 +354,17 @@ const NavBar: React.FC = () => {
         </div>
       </div>
     </nav>
+
+    {mobileMenuOpen && (
+      <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={toggleMobileMenu} />
+    )}
+    <div className={`fixed top-0 left-0 z-50 w-64 h-full bg-white shadow-lg transform transition-transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="p-4">
+        {renderMobileNavLinks()}
+      </div>
+    </div>
+
+    </>
   );
 };
 
