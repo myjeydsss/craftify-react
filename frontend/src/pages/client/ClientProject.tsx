@@ -87,7 +87,7 @@ const ClientProject: React.FC = () => {
 
   const onAcceptProposal = async (proposal: Proposal) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/api/proposals/accept`, { proposal });
+        const response = await axios.post(`${API_BASE_URL}/client/proposals/accept`, { proposal });
         const newProject = response.data.newProject;
 
         setProposals((prev) => prev.filter((p) => p.proposal_id !== proposal.proposal_id));
@@ -155,23 +155,23 @@ const onRejectProposal = async (proposal: Proposal) => {
   }
 };
 
-  const handleConfirm = async (project: Project) => {
+  const handleConfirm = async (project: Project, status: "Done" | "Failed") => {
     try {
         const response = await axios.post(`${API_BASE_URL}/api/projects/update-status`, {
             project_id: project.project_id,
-            status: "Confirmed",
+            status: status, // Use the passed status
         });
 
         if (response.data.success) {
             setProjects((prev) =>
-                prev.map((p) => (p.project_id === project.project_id ? { ...p, status: "Confirmed" } : p))
+                prev.map((p) => (p.project_id === project.project_id ? { ...p, status: status } : p))
             );
 
             // Show success toast
             Swal.fire({
                 icon: 'success',
-                title: 'Project Confirmed!',
-                text: 'The project status has been updated to confirmed.',
+                title: 'Project Status Updated!',
+                text: `The project status has been updated to ${status}.`,
                 toast: true,
                 position: 'top-end',
                 showConfirmButton: false,
@@ -180,11 +180,11 @@ const onRejectProposal = async (proposal: Proposal) => {
             });
         }
     } catch (err) {
-        console.error("Error confirming project:", err);
+        console.error("Error updating project status:", err);
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Failed to confirm project.',
+            text: 'Failed to update project status.',
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
@@ -266,7 +266,7 @@ const onRejectProposal = async (proposal: Proposal) => {
                     <div>
                       <p className="text-sm text-gray-500">Completed Projects</p>
                       <p className="text-2xl font-bold">
-                        {projects.filter(project => project.status === "Confirmed").length}
+                        {projects.filter(project => project.status === "Done").length}
                       </p>
                     </div>
                     <div className="p-3 bg-green-100 rounded-lg">
@@ -304,63 +304,73 @@ const onRejectProposal = async (proposal: Proposal) => {
 
 
     {/* Board View */}
-{activeView === "Board" && (
-  <div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {["To Do", "In Progress", "Done", "Failed"].map((status) => (
-        <div key={status} className="bg-white p-4 rounded-md shadow-md">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">{status}</h3>
-          <div className="space-y-4">
-            {projects
-              .filter((project) => project.status === status)
-              .map((project) => (
-                <div
-                  key={project.project_id}
-                  className="p-3 bg-gray-50 border-l-4 rounded-lg shadow-sm"
-                  style={{
-                    borderColor:
-                      project.priority === "High"
-                        ? "red"
-                        : project.priority === "Normal"
-                        ? "blue"
-                        : "green",
-                  }}
-                >
-                  <h4 className="font-semibold text-gray-800">{project.project_name}</h4>
-                  <p className="text-sm text-gray-500">
-                    Due: {project.due_date || "No due date"}
-                  </p>
-                  <p className="text-sm font-medium">
-                    Priority:{" "}
-                    <span
-                      className={`px-2 py-1 rounded-md text-white ${
-                        project.priority === "High"
-                          ? "bg-red-500"
-                          : project.priority === "Normal"
-                          ? "bg-blue-500"
-                          : "bg-green-500"
-                      }`}
-                    >
-                      {project.priority}
-                    </span>
-                  </p>
-                  <div className="flex space-x-2 mt-2">
-                    {status === "Done" || status === "Failed" ? (
-                      <button
-                        onClick={() => handleConfirm(project)}  
-                        className="bg-green-500 text-white px-4 py-1 rounded-md hover:bg-green-600"
-                      >
-                        Confirm
-                      </button>
-                    ) : null}
-                  </div>
+    {activeView === "Board" && (
+    <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {["To Do", "In Progress", "Artist Completed the Project", "Artist Unable to Complete"].map((status) => (
+                <div key={status} className="bg-white p-4 rounded-md shadow-md">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                        {status === "Artist Unable to Complete" ? "Failed" :
+                         status === "Artist Completed the Project" ? "Done" : status} {/* Change label here */}
+                    </h3>
+                    <div className="space-y-4">
+                        {projects
+                            .filter((project) => project.status === status)
+                            .map((project) => (
+                                <div
+                                    key={project.project_id}
+                                    className="p-3 bg-gray-50 border-l-4 rounded-lg shadow-sm"
+                                    style={{
+                                        borderColor:
+                                            project.priority === "High"
+                                                ? "red"
+                                                : project.priority === "Normal"
+                                                ? "blue"
+                                                : "green",
+                                    }}
+                                >
+                                    <h4 className="font-semibold text-gray-800">{project.project_name}</h4>
+                                    <p className="text-sm text-gray-500">
+                                        Due: {project.due_date || "No due date"}
+                                    </p>
+                                    <p className="text-sm font-medium">
+                                        Priority:{" "}
+                                        <span
+                                            className={`px-2 py-1 rounded-md text-white ${
+                                                project.priority === "High"
+                                                    ? "bg-red-500"
+                                                    : project.priority === "Normal"
+                                                    ? "bg-blue-500"
+                                                    : "bg-green-500"
+                                            }`}
+                                        >
+                                            {project.priority}
+                                        </span>
+                                    </p>
+                                    <div className="flex space-x-2 mt-2">
+                                        {status === "Artist Completed the Project" ? (
+                                            <button
+                                                onClick={() => handleConfirm(project, "Done")}  
+                                                className="bg-green-500 text-white px-4 py-1 rounded-md hover:bg-green-600"
+                                            >
+                                                Confirm as Done
+                                            </button>
+                                        ) : status === "Artist Unable to Complete" ? (
+                                            <button
+                                                onClick={() => handleConfirm(project, "Failed")}  
+                                                className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600"
+                                            >
+                                                Confirm as Failed
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            ))}
+                    </div>
                 </div>
-              ))}
-          </div>
+            ))}
         </div>
-      ))}
     </div>
-  </div>
 )}
         {/* List View */}
 {activeView === "List" && (

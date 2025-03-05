@@ -3,7 +3,7 @@ import React from 'react';
 const TermsAndConditions: React.FC = () => {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-3xl font-semibold mb-8 text-center text-gray-800">Terms and Conditions</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center text-[#5C0601]">Terms and Conditions</h1>
       <div className="bg-white shadow-lg rounded-lg p-6 mb-8 max-w-3xl mx-auto">
         <h2 className="text-xl font-semibold mb-4">Introduction</h2>
         <p className="text-gray-700 mb-6">
@@ -20,19 +20,19 @@ const TermsAndConditions: React.FC = () => {
           Unless otherwise stated, we or our licensors own the intellectual property rights for all material on this website. All intellectual property rights are reserved. You may view and/or print pages from this website for your own personal use subject to restrictions set in these terms and conditions.
         </p>
 
-        <h2 className="text-xl font-semibold mb-4">User Content</h2>
+        <h2 className="text-xl font-semibold mb-4">User  Content</h2>
         <p className="text-gray-700 mb-6">
           In these terms and conditions, "your user content" means material (including without limitation text, images, audio material, video material, and audio-visual material) that you submit to this website, for whatever purpose. You grant to us a worldwide, irrevocable, non-exclusive, royalty-free license to use, reproduce, adapt, publish, translate, and distribute your user content in any existing or future media.
         </p>
 
         <h2 className="text-xl font-semibold mb-4">Limitations of Liability</h2>
         <p className="text-gray-700 mb-6">
-          We will not be liable to you (whether under the law of contact, the law of torts, or otherwise) in relation to the contents of, or use of, or otherwise in connection with, this website:
-          <ul className="list-disc list-inside mt-2">
-            <li>for any indirect, special, or consequential loss; or</li>
-            <li>for any business losses, loss of revenue, income, profits, or anticipated savings, loss of contracts or business relationships, loss of reputation or goodwill, or loss or corruption of information or data.</li>
-          </ul>
+          We will not be liable to you (whether under the law of contract, the law of torts, or otherwise) in relation to the contents of, or use of, or otherwise in connection with, this website:
         </p>
+        <ul className="list-disc list-inside mb-6">
+          <li>For any indirect, special, or consequential loss; or</li>
+          <li>For any business losses, loss of revenue, income, profits, or anticipated savings, loss of contracts or business relationships, loss of reputation or goodwill, or loss or corruption of information or data.</li>
+        </ul>
 
         <h2 className="text-xl font-semibold mb-4">Indemnity</h2>
         <p className="text-gray-700 mb-6">
@@ -41,8 +41,15 @@ const TermsAndConditions: React.FC = () => {
 
         <h2 className="text-xl font-semibold mb-4">Breaches of These Terms and Conditions</h2>
         <p className="text-gray-700 mb-6">
-          Without prejudice to our other rights under these terms and conditions, if you breach these terms and conditions in any way, we may take such action as we deem appropriate to deal with the breach, including suspending your access to the website, prohibiting you from accessing the website, blocking computers using your IP address from accessing the website, contacting your internet service provider to request that they block your access to the website, and/or bringing court proceedings against you.
+          Without prejudice to our other rights under these terms and conditions, if you breach these terms and conditions in any way, we may take such action as we deem appropriate to deal with the breach, including:
         </p>
+        <ul className="list-disc list-inside mb-6">
+          <li>Suspending your access to the website;</li>
+          <li>Prohibiting you from accessing the website;</li>
+          <li>Blocking computers using your IP address from accessing the website;</li>
+          <li>Contacting your internet service provider to request that they block your access to the website;</li>
+          <li>Bringing court proceedings against you.</li>
+        </ul>
 
         <h2 className="text-xl font-semibold mb-4">Variation</h2>
         <p className="text-gray-700 mb-6">

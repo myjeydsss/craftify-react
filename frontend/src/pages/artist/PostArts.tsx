@@ -69,10 +69,18 @@ const PostArts: React.FC = () => {
         return;
       }
 
+      const quantity = parseFloat(data.quantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        alert("Please enter a valid quantity.");
+        setUploading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("title", data.title);
       formData.append("description", data.description);
       formData.append("price", price.toFixed(2)); // Ensure the price is formatted correctly
+      formData.append("quantity", quantity.toFixed(2)); // Ensure the quantity is formatted correctly
       formData.append("location", data.location);
       formData.append("art_style", data.art_style);
       formData.append("medium", data.medium);
@@ -86,7 +94,6 @@ const PostArts: React.FC = () => {
       const response = await axios.post(`${API_BASE_URL}/api/upload-art`, formData);
 
       if (response.status === 201) {
-        alert("Art posted successfully!");
         reset();
         setImageFile(null);
         setImagePreview(null);
@@ -184,7 +191,22 @@ const PostArts: React.FC = () => {
             type="number"
             {...register("price", { required: true })}
             className="border border-gray-300 rounded-lg p-3"
-            placeholder="Enter price (e.g., 10000)"
+            placeholder="Enter Price (e.g., 10000)"
+            required
+          />
+        </div>
+
+           {/* Quantity */}
+        <div className="flex flex-col mb-4">
+          <label htmlFor="quantity" className="text-gray-700 font-medium mb-2">
+          Quantity
+          </label>
+          <input
+            id="quantity"
+            type="number"
+            {...register("quantity", { required: true })}
+            className="border border-gray-300 rounded-lg p-3"
+            placeholder="Enter Quantity"
             required
           />
         </div>
@@ -219,7 +241,9 @@ const PostArts: React.FC = () => {
             <option value="Abstract">Abstract</option>
             <option value="Realism">Realism</option>
             <option value="Impressionism">Impressionism</option>
+            <option value="Pop Art">Pop Art</option>
             <option value="Cubism">Cubism</option>
+            <option value="Others">Others...</option>
           </select>
         </div>
 
@@ -235,10 +259,15 @@ const PostArts: React.FC = () => {
             required
           >
             <option value="">Select medium</option>
+            <option value="Oil">Oil</option>
             <option value="Canvas">Canvas</option>
+            <option value="Acrylic">Acrylic</option>
+            <option value="Watercolor">Watercolor</option>
             <option value="Wood">Wood</option>
             <option value="Paper">Paper</option>
             <option value="Digital">Digital</option>
+            <option value="Charcoal">Charcoal</option>
+            <option value="Others">Others...</option>
           </select>
         </div>
 
@@ -255,11 +284,16 @@ const PostArts: React.FC = () => {
           >
             <option value="">Select subject</option>
             <option value="Nature">Nature</option>
+            <option value="LandScape">LandScape</option>
             <option value="Portrait">Portrait</option>
+            <option value="Still Life">Still Life</option>
             <option value="Animals">Animals</option>
             <option value="Fantasy">Fantasy</option>
+            <option value="Others">Others...</option>
           </select>
         </div>
+
+
 
         {/* Tags */}
         <div className="flex flex-col mb-4">

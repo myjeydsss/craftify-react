@@ -214,6 +214,18 @@ const Register: React.FC = () => {
             </div>
           </div>
 
+   {/* Terms and Privacy Policy */}
+   <div className="mt-4 text-center text-sm">
+          By clicking Creat Account, you are agreeing to the{" "}
+          <Link to="/terms-and-conditions" className="font-semibold text-red-500 hover:underline">
+            Terms of Use
+          </Link>{" "}
+          including the arbitration clause and you are acknowledging the{" "}
+          <Link to="/privacy-policy" className="font-semibold text-red-500 hover:underline">
+            Privacy Policy
+          </Link>.
+        </div>  
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -229,6 +241,7 @@ const Register: React.FC = () => {
             )}
           </button>
         </form>
+
 
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}

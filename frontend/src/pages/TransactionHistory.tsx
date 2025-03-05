@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthProvider";
+import ClipLoader from "react-spinners/ClipLoader";
 
 interface Order {
     id: string;
@@ -16,11 +17,14 @@ const statusColors: Record<string, string> = {
     Canceled: "bg-red-200 text-red-700",
 };
 
+const ITEMS_PER_PAGE = 5; // Number of items to display per page
+
 const TransactionHistory: React.FC = () => {
     const { user } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState<number>(1);
 
     const fetchOrders = async () => {
         if (!user) {
@@ -46,13 +50,11 @@ const TransactionHistory: React.FC = () => {
         fetchOrders();
     }, [user]);
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <div className="text-gray-500 text-lg">Loading order history...</div>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="flex justify-center items-center h-screen bg-gray-50">
+          <ClipLoader color="#3498db" loading={loading} size={80} />
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>);  
 
     if (error) {
         return (
@@ -62,41 +64,57 @@ const TransactionHistory: React.FC = () => {
         );
     }
 
-    return (
-        <div className="min-h-screen bg-gray-50 px-6 py-16">
-            <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
-                <h1 className="text-4xl font-bold text-gray-900 mb-8">Transaction History</h1>
+    // Calculate the current orders to display
+    const indexOfLastOrder = currentPage * ITEMS_PER_PAGE;
+    const indexOfFirstOrder = indexOfLastOrder - ITEMS_PER_PAGE;
+    const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+    const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
 
-                {orders.length > 0 ? (
-                    <div className="overflow-y-auto h-96 border border-gray-300 rounded-md">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="bg-gray-100 text-left text-gray-600">
-                                    <th className="p-4">Date</th>
-                                    <th className="p-4">Description</th>
-                                    <th className="p-4">Amount</th>
-                                    <th className="p-4">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {orders.map((order) => (
-                                    <tr key={order.id} className="border-t hover:bg-gray-50 transition duration-200">
-                                        <td className="p-4">{new Date(order.date).toLocaleDateString()}</td>
-                                        <td className="p-4">{order.description}</td>
-                                        <td className="p-4">₱{order.amount.toFixed(2)}</td>
-                                        <td className="p-4">
-                                            <span className={`px-3 py-1 rounded-full text-sm ${statusColors[order.status] || "bg-gray-200 text-gray-700"}`}>
-                                                {order.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+    return (
+        <div className="min-h-screen px-4 py-20">
+            <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-[#5C0601] mb-6">Transaction History</h1>
+                <hr className="border-gray-300 mb-6" />
+
+                {currentOrders.length > 0 ? (
+                    <div className="space-y-4">
+                        {currentOrders.map((order) => (
+                            <div key={order.id} className="border rounded-lg p-4 bg-white shadow hover:shadow-md transition">
+                                <div className="flex justify-between">
+                                    <span className="font-semibold">{new Date(order.date).toLocaleDateString()}</span>
+                                    <span className={`px-2 py-1 rounded-full text-sm ${statusColors[order.status] || "bg-gray-200 text-gray-700"}`}>
+                                        {order.status}
+                                    </span>
+                                </div>
+                                <p className="mt-2">{order.description}</p>
+                                <p className="mt-2 font-bold">₱{order.amount.toFixed(2)}</p>
+                            </div>
+                        ))}
                     </div>
                 ) : (
                     <p className="text-gray-700">No orders found.</p>
                 )}
+
+                {/* Pagination Controls */}
+                <div className="flex flex-col md:flex-row justify-between items-center mt-6">
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50 mb-2 md:mb-0"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-gray-700">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
         </div>
     );

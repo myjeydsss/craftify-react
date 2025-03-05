@@ -11,9 +11,13 @@ import {
   FaTimesCircle,
   FaHeart,
   FaTrash,
+  FaShoppingCart,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 import Swal from "sweetalert2";
+import ClipLoader from "react-spinners/ClipLoader";
+import TransactionHistory from '../TransactionHistory'; // Adjust the path as necessary
 
 interface ArtistProfileData {
   firstname: string;
@@ -65,7 +69,7 @@ const ArtistProfile: React.FC = () => {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address" | "wishlist">("profile");
+  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address" | "orders" | "wishlist">("profile");
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -177,13 +181,12 @@ const ArtistProfile: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-gray-500 text-lg">Loading artist profile...</div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex justify-center items-center h-screen bg-gray-50">
+      <ClipLoader color="#3498db" loading={loading} size={80} />
+      <p className="mt-4 text-gray-600">Loading...</p>
+    </div>);  
+  
 
   if (error) {
     return (
@@ -324,10 +327,16 @@ const ArtistProfile: React.FC = () => {
     </div>
   );
 
+  const renderOrders = () => (
+    <div className="space-y-4">
+      <TransactionHistory />
+    </div>
+  );
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="flex">
-        <aside className="w-64 p-4 bg-white shadow-md rounded-lg mr-6">
+      <div className="flex flex-col md:flex-row">
+        <aside className="w-full md:w-64 p-4 bg-white shadow-md rounded-lg mb-6 md:mb-0 md:mr-6">
           <div className="flex flex-col items-center mb-8">
             <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg mb-2">
               {artistProfile?.profile_image ? (
@@ -345,28 +354,45 @@ const ArtistProfile: React.FC = () => {
             </h2>
             <p className="text-sm text-gray-500">{artistProfile?.email}</p>
 
-            {/* Verification Button */}
-            <div className="mt-4">
-              {artistProfile?.verification_id ? (
-                artistProfile?.status === "pending" ? (
-                  <div className="flex items-center justify-center gap-2 text-yellow-600 font-medium">
-                    <FaTimesCircle className="text-yellow-600" /> Verification Pending
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 text-green-600 font-medium">
-                    <FaCheckCircle /> Verified Artist
-                  </div>
-                )
-              ) : (
-                <button
-                  onClick={handleVerificationClick}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
-                >
-                  <FaTimesCircle className="text-blue-600" /> Get Verified Now
-                </button>
-              )}
-            </div>
+
+{/* Verification Button */}
+<div className="mt-4">
+  {artistProfile?.verification_id ? (
+    artistProfile?.status === "pending" ? (
+      <div className="flex items-center justify-center gap-2 text-yellow-600 font-semibold">
+        <FaTimesCircle className="text-yellow-600" /> Verification Pending
+      </div>
+    ) : artistProfile?.status === "rejected" ? ( 
+      <div className="flex items-center justify-center gap-2">
+        
+        <button
+          onClick={handleVerificationClick}
+          className="flex items-center justify-center font-semibold gap-2 text-red-600 hover:bg-red-50 transition"
+        >
+          <div className="text-red-600" /> Verification Rejected
+        </button>
+        <div className="relative group">
+          <FaInfoCircle className="text-red-600 cursor-pointer" />
+          <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-48 bg-gray-800 text-white text-sm rounded-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Credentials invalid. Please review your information and try submitting again.
           </div>
+        </div>
+      </div>
+    ) : (
+      <div className="flex items-center justify-center gap-2 text-green-600 font-semibold">
+        <FaCheckCircle /> Verified Artist
+      </div>
+    )
+  ) : (
+    <button
+      onClick={handleVerificationClick}
+      className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
+    >
+      <FaTimesCircle className="text-blue-600" /> Get Verified Now
+    </button>
+  )}
+</div>
+</div>
 
           {/* Navigation Links */}
           <nav className="space-y-4">
@@ -378,7 +404,7 @@ const ArtistProfile: React.FC = () => {
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >
-              <FaUser /> <span>Profile</span>
+              <FaUser  /> <span>Profile</span>
             </button>
             <button
               onClick={() => setActiveSection("preferences")}
@@ -396,10 +422,24 @@ const ArtistProfile: React.FC = () => {
                 activeSection === "address"
                   ? "bg-blue-600 text-white font-semibold"
                   : "text-gray-700 hover:bg-gray-200"
-              }`}
+ }`}
             >
               <FaMapMarkerAlt /> <span>Address & Contact</span>
             </button>
+
+            <button
+  onClick={() => setActiveSection("orders")}
+  className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+    activeSection === "orders"
+      ? "bg-blue-600 text-white font-semibold"
+      : "text-gray-700 hover:bg-gray-200"
+  }`}
+>
+  <FaShoppingCart /> <span>Orders</span>
+</button>
+
+
+
             <button
               onClick={() => setActiveSection("wishlist")}
               className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
@@ -414,14 +454,16 @@ const ArtistProfile: React.FC = () => {
         </aside>
 
         <main className="flex-1 p-6 bg-white shadow-lg rounded-lg">
-          {activeSection === "profile"
-            ? renderProfile()
-            : activeSection === "preferences"
-            ? renderPreferences()
-            : activeSection === "address"
-            ? renderAddress()
-            : renderWishlist()}
-        </main>
+  {activeSection === "profile"
+    ? renderProfile()
+    : activeSection === "preferences"
+    ? renderPreferences()
+    : activeSection === "address"
+    ? renderAddress()
+    : activeSection === "orders"
+    ? renderOrders()
+    : renderWishlist()}
+</main>
       </div>
     </div>
   );
