@@ -44,6 +44,7 @@ import Verification from "./pages/admin/Verification";
 
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
+import FAQ from "./pages/FAQ";
 
 const App = () => {
   
@@ -62,6 +63,7 @@ const App = () => {
                     <Route path="/login" element={<Login />} />
                     <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                     <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+                    <Route path="/faq" element={<FAQ />} />
                 
                     {/* Protected routes */}
                     <Route element={<AuthRoute />}>
