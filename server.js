@@ -156,9 +156,14 @@ app.post("/password-reset", async (req, res) => {
     return res.status(400).json({ error: "Email is required." });
   }
 
+  // Dynamically choose the redirect URL based on the environment
+  const redirectUrl = process.env.NODE_ENV === "production" 
+    ? "https://craftify-react.vercel.app/update-password" 
+    : "http://localhost:5173/update-password";
+
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'http://localhost:5173/update-password' // Add your redirect URL here
+      redirectTo: redirectUrl
     });
 
     if (error) {
