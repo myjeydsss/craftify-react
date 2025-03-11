@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
               <h3 className="font-bold text-[#CA5310] mb-2">Support</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/faqs" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
+                  <Link to="/faq" className="text-gray-600 hover:text-[#CA5310] transition duration-300">
                     FAQs
                   </Link>
                 </li>

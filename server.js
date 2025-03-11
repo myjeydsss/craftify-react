@@ -148,6 +148,57 @@ app.post("/login", async (req, res) => {
 });
 // ****** LOGIN USER END... ****** 
 
+// ****** PASSWORD RESET ****** 
+app.post("/password-reset", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'http://localhost:5173/update-password' // Add your redirect URL here
+    });
+
+    if (error) {
+      console.error("Password Reset Error:", error.message);
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.status(200).json({ message: "Password reset email sent successfully." });
+  } catch (err) {
+    console.error("Unexpected Error:", err.message);
+    res.status(500).json({ error: "An unexpected error occurred. Please try again." });
+  }
+});
+// ****** PASSWORD RESET END... ******
+
+// ****** UPDATE PASSWORD ****** 
+app.post("/update-password", async (req, res) => {
+  const { newPassword, token } = req.body; // Ensure you are receiving the token
+
+  if (!newPassword) {
+    return res.status(400).json({ error: "New password is required." });
+  }
+
+  try {
+    // Validate the token here if necessary
+    const { error } = await supabase.auth.updateUser ({ password: newPassword });
+
+    if (error) {
+      console.error("Update Password Error:", error.message);
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.status(200).json({ message: "Password updated successfully." });
+  } catch (err) {
+    console.error("Unexpected Error:", err.message);
+    res.status(500).json({ error: "An unexpected error occurred. Please try again." });
+  }
+});
+// ****** UPDATE PASSWORD END... ****** 
+
 // ****** NAVBAR ENDPOINT ******
 app.get("/user-role/:userId", async (req, res) => {
   const { userId } = req.params;

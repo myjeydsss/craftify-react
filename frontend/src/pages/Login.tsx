@@ -36,17 +36,15 @@ const Login: React.FC = () => {
         return;
       }
 
-      if (!userId) throw new Error("User ID not found after login.");
-
-      localStorage.setItem("userId", userId);
+      if (!userId) throw new Error("User  ID not found after login.");
 
       const API_BASE_URL = import.meta.env.VITE_API_URL;
       const response = await axios.get(`${API_BASE_URL}/user-role/${userId}`);
       const { role } = response.data;
 
       const roleRoutes: Record<string, string> = {
-        Artist: "/artist-dashboard",
-        Client: "/client-dashboard",
+        Artist: "/dashboard",
+        Client: "/dashboard",
         Admin: "/admin-dashboard",
       };
 
@@ -123,7 +121,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className="mt-4 text-center">
-            <Link to="/forgot-password" className="text-sm text-blue-500 hover:text-blue-700 transition">
+            <Link to="/password-reset" className="text-sm text-blue-500 hover:text-blue-700 transition">
               Forgot Password?
             </Link>
           </div>

@@ -124,7 +124,7 @@ const NavBar: React.FC = () => {
     if (role === "Artist") {
       return (
         <div className="hidden md:flex md:space-x-4">
-          <Link to="/artist-dashboard" className={`${isActive("/artist-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
+          <Link to="/dashboard" className={`${isActive("/dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
           <Link to="/artist-track-project" className={`${isActive("/artist-track-project") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           <Link to="/artist-arts" className={`${isActive("/artist-arts") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Arts</Link>
           {commonLinks.map(link => (
@@ -137,7 +137,7 @@ const NavBar: React.FC = () => {
     if (role === "Client") {
       return (
         <div className="hidden md:flex md:space-x-4">
-          <Link to="/client-dashboard" className={`${isActive("/client-dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
+          <Link to="/dashboard" className={`${isActive("/dashboard") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>Dashboard</Link>
           <Link to="/client-project-page" className={`${isActive("/client-project-page") ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>My Projects</Link>
           {commonLinks.map(link => (
             <Link key={link.to} to={link.to} className={`${isActive(link.to) ? "text-orange-400 border-b-2 border-orange-400" : "text-black hover:text-gray-700"} px-3 py-2 rounded-md text-m font-medium`}>{link.label}</Link>

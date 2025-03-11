@@ -6,7 +6,10 @@ const AuthRoute: React.FC = () => {
   const { auth } = useAuth();
   const location = useLocation();
 
-  return auth ? (
+  // Allow access to specific routes without authentication
+  const publicRoutes = ["/login", "/register", "/password-reset", "/update-password"];
+
+  return publicRoutes.includes(location.pathname) || auth ? (
     <Outlet />
   ) : (
     <Navigate to="/login" replace state={{ from: location }} />
