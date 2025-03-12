@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 8081;
   "https://craftify-react-git-main-myjeydsss-projects.vercel.app",
   "https://craftify-react.vercel.app",
   "https://craftify-react.onrender.com",
+  "https://icraftify.com",
 ];
 
 app.use(
