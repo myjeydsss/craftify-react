@@ -1,13 +1,13 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";  
-import hireArtist from "../assets/hire-artist.png";
-import findClient from "../assets/find-client.png";
-import collab from "../assets/collab.png";
-import artistNetwork from "../assets/artist-network.png";
-import marketplace from "../assets/marketplace.png";
-import art1 from "../assets/artwork-1.png";
-import art2 from "../assets/artwork-2.png";
-import art3 from "../assets/artwork-3.png";
+import hireArtist from "../assets/hire-artist.webp";
+import findClient from "../assets/find-client.webp";
+import collab from "../assets/collab.webp";
+import artistNetwork from "../assets/artist-network.webp";
+import marketplace from "../assets/marketplace.webp";
+import art1 from "../assets/artwork-1.webp";
+import art2 from "../assets/artwork-2.webp";
+import art3 from "../assets/artwork-3.webp";
 import Footer from "../components/Footer";  
 
 const Explore: React.FC = () => {

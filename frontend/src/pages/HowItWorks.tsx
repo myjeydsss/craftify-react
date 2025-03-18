@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
-import step1Image from "../assets/step1.png";
-import step2Image from "../assets/step2.png";
-import step3Image from "../assets/step3.png";
-import step4Image from "../assets/step4.png";
-import step5Image from "../assets/step5.png";
-import step6Image from "../assets/step6.png";
+import step1Image from "../assets/step1.webp";
+import step2Image from "../assets/step2.webp";
+import step3Image from "../assets/step3.webp";
+import step4Image from "../assets/step4.webp";
+import step5Image from "../assets/step5.webp";
+import step6Image from "../assets/step6.webp";
 import Footer from "../components/Footer"; 
 
 const HowItWorks: React.FC = () => {

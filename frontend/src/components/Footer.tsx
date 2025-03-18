@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../assets/logo.png"; // Adjust the path as necessary
+import logo from "../assets/logo.webp"; // Adjust the path as necessary
 import { FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn } from "react-icons/fa"; // Import social media icons
 import { Link } from "react-router-dom"; // Corrected import from "react-router-dom"
 
