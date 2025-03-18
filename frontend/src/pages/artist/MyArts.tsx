@@ -21,6 +21,10 @@ interface Art {
 }
 
 const MyArts: React.FC = () => {
+    useEffect(() => {
+        document.title = "My Arts";
+      }, []);
+    
   const [arts, setArts] = useState<Art[]>([]);
   const [selectedArt, setSelectedArt] = useState<Art | null>(null);
   const [showModal, setShowModal] = useState(false);

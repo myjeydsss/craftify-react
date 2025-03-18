@@ -37,6 +37,10 @@ interface Preferences {
 }
 
 const EditArtistProfile: React.FC = () => {
+    useEffect(() => {
+        document.title = "Edit Profile";
+      }, []);
+    
   const { user } = useAuth();
   const navigate = useNavigate();
 

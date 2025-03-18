@@ -31,6 +31,10 @@ const MEDIUMS = ["Oil", "Canvas", "Acrylic", "Watercolor", "Wood", "Paper", "Dig
 const SUBJECTS = ["Nature", "Landscape", "Portrait", "Still Life", "Animals", "Fantasy", "Others..."];
 
 const EditArtPage: React.FC = () => {
+   useEffect(() => {
+          document.title = "Edit Art";
+        }, []);
+      
   const { artId } = useParams<{ artId: string }>();
   const { user } = useAuth();
   const { register, handleSubmit, setValue } = useForm<Art>();
@@ -191,7 +195,7 @@ const EditArtPage: React.FC = () => {
     <div className="container mx-auto px-4 py-16">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Uploaded Arts</h1>
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Edit Arts</h1>
         <hr className="border-gray-300 mb-6" />
       </div>
 

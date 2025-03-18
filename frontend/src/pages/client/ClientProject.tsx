@@ -32,6 +32,10 @@ interface Proposal {
 const API_BASE_URL = import.meta.env.VITE_API_URL;  
 
 const ClientProject: React.FC = () => {
+   useEffect(() => {
+          document.title = "My Projects";
+        }, []);
+  
   const [projects, setProjects] = useState<Project[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);

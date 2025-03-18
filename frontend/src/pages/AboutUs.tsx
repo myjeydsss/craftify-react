@@ -1,8 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import Footer from "../components/Footer"; // Adjust the path if necessary
 
 const AboutUs: React.FC = () => {
+   useEffect(() => {
+      document.title = "About Us | Craftify";
+    }, []);
+  
+    
   const navigate = useNavigate(); // Initialize useNavigate
 
   // Function to handle redirection to the login page

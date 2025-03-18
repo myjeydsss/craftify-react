@@ -5,6 +5,10 @@ import { AiFillEyeInvisible, AiFillEye } from "react-icons/ai"; // Import icons 
 import { supabase } from "../../client"; // Adjust the import based on your setup
 
 const UpdatePassword: React.FC = () => {
+    useEffect(() => {
+          document.title = "Update Password | Craftify";
+        }, []);
+      
   const passwordRef = useRef<HTMLInputElement>(null);
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");

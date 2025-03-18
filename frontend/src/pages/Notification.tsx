@@ -31,6 +31,10 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 const Notification: React.FC = () => {
+    useEffect(() => {
+          document.title = "Notification";
+        }, []);
+      
     const { user } = useAuth();
     const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);

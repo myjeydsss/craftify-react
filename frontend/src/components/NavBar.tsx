@@ -182,7 +182,7 @@ const NavBar: React.FC = () => {
     if (role === "Artist") {
       return (
         <div className="flex flex-col space-y-4 p-4">
-          <Link to="/dashboard" onClick={handleLinkClick} className={`${isActive("/dashboard") ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>Home</Link>
+          <Link to="/dashboard" onClick={handleLinkClick} className={`${isActive("/dashboard") ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>Dashboard</Link>
           <Link to="/artist-track-project" onClick={handleLinkClick} className={`${isActive("/artist-track-project") ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>My Projects</Link>
           <Link to="/artist-arts" onClick={handleLinkClick} className={`${isActive("/artist-arts") ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>My Arts</Link>
           {commonLinks.map(link => (
@@ -195,7 +195,7 @@ const NavBar: React.FC = () => {
     if (role === "Client") {
       return (
         <div className="flex flex-col space-y-4 p-4">
-          <Link to="/dashboard" onClick={handleLinkClick} className={`${isActive("/dashboard") ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>Home</Link>
+          <Link to="/dashboard" onClick={handleLinkClick} className={`${isActive("/dashboard") ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>Dashboard</Link>
           <Link to="/client-project-page" onClick={handleLinkClick} className={`${isActive("/client-project-page") ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>My Projects</Link>
           {commonLinks.map(link => (
             <Link key={link.to} to={link.to} onClick={handleLinkClick} className={`${isActive(link.to) ? "text-orange-400" : "text-black hover:text-gray-700"} text-base font-medium`}>{link.label}</Link>

@@ -30,6 +30,10 @@ interface Preferences {
 }
 
 const EditClientProfile: React.FC = () => {
+   useEffect(() => {
+          document.title = "Edit Profile";
+        }, []);
+      
   const { user } = useAuth();
   const navigate = useNavigate();
 

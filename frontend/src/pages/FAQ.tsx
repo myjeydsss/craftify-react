@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Footer from '../components/Footer';
 
 const FAQ: React.FC = () => {
+    useEffect(() => {
+            document.title = "Frequently Asked Questions | Craftify";
+          }, []);
+        
   const faqs = [
     {
       question: "What is Craftify?",

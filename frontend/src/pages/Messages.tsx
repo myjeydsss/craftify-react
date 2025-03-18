@@ -40,10 +40,17 @@ function useWindowSize() {
     }, []);
 
     return windowSize;
+    
 }
+
+
 
 //******* DONT TOUCH IF IT WORKS IT WORKS ******/
 const Messages: React.FC = () => {
+      useEffect(() => {
+          document.title = "CraftiChat";
+        }, []);
+      
     const { user } = useAuth(); // Get the current user from the useAuth hook
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);

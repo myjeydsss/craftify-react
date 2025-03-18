@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import step1Image from "../assets/step1.png";
 import step2Image from "../assets/step2.png";
@@ -9,6 +9,11 @@ import step6Image from "../assets/step6.png";
 import Footer from "../components/Footer"; 
 
 const HowItWorks: React.FC = () => {
+   useEffect(() => {
+      document.title = "How It Works | Craftify";
+    }, []);
+  
+    
   const navigate = useNavigate(); // Initialize useNavigate
 
   const steps = [

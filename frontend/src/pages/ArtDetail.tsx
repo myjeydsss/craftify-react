@@ -50,6 +50,12 @@ const ArtDetail: React.FC = () => {
           `${import.meta.env.VITE_API_URL}/art/${artId}`
         );
         setArt(response.data);
+        
+          // Set the document title after fetching the art details
+          if (response.data && response.data.artist) {
+            document.title = `${response.data.title} | ${response.data.artist.firstname} ${response.data.artist.lastname}`;
+          }
+  
 
         if (user) {
           const wishlistResponse = await axios.get<string[]>(

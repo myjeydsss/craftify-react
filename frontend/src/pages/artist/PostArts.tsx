@@ -12,6 +12,10 @@ interface Tag {
 }
 
 const PostArts: React.FC = () => {
+   useEffect(() => {
+          document.title = "Upload Arts";
+        }, []);
+      
   const { user } = useAuth();
   const { register, handleSubmit, reset } = useForm();
   const [uploading, setUploading] = useState<boolean>(false);
@@ -119,10 +123,12 @@ const PostArts: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-semibold mb-8 text-center text-gray-800">
-        Upload New Art
-      </h1>
+    <div className="container mx-auto px-4 py-16">
+      {/* Header Section */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Upload New Arts</h1>
+        <hr className="border-gray-300 mb-6" />
+      </div>
 
       {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
 

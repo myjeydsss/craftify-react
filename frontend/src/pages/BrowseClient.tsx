@@ -39,6 +39,10 @@ interface Match {
 }
 
 const BrowseClient: React.FC = () => {
+    useEffect(() => {
+            document.title = "Browse Client";
+          }, []);
+        
   const { user } = useAuth();  
   const [clients, setClients] = useState<Client[]>([]);
   const [matchedClients, setMatchedClients] = useState<Match[]>([]);

@@ -1,10 +1,14 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer"; // Import Footer if you have one
 
 const PasswordReset: React.FC = () => {
+    useEffect(() => {
+          document.title = "Forgot Password | Craftify";
+        }, []);
+      
   const emailRef = useRef<HTMLInputElement>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false); // Loading state

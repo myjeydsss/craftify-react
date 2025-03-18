@@ -92,6 +92,11 @@ const ViewProfileArtist: React.FC = () => {
                     `${import.meta.env.VITE_API_URL}/artist-profile/${userId}`
                 );
                 setArtist(artistResponse.data);
+
+                 // Set the document title
+        document.title = `${artistResponse.data.firstname} ${artistResponse.data.lastname} | Craftify`;
+
+
                 const preferencesResponse = await axios.get<Preferences | null>(
                     `${import.meta.env.VITE_API_URL}/view-artist-preferences/${userId}`
                 );

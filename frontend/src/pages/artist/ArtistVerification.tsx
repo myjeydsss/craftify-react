@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthProvider";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
 const ArtistVerification: React.FC = () => {
+    useEffect(() => {
+        document.title = "Artist Verification Request";
+      }, []);
+    
   const [portfolio, setPortfolio] = useState<File | null>(null);
   const [validId, setValidId] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -70,7 +74,7 @@ const ArtistVerification: React.FC = () => {
       <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Get Verified</h1>
       <hr className="border-gray-300 mb-6" />
     </div>
-    
+
       {/* Explanation about verification */}
       <div className="bg-white shadow-lg rounded-lg p-6 mb-8 max-w-xl mx-auto">
         <h2 className="text-2xl font-bold mb-4">Why Get Verified?</h2>

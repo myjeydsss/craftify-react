@@ -35,6 +35,10 @@ interface Post {
 }
 
 const Community: React.FC = () => {
+    useEffect(() => {
+        document.title = "Community";
+      }, []);
+    
   const { user } = useAuth();
   const [loggedInUser , setLoggedInUser ] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);

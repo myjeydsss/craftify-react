@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";  
 import hireArtist from "../assets/hire-artist.png";
 import findClient from "../assets/find-client.png";
@@ -11,6 +11,11 @@ import art3 from "../assets/artwork-3.png";
 import Footer from "../components/Footer";  
 
 const Explore: React.FC = () => {
+
+  useEffect(() => {
+      document.title = "Explore | Craftify";
+    }, []);
+  
   const navigate = useNavigate();  
   
   const handleJoinNow = () => {

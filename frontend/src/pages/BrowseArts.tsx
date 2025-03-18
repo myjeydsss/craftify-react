@@ -55,6 +55,10 @@ const subjects = ["Nature", "Landscape", "Portrait", "Still Life", "Animals", "F
 
 
 const BrowseArts: React.FC = () => {
+    useEffect(() => {
+            document.title = "Browse Arts";
+          }, []);
+        
   const navigate = useNavigate();
   const { user } = useAuth();
   const [arts, setArts] = useState<Art[]>([]);

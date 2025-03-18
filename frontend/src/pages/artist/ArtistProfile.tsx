@@ -64,6 +64,10 @@ interface WishlistItem {
 }
 
 const ArtistProfile: React.FC = () => {
+   useEffect(() => {
+      document.title = "My Profile";
+    }, []);
+  
   const [artistProfile, setArtistProfile] = useState<ArtistProfileData | null>(null);
   const [preferences, setPreferences] = useState<ArtistPreferences | null>(null);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);

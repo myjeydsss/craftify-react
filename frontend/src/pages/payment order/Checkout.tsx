@@ -17,6 +17,10 @@ interface CartItem {
 }
 
 const Checkout: React.FC = () => {
+        useEffect(() => {
+            document.title = "Checkout";
+          }, []);
+        
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

@@ -103,7 +103,7 @@ const App = () => {
             <Route path="/browse-clients" element={<BrowseClient />} />
             <Route path="/profile/client/:userId" element={<ViewProfileClient />} />
             <Route path="/community" element={<Community />} />
-            <Route path="/update-password" element={<UpdatePassword />} /> {/* Protected route */}
+            <Route path="/update-password" element={<UpdatePassword />} /> 
 
 
             {/* Notification routes */}

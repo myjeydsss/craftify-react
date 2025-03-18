@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaSpinner, FaEye, FaEyeSlash } from "react-icons/fa";
 import axios from "axios";
@@ -6,6 +6,12 @@ import { useAuth } from "../context/AuthProvider";
 import Footer from "../components/Footer";
 
 const Login: React.FC = () => {
+ useEffect(() => {
+      document.title = "Login | Craftify";
+    }, []);
+  
+    
+
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");

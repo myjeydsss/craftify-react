@@ -39,6 +39,10 @@ interface Match {
 }
 
 const BrowseArtist: React.FC = () => {
+    useEffect(() => {
+          document.title = "Browse Artist";
+        }, []);
+      
   const { user } = useAuth(); 
   const [artists, setArtists] = useState<Artist[]>([]);
   const [matchedArtists, setMatchedArtists] = useState<Match[]>([]);

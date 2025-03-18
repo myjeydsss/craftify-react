@@ -27,6 +27,10 @@ interface Art {
 const API_BASE_URL = import.meta.env.VITE_API_URL; // Ensure API URL is correctly set
 
 const ClientDashboard: React.FC = () => {
+   useEffect(() => {
+      document.title = "Dashboard";
+    }, []);
+  
   const { user } = useAuth();
   const [arts, setArts] = useState<Art[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

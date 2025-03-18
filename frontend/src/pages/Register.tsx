@@ -1,10 +1,14 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaSpinner, FaUser , FaPaintBrush, FaEye, FaEyeSlash } from "react-icons/fa"; // Import icons
 import Swal from "sweetalert2"; // Import SweetAlert2
 import axios from "axios"; // To make HTTP requests
 
 const Register: React.FC = () => {
+  useEffect(() => {
+        document.title = "Register | Craftify";
+      }, []);
+    
   const firstNameRef = useRef<HTMLInputElement>(null);
   const lastNameRef = useRef<HTMLInputElement>(null);
   const usernameRef = useRef<HTMLInputElement>(null);

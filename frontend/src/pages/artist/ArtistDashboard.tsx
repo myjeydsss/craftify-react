@@ -27,11 +27,15 @@ interface Art {
 const API_BASE_URL = import.meta.env.VITE_API_URL; // Ensure API URL is correctly set
 
 const ArtistDashboard: React.FC = () => {
+  useEffect(() => {
+    document.title = "Dashboard";
+  }, []);
+
   const { user } = useAuth();
   const [arts, setArts] = useState<Art[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const artworksDisplayed = 4; // Fixed to display 4 artworks
+  const artworksDisplayed = 4; 
   const navigate = useNavigate();
 
   useEffect(() => {

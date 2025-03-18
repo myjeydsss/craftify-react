@@ -19,6 +19,10 @@ interface CartItem {
 }
 
 const Cart: React.FC = () => {
+        useEffect(() => {
+            document.title = "Art Cart";
+          }, []);
+        
   const { user } = useAuth();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);

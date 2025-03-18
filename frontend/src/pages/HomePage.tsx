@@ -1,14 +1,8 @@
-import React from "react";
 import art1 from "../assets/1.png";
 import art2 from "../assets/2.png";
 import art3 from "../assets/3.png";
 import art7 from "../assets/4.png";
 import art8 from "../assets/5.png";
-import art9 from "../assets/6.png";
-import art10 from "../assets/7.png";
-import art11 from "../assets/8.png";
-import art12 from "../assets/9.png";
-import art13 from "../assets/10.png";
 import portrait from "../assets/MATCH.png";
 import art4 from "../assets/artwork-4.png";
 import art5 from "../assets/artwork-5.png";
@@ -21,8 +15,16 @@ import Footer from "../components/Footer";
 import { useNavigate } from "react-router-dom";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { Carousel } from "react-responsive-carousel";
+import React, { useEffect } from "react";
+
 
 const HomePage: React.FC = () => {
+
+  useEffect(() => {
+    document.title = "Home | Craftify";
+  }, []);
+
+  
   const categories: string[] = [
     "Paintings",
     "Sculptures",
@@ -62,6 +64,7 @@ const HomePage: React.FC = () => {
   const handleGetStarted = () => {
     navigate("/login"); // Redirect to the login page
   };
+  
 
   return (
     <>
@@ -79,7 +82,7 @@ const HomePage: React.FC = () => {
                 transitionTime={500}
                 showStatus={false}
               >
-                {[art1, art2, art3, art7, art8, art9, art10, art11, art12, art13].map((image, index) => (
+                {[art1, art2, art3, art7, art8].map((image, index) => (
                   <div key={index}>
                     <img
                       src={image}
