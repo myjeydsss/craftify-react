@@ -11,10 +11,9 @@ import art3 from "../assets/artwork-3.webp";
 import Footer from "../components/Footer";  
 
 const Explore: React.FC = () => {
-
   useEffect(() => {
-      document.title = "Explore | Craftify";
-    }, []);
+    document.title = "Explore | Craftify";
+  }, []);
   
   const navigate = useNavigate();  
   
@@ -49,6 +48,7 @@ const Explore: React.FC = () => {
                 <img
                   src={hireArtist}
                   alt="Hire Artist"
+                  loading="lazy" // Lazy load images
                   className="mx-auto h-64 w-64 object-cover rounded-md shadow-lg hover:shadow-xl transition-all duration-300"
                 />
                 <div className="flex justify-center md:justify-start mt-4">
@@ -83,6 +83,7 @@ const Explore: React.FC = () => {
                 <img
                   src={findClient}
                   alt="Find Client"
+                  loading="lazy" // Lazy load images
                   className="mx-auto h-64 w-64 object-cover rounded-md shadow-lg hover:shadow-xl transition-all duration-300"
                 />
                 <div className="flex justify-center md:justify-start mt-4">
@@ -91,7 +92,7 @@ const Explore: React.FC = () => {
                   <span className="h-2 w-2 bg-gray-300 rounded-full mx-1"></span>
                 </div>
               </div>
-              <div className="text-center md :text-right md:flex-1">
+              <div className="text-center md:text-right md:flex-1">
                 <h2 className="text-3xl font-bold text-orange-600 mb-4">
                   FIND CLIENT
                 </h2>
@@ -127,6 +128,7 @@ const Explore: React.FC = () => {
                 <img
                   src={item.src}
                   alt={item.title}
+                  loading="lazy" // Lazy load images
                   className="h-64 w-full object-cover rounded-md"
                 />
                 <p className="mt-2 font-semibold">{item.title}</p>
@@ -155,6 +157,7 @@ const Explore: React.FC = () => {
                 <img
                   src={art}
                   alt={`Artwork ${index + 1}`}
+                  loading="lazy" // Lazy load images
                   className="mx-auto h-64 w-full object-cover rounded-md hover:scale-105 transition-transform duration-300"
                 />
                 <p className="text-orange-600 mt-2 font-semibold">₱1,000.00</p>

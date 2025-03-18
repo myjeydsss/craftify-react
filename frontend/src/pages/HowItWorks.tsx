@@ -9,11 +9,10 @@ import step6Image from "../assets/step6.webp";
 import Footer from "../components/Footer"; 
 
 const HowItWorks: React.FC = () => {
-   useEffect(() => {
-      document.title = "How It Works | Craftify";
-    }, []);
+  useEffect(() => {
+    document.title = "How It Works | Craftify";
+  }, []);
   
-    
   const navigate = useNavigate(); // Initialize useNavigate
 
   const steps = [
@@ -92,6 +91,7 @@ const HowItWorks: React.FC = () => {
                 <img
                   src={step.image}
                   alt={step.title}
+                  loading="lazy" // Lazy load images
                   className="mx-auto h-64 w-64 object-cover rounded-lg shadow-lg transition-transform transform hover:scale-105"
                 />
               </div>

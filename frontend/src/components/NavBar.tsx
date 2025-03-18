@@ -236,9 +236,9 @@ const NavBar: React.FC = () => {
 
           {/* Hamburger Icon for Mobile */}
           <div className="flex-shrink-0 md:hidden">
-            <button onClick={toggleMobileMenu} className="text-black focus:outline-none">
-              {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
-            </button>
+          <button onClick={toggleMobileMenu} className="text-black focus:outline-none" aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}>
+  {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+</button>
           </div>
 
           {/* Desktop Navigation Links */}
@@ -274,12 +274,13 @@ const NavBar: React.FC = () => {
                 </Link>
               </div>
               <div ref={dropdownRef} className="relative">
-                <button
-                  onClick={toggleDropdown}
-                  className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  <FaUser  size={20} />
-                </button>
+              <button
+  onClick={toggleDropdown}
+  className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+  aria-label="User  menu"
+>
+  <FaUser  size={20} />
+</button>
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
                     <Link
@@ -311,26 +312,28 @@ const NavBar: React.FC = () => {
                       Notifications
                     </Link>
                     <button
-                      onClick={() => {
-                        handleLogout();
-                        setDropdownOpen(false); // Close dropdown after logout
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Logout
-                    </button>
+  onClick={() => {
+    handleLogout();
+    setDropdownOpen(false); // Close dropdown after logout
+  }}
+  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+  aria-label="Logout"
+>
+  Logout
+</button>
                   </div>
                 )}
               </div>
             </div>
           ) : (
             <div ref={dropdownRef} className="relative">
-              <button
-                onClick={toggleDropdown}
-                className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                <FaUser  size={20} />
-              </button>
+            <button
+  onClick={toggleDropdown}
+  className="text-black hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+  aria-label="User  menu"
+>
+  <FaUser  size={20} />
+</button>
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
                   <Link

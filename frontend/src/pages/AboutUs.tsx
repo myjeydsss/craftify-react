@@ -1,13 +1,12 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
+import { useNavigate } from "react-router-dom";  
 import Footer from "../components/Footer"; // Adjust the path if necessary
 
 const AboutUs: React.FC = () => {
-   useEffect(() => {
-      document.title = "About Us | Craftify";
-    }, []);
+  useEffect(() => {
+    document.title = "About Us | Craftify";
+  }, []);
   
-    
   const navigate = useNavigate(); // Initialize useNavigate
 
   // Function to handle redirection to the login page
@@ -81,7 +80,7 @@ const AboutUs: React.FC = () => {
                     "Connect with your chosen artist. Share your ideas, preferences, and specific needs to personalize the artwork.",
                 },
                 {
-                  title : "Commission",
+                  title: "Commission",
                   description:
                     "Finalize the details and commission your personalized piece of art. Enjoy a seamless and secure process from start to finish.",
                 },

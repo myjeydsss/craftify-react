@@ -1,3 +1,8 @@
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";  
+import "react-responsive-carousel/lib/styles/carousel.min.css";
+import { Carousel } from "react-responsive-carousel";
+import Footer from "../components/Footer";
 import art1 from "../assets/1.webp";
 import art2 from "../assets/2.webp";
 import art3 from "../assets/3.webp";
@@ -11,20 +16,12 @@ import heroImage7 from "../assets/hero7.webp";
 import heroImage8 from "../assets/hero8.webp";
 import heroImage9 from "../assets/hero9.webp";
 import heroImage10 from "../assets/hero10.webp";
-import Footer from "../components/Footer";
-import { useNavigate } from "react-router-dom";
-import "react-responsive-carousel/lib/styles/carousel.min.css";
-import { Carousel } from "react-responsive-carousel";
-import React, { useEffect } from "react";
-
 
 const HomePage: React.FC = () => {
-
   useEffect(() => {
     document.title = "Home | Craftify";
   }, []);
 
-  
   const categories: string[] = [
     "Paintings",
     "Sculptures",
@@ -64,7 +61,6 @@ const HomePage: React.FC = () => {
   const handleGetStarted = () => {
     navigate("/login"); // Redirect to the login page
   };
-  
 
   return (
     <>
@@ -87,6 +83,7 @@ const HomePage: React.FC = () => {
                     <img
                       src={image}
                       alt="Artwork"
+                      loading="lazy" // Lazy load images
                       className="h-96 w-64 object-cover rounded-md shadow-lg"
                     />
                   </div>
@@ -130,6 +127,7 @@ const HomePage: React.FC = () => {
             <img
               src={portrait}
               alt="Artist Portrait"
+              loading="lazy" // Lazy load images
               className="w-full h-auto object-cover rounded-lg shadow-md"
             />
             <div className="absolute top-0 left-0 w-full h-full mix-blend-multiply"></div>
@@ -159,6 +157,7 @@ const HomePage: React.FC = () => {
                 key={index}
                 src={image}
                 alt="Personalized Artwork"
+                loading="lazy" // Lazy load images
                 className="h-64 w-64 object-cover rounded-md shadow-lg transition-transform transform hover:scale-105"
               />
             ))}
@@ -179,6 +178,7 @@ const HomePage: React.FC = () => {
                       <img
                         src={feature.image}
                         alt={feature.title}
+                        loading="lazy" // Lazy load images
                         className="mx-auto h-16 w-16"
                       />
                     </div>
