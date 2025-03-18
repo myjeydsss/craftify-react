@@ -3,19 +3,19 @@ import { useNavigate } from "react-router-dom";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { Carousel } from "react-responsive-carousel";
 import Footer from "../components/Footer";
-import art1 from "../assets/1.webp";
-import art2 from "../assets/2.webp";
-import art3 from "../assets/3.webp";
-import art7 from "../assets/4.webp";
-import art8 from "../assets/5.webp";
-import portrait from "../assets/MATCH.webp";
+import art1 from "../assets/1.avif";
+import art2 from "../assets/2.avif";
+import art3 from "../assets/3.avif";
+import art7 from "../assets/4.avif";
+import art8 from "../assets/5.avif";
+import portrait from "../assets/MATCH.avif";
 import art4 from "../assets/artwork-4.webp";
 import art5 from "../assets/artwork-5.webp";
 import art6 from "../assets/artwork-6.webp";
-import heroImage7 from "../assets/hero7.webp";
-import heroImage8 from "../assets/hero8.webp";
-import heroImage9 from "../assets/hero9.webp";
-import heroImage10 from "../assets/hero10.webp";
+import heroImage7 from "../assets/hero7.avif";
+import heroImage8 from "../assets/hero8.avif";
+import heroImage9 from "../assets/hero9.avif";
+import heroImage10 from "../assets/hero10.avif";
 
 const HomePage: React.FC = () => {
   useEffect(() => {
