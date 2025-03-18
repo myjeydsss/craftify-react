@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaUser , FaSignInAlt, FaUserPlus, FaShoppingCart, FaBell, FaEnvelope, FaBars, FaTimes } from "react-icons/fa";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo.webp";
 import { useAuth } from "../context/AuthProvider";
 import axios from "axios";
 
