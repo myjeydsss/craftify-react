@@ -2069,8 +2069,8 @@ app.post("/create-checkout-session", async (req, res) => {
               },
             ],
             payment_method_types: ["card", "gcash"],
-            success_url: "http://localhost:5173/", // Update this for actual success URL
-            cancel_url: "http://localhost:5173/", // Update this for actual cancel URL
+            success_url: "https://icraftify.com/", // Update this for actual success URL
+            cancel_url: "https://icraftify.com/", // Update this for actual cancel URL
           },
         },
       },
