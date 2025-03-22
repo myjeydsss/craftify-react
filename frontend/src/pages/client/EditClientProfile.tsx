@@ -30,10 +30,10 @@ interface Preferences {
 }
 
 const EditClientProfile: React.FC = () => {
-   useEffect(() => {
-          document.title = "Edit Profile";
-        }, []);
-      
+  useEffect(() => {
+    document.title = "Edit Profile";
+  }, []);
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -71,26 +71,37 @@ const EditClientProfile: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-    
-        const profileResponse = await axios.get(`${API_BASE_URL}/client-profile/${user.id}`);
+
+        const profileResponse = await axios.get(
+          `${API_BASE_URL}/client-profile/${user.id}`
+        );
         setClientProfile(profileResponse.data);
-    
-        const preferencesResponse = await axios.get(`${API_BASE_URL}/client-preferences/${user.id}`);
-    
+
+        const preferencesResponse = await axios.get(
+          `${API_BASE_URL}/client-preferences/${user.id}`
+        );
+
         // Ensure fetched preferences contain arrays instead of undefined
         setPreferences({
-          preferred_art_style: preferencesResponse.data.preferred_art_style || [],
-          project_requirements: preferencesResponse.data.project_requirements || "",
+          preferred_art_style:
+            preferencesResponse.data.preferred_art_style || [],
+          project_requirements:
+            preferencesResponse.data.project_requirements || "",
           budget_range: preferencesResponse.data.budget_range || "",
-          location_requirement: preferencesResponse.data.location_requirement || "",
+          location_requirement:
+            preferencesResponse.data.location_requirement || "",
           timeline: preferencesResponse.data.timeline || "",
-          artist_experience_level: preferencesResponse.data.artist_experience_level || "",
-          communication_preferences: preferencesResponse.data.communication_preferences || [],
+          artist_experience_level:
+            preferencesResponse.data.artist_experience_level || "",
+          communication_preferences:
+            preferencesResponse.data.communication_preferences || [],
           project_type: preferencesResponse.data.project_type || [],
         });
       } catch (err) {
         console.error("Failed to fetch profile or preferences:", err);
-        setError("Failed to load profile or preferences. Please try again later.");
+        setError(
+          "Failed to load profile or preferences. Please try again later."
+        );
       } finally {
         setLoading(false);
       }
@@ -99,13 +110,19 @@ const EditClientProfile: React.FC = () => {
     fetchData();
   }, [user]);
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleProfileChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
     setClientProfile((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePreferencesChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setPreferences((prev) => ({ ...prev, [name]: value }));
@@ -136,9 +153,13 @@ const EditClientProfile: React.FC = () => {
     formData.append("file", imageFile);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/upload-client-profile-image/${user.id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/upload-client-profile-image/${user.id}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
       return response.data.fileName || null;
     } catch (error) {
@@ -188,11 +209,16 @@ const EditClientProfile: React.FC = () => {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {error && <div className="text-red-500 text-center mb-4">{error}</div>}
-      <form onSubmit={handleSave} className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6">
+      <form
+        onSubmit={handleSave}
+        className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6"
+      >
         {/* Header */}
         <div className="text-center">
-        <h2 className="text-3xl font-semibold text-[#5C0601] mb-4">My Profile</h2>
-        <hr className="border-gray-300 mb-6" />
+          <h2 className="text-3xl font-semibold text-[#5C0601] mb-4">
+            My Profile
+          </h2>
+          <hr className="border-gray-300 mb-6" />
         </div>
 
         {/* Profile Picture Upload Section */}
@@ -308,27 +334,46 @@ const EditClientProfile: React.FC = () => {
 
         {/* Preferences Section */}
         <div>
-          <h3 className="text-2xl font-semibold text-gray-800 mb-4">Preferences</h3>
+          <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+            Preferences
+          </h3>
           <div className="space-y-6">
             {/* Preferred Art Style */}
             <div>
               <label className="text-gray-700">Preferred Art Style</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {[
-                  "Realistic Art / Portraits",
-                  "Digital Art & Illustrations",
-                  "Sculptures & Statues",
-                  "Nature & Landscapes",
+                  "Realism",
+                  "Portraiture",
+                  "Abstract",
+                  "Expressionism",
+                  "Anime",
+                  "Manga",
+                  "Cartoon",
+                  "Comic Art",
+                  "Fantasy",
+                  "Sci-Fi",
+                  "Nature Art",
+                  "Botanical Illustration",
+                  "Geometric Art",
+                  "Pattern-Based Design",
+                  "Pop Art",
+                  "Urban Style",
+                  "Minimalist",
+                  "Modern Art",
                   "Craft & Handmade Art",
-                  "Portraits & People",
-                  "Minimalist & Modern",
-                  "Flexible / Open to All Style",
-                  "Abstract & Conceptual",
+                  "Sculpture",
+                  "Statues",
+                  "Digital Art & Illustrations",
+                  "Beginner / Exploring Styles",
+                  "Open to All Styles",
                 ].map((style) => (
                   <button
                     type="button"
                     key={style}
-                    onClick={() => togglePreference("preferred_art_style", style)}
+                    onClick={() =>
+                      togglePreference("preferred_art_style", style)
+                    }
                     className={`px-4 py-2 rounded-lg border ${
                       preferences.preferred_art_style.includes(style)
                         ? "bg-blue-500 text-white border-blue-500"
@@ -357,14 +402,19 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Budget Range</label>
               <select
                 name="budget_range"
-                value={preferences.budget_range || ""}
+                value={preferences.budget_range}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="1-500">₱1 - ₱500</option>
-                <option value="500-1000">₱500 - ₱1000</option>
-                <option value="1000+">₱1,000+</option>
+                <option value="under-1000">Under ₱1,000</option>
+                <option value="1000-5000">₱1,000 - ₱5,000</option>
+                <option value="5000-10000">₱5,000 - ₱10,000</option>
+                <option value="10000-20000">₱10,000 - ₱20,000</option>
+                <option value="20000-above">₱20,000 and above</option>
+                <option value="Flexible Budget / Open">
+                  Flexible Budget / Open
+                </option>
               </select>
             </div>
 
@@ -373,14 +423,16 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Location Requirement</label>
               <select
                 name="location_requirement"
-                value={preferences.location_requirement || ""}
+                value={preferences.location_requirement}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="Local">Local</option>
-                <option value="Regional">Regional</option>
-                <option value="Global">Global</option>
+                <option value="Local Only">Local Only</option>
+                <option value="Nationwide / Regional">
+                  Nationwide / Regional
+                </option>
+                <option value="International">International</option>
               </select>
             </div>
 
@@ -389,14 +441,20 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Timeline</label>
               <select
                 name="timeline"
-                value={preferences.timeline || ""}
+                value={preferences.timeline}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="short-term">Short-Term (1-2 Weeks)</option>
-                <option value="medium-term">Medium-Term (1-3 Months)</option>
-                <option value="long-term">Long-Term (6-12 Months)</option>
+                <option value="Short-Term (Under 1 Month)">
+                  Short-Term (Under 1 Month)
+                </option>
+                <option value="Medium-Term (1-3 Months)">
+                  Medium-Term (1-3 Months)
+                </option>
+                <option value="Long-Term (Over 3 Months)">
+                  Long-Term (Over 3 Months)
+                </option>
               </select>
             </div>
 
@@ -405,13 +463,16 @@ const EditClientProfile: React.FC = () => {
               <label className="text-gray-700">Artist Experience Level</label>
               <select
                 name="artist_experience_level"
-                value={preferences.artist_experience_level || ""}
+                value={preferences.artist_experience_level}
                 onChange={handlePreferencesChange}
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="beginner-friendly">Beginner Friendly</option>
-                <option value="open-to-all">Open to All</option>
+                <option value="Beginner Friendly">Beginner Friendly</option>
+                <option value="Intermediate to Advanced">
+                  Intermediate to Advanced
+                </option>
+                <option value="Open to All Levels">Open to All Levels</option>
               </select>
             </div>
 
@@ -419,11 +480,19 @@ const EditClientProfile: React.FC = () => {
             <div>
               <label className="text-gray-700">Communication Preferences</label>
               <div className="flex flex-wrap gap-2 mt-1">
-                {["In-app Messaging", "Flexible Communication"].map((method) => (
+                {[
+                  "Email",
+                  "Phone",
+                  "In-app Messaging",
+                  "Video Calls",
+                  "Open to Any Method",
+                ].map((method) => (
                   <button
                     type="button"
                     key={method}
-                    onClick={() => togglePreference("communication_preferences", method)}
+                    onClick={() =>
+                      togglePreference("communication_preferences", method)
+                    }
                     className={`px-4 py-2 rounded-lg border ${
                       preferences.communication_preferences.includes(method)
                         ? "bg-blue-500 text-white border-blue-500"
@@ -440,7 +509,16 @@ const EditClientProfile: React.FC = () => {
             <div>
               <label className="text-gray-700">Project Type</label>
               <div className="flex flex-wrap gap-2 mt-1">
-                {["Personal", "Corporate", "Public Display", "Gift"].map((type) => (
+                {[
+                  "Commissioned Artworks",
+                  "Custom Crafts / Handmade Gifts",
+                  "Illustration / Concept Design",
+                  "Branding / Logo Design",
+                  "Gallery / Showcase Pieces",
+                  "School or Community Projects",
+                  "Personal Art / Hobby Projects",
+                  "Collaborative Group Projects",
+                ].map((type) => (
                   <button
                     type="button"
                     key={type}
@@ -459,7 +537,7 @@ const EditClientProfile: React.FC = () => {
           </div>
         </div>
 
-         {/* Save Button */}
+        {/* Save Button */}
         <div className="text-center flex flex-col md:flex-row md:justify-center md:space-x-4">
           <button
             type="submit"

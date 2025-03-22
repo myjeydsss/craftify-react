@@ -50,12 +50,11 @@ const ArtDetail: React.FC = () => {
           `${import.meta.env.VITE_API_URL}/art/${artId}`
         );
         setArt(response.data);
-        
-          // Set the document title after fetching the art details
-          if (response.data && response.data.artist) {
-            document.title = `${response.data.title} | ${response.data.artist.firstname} ${response.data.artist.lastname}`;
-          }
-  
+
+        // Set the document title after fetching the art details
+        if (response.data && response.data.artist) {
+          document.title = `${response.data.title} | ${response.data.artist.firstname} ${response.data.artist.lastname}`;
+        }
 
         if (user) {
           const wishlistResponse = await axios.get<string[]>(
@@ -87,7 +86,7 @@ const ArtDetail: React.FC = () => {
       alert("Please log in to manage your wishlist.");
       return;
     }
-  
+
     try {
       const action = wishlist ? "remove" : "add";
       await axios.post(`${import.meta.env.VITE_API_URL}/wishlist`, {
@@ -96,13 +95,13 @@ const ArtDetail: React.FC = () => {
         action,
       });
       setWishlist(!wishlist);
-  
+
       // Show toast notification
       Swal.fire({
-        icon: 'success',
-        title: wishlist ? 'Removed from Wishlist' : 'Added to Wishlist',
+        icon: "success",
+        title: wishlist ? "Removed from Wishlist" : "Added to Wishlist",
         toast: true,
-        position: 'top-end',
+        position: "top-end",
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true,
@@ -111,45 +110,47 @@ const ArtDetail: React.FC = () => {
       console.error("Failed to update wishlist:", err);
     }
   };
-  
+
   const handleAddToCart = async () => {
     if (!user) {
       alert("Please log in to add items to your cart.");
       return;
     }
-  
+
     if (!art) {
       alert("Invalid art item.");
       return;
     }
-  
+
     try {
       // Check if the item is already in the cart
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/cart/${user.id}`
       );
       const cartItems = response.data;
-  
-      const itemExists = cartItems.some((item: any) => item.art_id === art.art_id);
-  
+
+      const itemExists = cartItems.some(
+        (item: any) => item.art_id === art.art_id
+      );
+
       if (itemExists) {
         alert("This item is already in your cart.");
         return;
       }
-  
+
       // Proceed to add the item to the cart
       await axios.post(`${import.meta.env.VITE_API_URL}/cart`, {
         userId: user.id,
         artId: art.art_id,
         quantity: selectedQuantity,
       });
-  
+
       // Show toast notification
       Swal.fire({
-        icon: 'success',
-        title: 'Item added to cart!',
+        icon: "success",
+        title: "Item added to cart!",
         toast: true,
-        position: 'top-end',
+        position: "top-end",
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true,
@@ -210,10 +211,14 @@ const ArtDetail: React.FC = () => {
           {/* Art Details */}
           <div className="flex flex-col justify-start space-y-6">
             <h1 className="text-6xl font-bold text-gray-900">{art.title}</h1>
-            <p className="text-lg text-gray-600">{art.description || "No description available."}</p>
+            <p className="text-lg text-gray-600">
+              {art.description || "No description available."}
+            </p>
 
             <div className="border-t border-gray-200 pt-4">
-              <h2 className="text-3xl font-semibold text-gray-800 mb-4">About the Craft</h2>
+              <h2 className="text-3xl font-semibold text-gray-800 mb-4">
+                About the Craft
+              </h2>
               <div className="grid grid-cols-2 gap-4 text-lg">
                 <p className="text-gray-700">
                   <strong>Subject:</strong> {art.subject || "Unknown"}
@@ -225,7 +230,8 @@ const ArtDetail: React.FC = () => {
                   <strong>Art Style:</strong> {art.art_style || "Unknown"}
                 </p>
                 <p className="text-gray-700">
-                  <strong>Year Created:</strong> {new Date(art.created_at).getFullYear()}
+                  <strong>Year Created:</strong>{" "}
+                  {new Date(art.created_at).getFullYear()}
                 </p>
               </div>
             </div>
@@ -287,7 +293,9 @@ const ArtDetail: React.FC = () => {
         {/* Artist Details */}
         {art.artist && (
           <div className="mt-12 bg-gray-100 p-8 rounded-lg shadow-md">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Artist of the Craft</h2>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Artist of the Craft
+            </h2>
             <div className="flex items-center gap-6">
               {art.artist.profile_image ? (
                 <img
@@ -305,7 +313,9 @@ const ArtDetail: React.FC = () => {
                 <h3 className="text-2xl font-bold text-gray-900">
                   {art.artist.firstname} {art.artist.lastname}
                 </h3>
-                <p className="text-lg text-gray-700">{art.artist.address || "No address provided"}</p>
+                <p className="text-lg text-gray-700">
+                  {art.artist.address || "No address provided"}
+                </p>
                 <p className="text-md font-medium text-gray-700">
                   {art.artist.bio || "No bio available."}
                 </p>

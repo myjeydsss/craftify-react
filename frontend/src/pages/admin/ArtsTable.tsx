@@ -98,11 +98,16 @@ const ArtsTable: React.FC = () => {
     setIsImageModalOpen(false);
   };
 
-  const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  const handleOutsideClick = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       closeModal();
     }
-    if (imageModalRef.current && !imageModalRef.current.contains(e.target as Node)) {
+    if (
+      imageModalRef.current &&
+      !imageModalRef.current.contains(e.target as Node)
+    ) {
       closeImageModal();
     }
   };
@@ -112,7 +117,7 @@ const ArtsTable: React.FC = () => {
       setCurrentPage((prev) => prev + 1);
     } else if (direction === "prev" && currentPage > 1) {
       setCurrentPage((prev) => prev - 1);
- }
+    }
   };
 
   const openImageModal = () => {
@@ -129,12 +134,13 @@ const ArtsTable: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-16">
-
-    {/* Header Section */}
-    <div className="text-center mb-8">
-             <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Arts Management</h1>
-             <hr className="border-gray-300 mb-6" />
-           </div>
+      {/* Header Section */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">
+          Arts Management
+        </h1>
+        <hr className="border-gray-300 mb-6" />
+      </div>
 
       {/* Search Bar */}
       <div className="mb-6 flex justify-between">

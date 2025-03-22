@@ -19,10 +19,10 @@ interface CartItem {
 }
 
 const Cart: React.FC = () => {
-        useEffect(() => {
-            document.title = "Art Cart";
-          }, []);
-        
+  useEffect(() => {
+    document.title = "Art Cart";
+  }, []);
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -107,12 +107,13 @@ const Cart: React.FC = () => {
     fetchCartItems();
   }, [user]);
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-gray-50">
-      <ClipLoader color="#3498db" loading={loading} size={80} />
-      <p className="mt-4 text-gray-600">Loading...</p>
-    </div>
-  );  
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <ClipLoader color="#3498db" loading={loading} size={80} />
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    );
 
   if (error) {
     return <div className="text-center py-16 text-red-500">{error}</div>;
@@ -120,9 +121,7 @@ const Cart: React.FC = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-600">
-        Your cart is empty.
-      </div>
+      <div className="text-center py-16 text-gray-600">Your cart is empty.</div>
     );
   }
 
@@ -136,13 +135,15 @@ const Cart: React.FC = () => {
     didOpen: (toast) => {
       toast.onmouseenter = Swal.stopTimer;
       toast.onmouseleave = Swal.resumeTimer;
-    }
+    },
   });
 
   return (
     <div className="min-h-screen px-4 py-16">
       <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
-        <h1 className="text-4xl font-bold text-[#5C0601] mb-8">Your Art Collection</h1>
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-8">
+          Your Art Collection
+        </h1>
         <div className="space-y-6">
           {cartItems.map((item) => (
             <div

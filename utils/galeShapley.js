@@ -3,11 +3,10 @@ function galeShapley(clients, artists) {
   const proposals = {};
   const matches = {};
 
-  // Initialize each artist's preference list safely
+  // Create artist preference map (client_id => rank)
   const artistPreferences = {};
   artists.forEach((artist) => {
     artistPreferences[artist.user_id] = {};
-
     if (artist.preferences && Array.isArray(artist.preferences)) {
       artist.preferences.forEach((clientId, rank) => {
         artistPreferences[artist.user_id][clientId] = rank;
@@ -37,8 +36,9 @@ function galeShapley(clients, artists) {
         freeClients.delete(clientId);
       } else {
         const currentClient = matches[artistId];
-        const currentRank = artistPreferences[artistId][currentClient] || Infinity;
-        const newRank = artistPreferences[artistId][clientId] || Infinity;
+        const currentRank =
+          artistPreferences[artistId][currentClient] ?? Infinity;
+        const newRank = artistPreferences[artistId][clientId] ?? Infinity;
 
         if (newRank < currentRank) {
           matches[artistId] = clientId;

@@ -7,7 +7,12 @@ const AuthRoute: React.FC = () => {
   const location = useLocation();
 
   // Allow access to specific routes without authentication
-  const publicRoutes = ["/login", "/register", "/password-reset", "/update-password"];
+  const publicRoutes = [
+    "/login",
+    "/register",
+    "/password-reset",
+    "/update-password",
+  ];
 
   return publicRoutes.includes(location.pathname) || auth ? (
     <Outlet />

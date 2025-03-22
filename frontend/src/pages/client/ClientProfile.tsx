@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   FaUserCircle,
   FaPalette,
-  FaUser ,
+  FaUser,
   FaMapMarkerAlt,
   FaEdit,
   FaHeart,
@@ -12,7 +12,7 @@ import {
   FaShoppingCart,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
-import TransactionHistory from '../TransactionHistory'; // Adjust the path as necessary
+import TransactionHistory from "../TransactionHistory"; // Adjust the path as necessary
 
 interface ClientProfileData {
   firstname: string;
@@ -50,12 +50,16 @@ interface WishlistItem {
 }
 
 const ClientProfile: React.FC = () => {
-    useEffect(() => {
-        document.title = "My Profile";
-      }, []);
-    
-  const [clientProfile, setClientProfile] = useState<ClientProfileData | null>(null);
-  const [preferences, setPreferences] = useState<ClientPreferences | null>(null);
+  useEffect(() => {
+    document.title = "My Profile";
+  }, []);
+
+  const [clientProfile, setClientProfile] = useState<ClientProfileData | null>(
+    null
+  );
+  const [preferences, setPreferences] = useState<ClientPreferences | null>(
+    null
+  );
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -76,11 +80,12 @@ const ClientProfile: React.FC = () => {
       const API_BASE_URL = import.meta.env.VITE_API_URL;
 
       try {
-        const [profileResponse, preferencesResponse, wishlistResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/client-profile/${user.id}`),
-          axios.get(`${API_BASE_URL}/client-preferences/${user.id}`),
-          axios.get(`${API_BASE_URL}/wishlist/${user.id}`),
-        ]);
+        const [profileResponse, preferencesResponse, wishlistResponse] =
+          await Promise.all([
+            axios.get(`${API_BASE_URL}/client-profile/${user.id}`),
+            axios.get(`${API_BASE_URL}/client-preferences/${user.id}`),
+            axios.get(`${API_BASE_URL}/wishlist/${user.id}`),
+          ]);
 
         setClientProfile(profileResponse.data);
 
@@ -91,7 +96,8 @@ const ClientProfile: React.FC = () => {
           setPreferences({
             ...preferencesData,
             preferred_art_style: preferencesData.preferred_art_style || [],
-            communication_preferences: preferencesData.communication_preferences || [],
+            communication_preferences:
+              preferencesData.communication_preferences || [],
             project_type: preferencesData.project_type || [],
           });
         }
@@ -130,10 +136,17 @@ const ClientProfile: React.FC = () => {
       return;
     }
 
-    if (!window.confirm("Are you sure you want to delete all items from your wishlist?")) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete all items from your wishlist?"
+      )
+    )
+      return;
 
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`);
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`
+      );
       setWishlist([]);
       alert("Wishlist cleared successfully!");
     } catch (err) {
@@ -160,13 +173,18 @@ const ClientProfile: React.FC = () => {
 
   const renderProfile = () => (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-700">Profile Information</h2>
+      <h2 className="text-lg font-semibold text-gray-700">
+        Profile Information
+      </h2>
       {[
         { label: "Bio", value: clientProfile?.bio || "Not provided" },
         { label: "First Name", value: clientProfile?.firstname },
         { label: "Last Name", value: clientProfile?.lastname },
         { label: "Gender", value: clientProfile?.gender || "Not specified" },
-        { label: "Date Of Birth", value: clientProfile?.date_of_birth || "Not specified" },
+        {
+          label: "Date Of Birth",
+          value: clientProfile?.date_of_birth || "Not specified",
+        },
         { label: "Email", value: clientProfile?.email },
         { label: "Role", value: clientProfile?.role },
       ].map(({ label, value }) => (
@@ -189,16 +207,23 @@ const ClientProfile: React.FC = () => {
 
   const renderPreferences = () => (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-700">Client Preferences</h2>
+      <h2 className="text-lg font-semibold text-gray-700">
+        Client Preferences
+      </h2>
       {preferences ? (
         Object.entries(preferences).map(([key, value]) =>
           Array.isArray(value) ? (
             <div key={key} className="border-b pb-2">
-              <h3 className="font-medium text-gray-600 mb-1 capitalize">{key.replace(/_/g, " ")}:</h3>
+              <h3 className="font-medium text-gray-600 mb-1 capitalize">
+                {key.replace(/_/g, " ")}:
+              </h3>
               {value.length ? (
                 <div className="flex flex-wrap gap-2">
                   {value.map((item) => (
-                    <span key={item} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
+                    <span
+                      key={item}
+                      className="bg-gray-200 px-3 py-1 rounded-full text-sm"
+                    >
                       {item}
                     </span>
                   ))}
@@ -209,13 +234,17 @@ const ClientProfile: React.FC = () => {
             </div>
           ) : (
             <div key={key} className="flex justify-between border-b pb-2">
-              <span className="font-medium text-gray-600 capitalize">{key.replace(/_/g, " ")}:</span>
+              <span className="font-medium text-gray-600 capitalize">
+                {key.replace(/_/g, " ")}:
+              </span>
               <span className="text-gray-700">{value || "Not specified"}</span>
             </div>
           )
         )
       ) : (
-        <p className="text-gray-700">You haven't set up your preferences yet.</p>
+        <p className="text-gray-700">
+          You haven't set up your preferences yet.
+        </p>
       )}
       <div className="mt-4 text-right">
         <button
@@ -233,7 +262,10 @@ const ClientProfile: React.FC = () => {
       <h2 className="text-lg font-semibold text-gray-700">Address & Contact</h2>
       {[
         { label: "Address", value: clientProfile?.address || "Not provided" },
-        { label: "Contact Number", value: clientProfile?.phone || "Not provided" },
+        {
+          label: "Contact Number",
+          value: clientProfile?.phone || "Not provided",
+        },
       ].map(({ label, value }) => (
         <div key={label} className="flex justify-between border-b pb-2">
           <span className="font-medium text-gray-600">{label}:</span>
@@ -268,8 +300,8 @@ const ClientProfile: React.FC = () => {
       {wishlist.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wishlist.map((item) => (
-            <div 
-              key={item.art_id} 
+            <div
+              key={item.art_id}
               className="bg-white border rounded-lg shadow hover:shadow-md transition p-4 cursor-pointer"
               onClick={() => handleArtClick(item.art_id)}
             >
@@ -278,11 +310,17 @@ const ClientProfile: React.FC = () => {
                 alt={item.title}
                 className="w-full h-48 object-cover rounded-md mb-2"
               />
-              <h3 className="text-lg font-semibold text-gray-800">{item.title}</h3>
+              <h3 className="text-lg font-semibold text-gray-800">
+                {item.title}
+              </h3>
               <p className="text-sm text-gray-600">
-                {item.artist ? `${item.artist.firstname} ${item.artist.lastname}` : "Unknown Artist"}
+                {item.artist
+                  ? `${item.artist.firstname} ${item.artist.lastname}`
+                  : "Unknown Artist"}
               </p>
-              <p className="text-sm font-bold text-orange-600 mt-2">₱{item.price}</p>
+              <p className="text-sm font-bold text-orange-600 mt-2">
+                ₱{item.price}
+              </p>
             </div>
           ))}
         </div>
@@ -331,7 +369,7 @@ const ClientProfile: React.FC = () => {
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >
-              <FaUser  /> <span>Profile</span>
+              <FaUser /> <span>Profile</span>
             </button>
             <button
               onClick={() => setActiveSection("preferences")}

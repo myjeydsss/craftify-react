@@ -40,10 +40,7 @@ const UserTable: React.FC = () => {
           axios.get(`${API_BASE_URL}/admin/clients`),
         ]);
 
-        const combinedUsers = [
-          ...artistResponse.data,
-          ...clientResponse.data,
-        ];
+        const combinedUsers = [...artistResponse.data, ...clientResponse.data];
 
         setUsers(combinedUsers);
       } catch (error) {
@@ -100,12 +97,13 @@ const UserTable: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-16">
-
-    {/* Header Section */}
-    <div className="text-center mb-8">
-             <h1 className="text-4xl font-bold text-[#5C0601] mb-4">User Management</h1>
-             <hr className="border-gray-300 mb-6" />
-           </div>
+      {/* Header Section */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">
+          User Management
+        </h1>
+        <hr className="border-gray-300 mb-6" />
+      </div>
 
       {/* Search Input */}
       <div className="mb-6">
@@ -123,13 +121,27 @@ const UserTable: React.FC = () => {
         <table className="min-w-full text-sm text-left text-gray-500">
           <thead className="bg-gray-100 text-xs text-gray-700 uppercase">
             <tr>
-              <th scope="col" className="px-6 py-3">Name</th>
-              <th scope="col" className="px-6 py-3">Username</th>
-              <th scope="col" className="px-6 py-3">Email</th>
-              <th scope="col" className="px-6 py-3">Address</th>
-              <th scope="col" className="px-6 py-3">Role</th>
-              <th scope="col" className="px-6 py-3">Verified</th>
-              <th scope="col" className="px-6 py-3">Action</th>
+              <th scope="col" className="px-6 py-3">
+                Name
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Username
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Email
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Address
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Role
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Verified
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>

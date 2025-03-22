@@ -65,9 +65,10 @@ const UserTagList: React.FC = () => {
   };
 
   const filteredUsers = Array.isArray(users)
-    ? users.filter((user) =>
-        user.name.toLowerCase().includes(searchUserTerm.toLowerCase()) ||
-        user.username.toLowerCase().includes(searchUserTerm.toLowerCase())
+    ? users.filter(
+        (user) =>
+          user.name.toLowerCase().includes(searchUserTerm.toLowerCase()) ||
+          user.username.toLowerCase().includes(searchUserTerm.toLowerCase())
       )
     : [];
 
@@ -89,7 +90,6 @@ const UserTagList: React.FC = () => {
     <div className="p-6">
       <header className="bg-white shadow-md p-6 rounded-md mb-6 flex justify-between">
         <h1 className="text-3xl font-bold">User and Tag List</h1>
-       
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

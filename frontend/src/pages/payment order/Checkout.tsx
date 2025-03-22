@@ -8,7 +8,7 @@ interface CartItem {
   id: string;
   art_id: string;
   quantity: number;
-    arts: {
+  arts: {
     user_id: string;
     title: string;
     image_url: string;
@@ -17,10 +17,10 @@ interface CartItem {
 }
 
 const Checkout: React.FC = () => {
-        useEffect(() => {
-            document.title = "Checkout";
-          }, []);
-        
+  useEffect(() => {
+    document.title = "Checkout";
+  }, []);
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,7 +52,9 @@ const Checkout: React.FC = () => {
     // Fetch user details for pre-filling shipping info
     const fetchUserDetails = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/user/${user.id}`);
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/user/${user.id}`
+        );
 
         if (response.status === 200) {
           setShippingInfo({
@@ -82,108 +84,112 @@ const Checkout: React.FC = () => {
     const subtotal = calculateSubtotal();
     const tax = calculateTax(subtotal);
     return subtotal + tax;
-    };
+  };
 
   const clearCart = async (artIds: string[]) => {
     try {
-      console.log('Clearing cart for user:', user?.id, 'with artIds:', artIds); // Debug log
-      
+      console.log("Clearing cart for user:", user?.id, "with artIds:", artIds); // Debug log
+
       await axios.delete(`${import.meta.env.VITE_API_URL}/cart/${user?.id}`, {
         data: { artIds },
         headers: {
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json",
+        },
       });
-      
-      console.log('Cart cleared successfully'); // Debug log
+
+      console.log("Cart cleared successfully"); // Debug log
     } catch (err) {
-      console.error("Error clearing cart:",err);
+      console.error("Error clearing cart:", err);
     }
   };
 
-  
-    const handlePayment = async () => {
-        try {
-            const totalAmount = calculateTotalPrice() * 100; // Convert to cents
+  const handlePayment = async () => {
+    try {
+      const totalAmount = calculateTotalPrice() * 100; // Convert to cents
 
-            if (!cartItems.length) {
-                setError('No items in cart');
-                return;
-            }
+      if (!cartItems.length) {
+        setError("No items in cart");
+        return;
+      }
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, {
-                amount: totalAmount,
-                currency: 'PHP',
-                description: 'Purchase from Craftify',
-                email: user?.email,
-                name: user?.email
-            });
-
-            const checkoutUrl = response.data;
-
-            await axios.post(`${import.meta.env.VITE_API_URL}/order`, {
-                user_id: user?.id,
-                status: 'pending',
-                user_email: user?.email,
-                user_name: user?.email,
-                amount: totalAmount,
-                description: 'Purchase from Craftify',
-                payment_intent_id: response.data.payment_intent_id,
-                checkout_url: checkoutUrl,
-            });
-
-            // Step 3: Notify user and artist
-            await handleNotification();
-
-            // Step 4: Clear cart before opening payment window
-            const artIds = cartItems.map(item => item.art_id);
-            await clearCart(artIds);
-
-            // Redirect user to payment page
-            window.location.href = checkoutUrl;
-
-        } catch (error) {
-            console.error('Error during checkout:', error);
-            setError('Failed to process checkout. Please try again.');
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/create-checkout-session`,
+        {
+          amount: totalAmount,
+          currency: "PHP",
+          description: "Purchase from Craftify",
+          email: user?.email,
+          name: user?.email,
         }
-    };
-    const handleArtistNotification = async (artistId: string) => {
-        try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/notifications`, {
-                user_id: artistId,
-                message: "Your art has been sold successfully.",
-                type: "success"
-            });
-        } catch (err) {
-            console.error("Error creating artist notification:", err);
-        }
-    };
+      );
 
-    const handleNotification = async () => {
-        try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/notifications`, {
-                user_id: user?.id,
-                message: "Your order has been placed successfully.",
-                type: "success"
-            });
+      const checkoutUrl = response.data;
 
-            // Notify each artist
-            const artistIds = [...new Set(cartItems.map(item => item.arts.user_id))];
-            for (const artistId of artistIds) {
-                await handleArtistNotification(artistId);
-                console.log(`artist user id = ${artistId}`); // Debug log
+      await axios.post(`${import.meta.env.VITE_API_URL}/order`, {
+        user_id: user?.id,
+        status: "pending",
+        user_email: user?.email,
+        user_name: user?.email,
+        amount: totalAmount,
+        description: "Purchase from Craftify",
+        payment_intent_id: response.data.payment_intent_id,
+        checkout_url: checkoutUrl,
+      });
 
-            }
-        } catch (err) {
-            console.error("Error creating notification:", err);
-        }
-    };
-    if (loading) return (
+      // Step 3: Notify user and artist
+      await handleNotification();
+
+      // Step 4: Clear cart before opening payment window
+      const artIds = cartItems.map((item) => item.art_id);
+      await clearCart(artIds);
+
+      // Redirect user to payment page
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      console.error("Error during checkout:", error);
+      setError("Failed to process checkout. Please try again.");
+    }
+  };
+  const handleArtistNotification = async (artistId: string) => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/notifications`, {
+        user_id: artistId,
+        message: "Your art has been sold successfully.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Error creating artist notification:", err);
+    }
+  };
+
+  const handleNotification = async () => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/notifications`, {
+        user_id: user?.id,
+        message: "Your order has been placed successfully.",
+        type: "success",
+      });
+
+      // Notify each artist
+      const artistIds = [
+        ...new Set(cartItems.map((item) => item.arts.user_id)),
+      ];
+      for (const artistId of artistIds) {
+        await handleArtistNotification(artistId);
+        console.log(`artist user id = ${artistId}`); // Debug log
+      }
+    } catch (err) {
+      console.error("Error creating notification:", err);
+    }
+  };
+  if (loading)
+    return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
         <ClipLoader color="#3498db" loading={loading} size={80} />
         <p className="mt-4 text-gray-600">Loading...</p>
-      </div>);  
-    
+      </div>
+    );
+
   if (error) {
     return <div className="text-center py-16 text-red-500">{error}</div>;
   }
@@ -222,7 +228,10 @@ const Checkout: React.FC = () => {
                   type="text"
                   value={shippingInfo.fullname}
                   onChange={(e) =>
-                    setShippingInfo({ ...shippingInfo, fullname: e.target.value })
+                    setShippingInfo({
+                      ...shippingInfo,
+                      fullname: e.target.value,
+                    })
                   }
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your full name"
@@ -288,7 +297,10 @@ const Checkout: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-lg font-bold text-gray-900">
-                  ₱{(parseFloat(item.arts.price) * item.quantity).toLocaleString()}
+                  ₱
+                  {(
+                    parseFloat(item.arts.price) * item.quantity
+                  ).toLocaleString()}
                 </p>
               </div>
             ))}

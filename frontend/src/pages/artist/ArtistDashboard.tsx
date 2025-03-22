@@ -35,7 +35,7 @@ const ArtistDashboard: React.FC = () => {
   const [arts, setArts] = useState<Art[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const artworksDisplayed = 4; 
+  const artworksDisplayed = 4;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,8 +73,12 @@ const ArtistDashboard: React.FC = () => {
     <div className="container mx-auto px-4 py-16">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Welcome to Craftify!</h1>
-        <p className="text-gray-500 mb-5">Explore, manage, and showcase your art.</p>
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">
+          Welcome to Craftify!
+        </h1>
+        <p className="text-gray-500 mb-5">
+          Explore, manage, and showcase your art.
+        </p>
         <hr className="border-gray-300 mb-6" />
       </div>
 
@@ -85,7 +89,9 @@ const ArtistDashboard: React.FC = () => {
           onClick={() => navigate("/browse-artists")}
         >
           <FaUsers className="text-5xl text-blue-500" />
-          <h2 className="text-xl font-bold text-gray-700 mt-4">Browse Artists</h2>
+          <h2 className="text-xl font-bold text-gray-700 mt-4">
+            Browse Artists
+          </h2>
           <p className="mt-2 text-gray-500 text-center">
             Discover and collaborate with fellow artists.
           </p>
@@ -96,7 +102,9 @@ const ArtistDashboard: React.FC = () => {
           onClick={() => navigate("/browse-clients")}
         >
           <FaUserTie className="text-5xl text-green-500" />
-          <h2 className="text-xl font-bold text-gray-700 mt-4">Browse Clients</h2>
+          <h2 className="text-xl font-bold text-gray-700 mt-4">
+            Browse Clients
+          </h2>
           <p className="mt-2 text-gray-500 text-center">
             Find potential clients looking for your work.
           </p>
@@ -114,39 +122,41 @@ const ArtistDashboard: React.FC = () => {
         </div>
       </div>
 
-     {/* Artworks Section */}
-<div className="bg-white shadow-md rounded-lg p-8 mb-12 mt-8">
-  <div className="flex justify-between items-center mb-6">
-    <h2 className="text-2xl font-semibold text-gray-900">Artworks</h2>
-    <Link to="/browse-arts" className="text-orange-500 hover:underline">
-      View More Arts
-    </Link>
-  </div>
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-    {arts.slice(0, artworksDisplayed).map((art) => (
-      <div
-        key={art.art_id}
-        className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 transform hover:-translate-y-1"
-      >
-        <img
-          src={art.image_url ?? "https://via.placeholder.com/300"} // Use a placeholder if null
-          alt={art.title || "Artwork"}
-          className="w-full h-40 sm:h-60 object-cover transition-transform duration-300 transform hover:scale-105"
-        />
-        <div className="p-4">
-          <h3 className="text-lg font-bold text-gray-800">{art.title}</h3>
-          <p className="text-gray-600">₱{parseFloat(art.price).toLocaleString()}</p>
-          <Link
-            to={`/art/${art.art_id}`}
-            className="block mt-4 text-center bg-orange-100 text-orange-800 px-4 py-2 rounded-md hover:bg-orange-200 transition"
-          >
-            View Details
+      {/* Artworks Section */}
+      <div className="bg-white shadow-md rounded-lg p-8 mb-12 mt-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900">Artworks</h2>
+          <Link to="/browse-arts" className="text-orange-500 hover:underline">
+            View More Arts
           </Link>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {arts.slice(0, artworksDisplayed).map((art) => (
+            <div
+              key={art.art_id}
+              className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 transform hover:-translate-y-1"
+            >
+              <img
+                src={art.image_url ?? "https://via.placeholder.com/300"} // Use a placeholder if null
+                alt={art.title || "Artwork"}
+                className="w-full h-40 sm:h-60 object-cover transition-transform duration-300 transform hover:scale-105"
+              />
+              <div className="p-4">
+                <h3 className="text-lg font-bold text-gray-800">{art.title}</h3>
+                <p className="text-gray-600">
+                  ₱{parseFloat(art.price).toLocaleString()}
+                </p>
+                <Link
+                  to={`/art/${art.art_id}`}
+                  className="block mt-4 text-center bg-orange-100 text-orange-800 px-4 py-2 rounded-md hover:bg-orange-200 transition"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-  </div>
-</div>
     </div>
   );
 };

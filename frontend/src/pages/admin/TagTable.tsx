@@ -61,16 +61,16 @@ const TagTable: React.FC = () => {
       Swal.fire("Error", "Tag name cannot be empty", "error");
       return;
     }
-  
+
     try {
       // Remove `response` if it is not used
       await axios.post(`${API_BASE_URL}/tags`, { name: newTagName });
-  
+
       // Refetch the tags list after adding a new tag to ensure table refresh
       const updatedTagsResponse = await axios.get(`${API_BASE_URL}/tags`);
       setTags(updatedTagsResponse.data || []);
       setNewTagName(""); // Clear the input field
-  
+
       Swal.fire("Success", "Tag added successfully!", "success");
     } catch (error: any) {
       if (error.response?.data?.error === "Tag already exists") {
@@ -112,7 +112,9 @@ const TagTable: React.FC = () => {
     }
 
     try {
-      await axios.put(`${API_BASE_URL}/tags/${editingTag.id}`, { name: editingTag.name });
+      await axios.put(`${API_BASE_URL}/tags/${editingTag.id}`, {
+        name: editingTag.name,
+      });
 
       const updatedTagsResponse = await axios.get(`${API_BASE_URL}/tags`);
       setTags(updatedTagsResponse.data || []); // Refetch tags after editing
@@ -146,12 +148,13 @@ const TagTable: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-16">
-
-    {/* Header Section */}
-    <div className="text-center mb-8">
-             <h1 className="text-4xl font-bold text-[#5C0601] mb-4">Tag Management</h1>
-             <hr className="border-gray-300 mb-6" />
-           </div>
+      {/* Header Section */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-4">
+          Tag Management
+        </h1>
+        <hr className="border-gray-300 mb-6" />
+      </div>
 
       {/* Search and Add Tag Row */}
       <div className="flex items-center space-x-4 mb-6">
@@ -182,9 +185,15 @@ const TagTable: React.FC = () => {
         <table className="min-w-full text-sm text-left text-gray-500">
           <thead className="bg-gray-100 text-xs text-gray-700 uppercase">
             <tr>
-              <th scope="col" className="px-6 py-3">ID</th>
-              <th scope="col" className="px-6 py-3">Tag Name</th>
-              <th scope="col" className="px-6 py-3">Action</th>
+              <th scope="col" className="px-6 py-3">
+                ID
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Tag Name
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>

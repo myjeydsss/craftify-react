@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import { supabase } from "../../client"; // Adjust the import based on your setup
 import { User } from "@supabase/supabase-js";
 
@@ -6,9 +12,14 @@ interface AuthContextType {
   auth: boolean;
   user: User | null;
   token: string | null;
-  login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string; userId?: string }>;
+  login: (
+    identifier: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string; userId?: string }>;
   signOut: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>; // Add this line
+  updatePassword: (
+    newPassword: string
+  ) => Promise<{ success: boolean; error?: string }>; // Add this line
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,7 +37,7 @@ interface AuthProviderProps {
 }
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser ] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [auth, setAuth] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +46,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const fetchSession = async () => {
       const { data } = await supabase.auth.getSession();
       const currentSession = data?.session;
-      setUser (currentSession?.user || null);
+      setUser(currentSession?.user || null);
       setToken(currentSession?.access_token || null);
       setAuth(!!currentSession?.user);
       setLoading(false);
@@ -43,24 +54,29 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     fetchSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN") {
-        setUser (session?.user || null);
-        setToken(session?.access_token || null);
-        setAuth(true);
-      } else if (event === "SIGNED_OUT") {
-        setUser (null);
-        setToken(null);
-        setAuth(false);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN") {
+          setUser(session?.user || null);
+          setToken(session?.access_token || null);
+          setAuth(true);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setToken(null);
+          setAuth(false);
+        }
       }
-    });
+    );
 
     return () => {
       authListener?.subscription?.unsubscribe();
     };
   }, []);
 
-  const login = async (identifier: string, password: string): Promise<{ success: boolean; error?: string; userId?: string }> => {
+  const login = async (
+    identifier: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string; userId?: string }> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: identifier,
@@ -80,14 +96,18 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setUser (null);
+    setUser(null);
     setToken(null);
     setAuth(false);
   };
 
-  const updatePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+  const updatePassword = async (
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { error } = await supabase.auth.updateUser ({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
       if (error) {
         return { success: false, error: error.message };
       }
@@ -98,7 +118,9 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ auth, user, token, login, signOut, updatePassword }}>
+    <AuthContext.Provider
+      value={{ auth, user, token, login, signOut, updatePassword }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );

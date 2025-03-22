@@ -11,7 +11,9 @@ const Modal: React.FC<ModalProps> = ({ show, onClose, children }) => {
 
   if (!show) return null;
 
-  const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  const handleOutsideClick = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       onClose();
     }
@@ -38,9 +40,7 @@ const Modal: React.FC<ModalProps> = ({ show, onClose, children }) => {
         </div>
 
         {/* Modal Body */}
-        <div className="flex flex-col overflow-y-auto">
-          {children}
-        </div>
+        <div className="flex flex-col overflow-y-auto">{children}</div>
       </div>
     </div>
   );

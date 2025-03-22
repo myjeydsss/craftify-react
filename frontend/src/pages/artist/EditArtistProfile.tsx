@@ -37,10 +37,10 @@ interface Preferences {
 }
 
 const EditArtistProfile: React.FC = () => {
-    useEffect(() => {
-        document.title = "Edit Profile";
-      }, []);
-    
+  useEffect(() => {
+    document.title = "Edit Profile";
+  }, []);
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -88,31 +88,45 @@ const EditArtistProfile: React.FC = () => {
         setError(null);
 
         // Fetch artist profile
-        const profileResponse = await axios.get(`${API_BASE_URL}/artist-profile/${user.id}`);
+        const profileResponse = await axios.get(
+          `${API_BASE_URL}/artist-profile/${user.id}`
+        );
         setArtistProfile(profileResponse.data);
 
         // Fetch artist preferences
-        const preferencesResponse = await axios.get(`${API_BASE_URL}/artist-preferences/${user.id}`);
+        const preferencesResponse = await axios.get(
+          `${API_BASE_URL}/artist-preferences/${user.id}`
+        );
         setPreferences({
           crafting: preferencesResponse.data?.crafting || "",
-          art_style_specialization: preferencesResponse.data?.art_style_specialization || [],
-          collaboration_type: preferencesResponse.data?.collaboration_type || "",
+          art_style_specialization:
+            preferencesResponse.data?.art_style_specialization || [],
+          collaboration_type:
+            preferencesResponse.data?.collaboration_type || "",
           preferred_medium: preferencesResponse.data?.preferred_medium || [],
-          location_preference: preferencesResponse.data?.location_preference || "",
-          crafting_techniques: preferencesResponse.data?.crafting_techniques || [],
+          location_preference:
+            preferencesResponse.data?.location_preference || "",
+          crafting_techniques:
+            preferencesResponse.data?.crafting_techniques || [],
           budget_range: preferencesResponse.data?.budget_range || "",
           project_type: preferencesResponse.data?.project_type || "",
-          project_type_experience: preferencesResponse.data?.project_type_experience || "",
-          preferred_project_duration: preferencesResponse.data?.preferred_project_duration || "",
+          project_type_experience:
+            preferencesResponse.data?.project_type_experience || "",
+          preferred_project_duration:
+            preferencesResponse.data?.preferred_project_duration || "",
           availability: preferencesResponse.data?.availability || "",
-          client_type_preference: preferencesResponse.data?.client_type_preference || "",
+          client_type_preference:
+            preferencesResponse.data?.client_type_preference || "",
           project_scale: preferencesResponse.data?.project_scale || "",
           portfolio_link: preferencesResponse.data?.portfolio_link || "",
-          preferred_communication: preferencesResponse.data?.preferred_communication || [],
+          preferred_communication:
+            preferencesResponse.data?.preferred_communication || [],
         });
       } catch (err) {
         console.error("Failed to fetch profile or preferences:", err);
-        setError("Failed to load profile or preferences. Please try again later.");
+        setError(
+          "Failed to load profile or preferences. Please try again later."
+        );
       } finally {
         setLoading(false);
       }
@@ -121,12 +135,20 @@ const EditArtistProfile: React.FC = () => {
     fetchData();
   }, [user]);
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleProfileChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
     setArtistProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePreferencesChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handlePreferencesChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
     setPreferences((prev) => ({ ...prev, [name]: value }));
   };
@@ -156,9 +178,13 @@ const EditArtistProfile: React.FC = () => {
     formData.append("file", imageFile);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/upload-profile-image/${user.id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/upload-profile-image/${user.id}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
       return response.data.fileName || null;
     } catch (error) {
@@ -208,10 +234,15 @@ const EditArtistProfile: React.FC = () => {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {error && <div className="text-red-500 text-center mb-4">{error}</div>}
-      <form onSubmit={handleSave} className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6">
+      <form
+        onSubmit={handleSave}
+        className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6"
+      >
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-3xl font-semibold text-[#5C0601] mb-4">My Profile</h2>
+          <h2 className="text-3xl font-semibold text-[#5C0601] mb-4">
+            My Profile
+          </h2>
           <hr className="border-gray-300 mb-6" />
         </div>
 
@@ -328,7 +359,9 @@ const EditArtistProfile: React.FC = () => {
 
         {/* Preferences Section */}
         <div>
-          <h3 className="text-2xl font-semibold text-gray-800 mb-4">Preferences</h3>
+          <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+            Preferences
+          </h3>
           <div className="space-y-6">
             {/* Crafting */}
             <div>
@@ -340,9 +373,15 @@ const EditArtistProfile: React.FC = () => {
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="Digital Art & Crafting">Digital Art & Crafting</option>
-                <option value="Traditional / Physical Art">Traditional / Physical Art</option>
-                <option value="Mixed Media & Crafts">Mixed Media & Crafts</option>
+                <option value="Digital Art & Crafting">
+                  Digital Art & Crafting
+                </option>
+                <option value="Traditional / Physical Art">
+                  Traditional / Physical Art
+                </option>
+                <option value="Mixed Media & Crafts">
+                  Mixed Media & Crafts
+                </option>
                 <option value="Open to All Media">Open to All Media</option>
               </select>
             </div>
@@ -352,19 +391,42 @@ const EditArtistProfile: React.FC = () => {
               <label className="text-gray-700">Art Style Specialization</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {[
-                  "Traditional & Physical Art (Paintings & Drawings)",
+                  "Realism",
+                  "Portraiture",
+                  "Abstract",
+                  "Expressionism",
+                  "Anime",
+                  "Manga",
+                  "Cartoon",
+                  "Comic Art",
+                  "Fantasy",
+                  "Sci-Fi",
+                  "Nature Art",
+                  "Botanical Illustration",
+                  "Geometric Patterns",
+                  "Pattern-Based Art",
+                  "Pop Art",
+                  "Urban Style",
+                  "Traditional Art (Paintings & Drawings)",
                   "Digital Art & Illustrations",
-                  "Sculpture & 3D Art",
-                  "Furniture & Woodworking",
-                  "Handmade Crafts & DIY",
-                  "Other / Beginner-Friendly",
+                  "Sculpture",
+                  "3D Art",
+                  "Furniture Making",
+                  "Woodworking",
+                  "Handmade Crafts",
+                  "DIY Projects",
+                  "Beginner / Exploring Styles",
+                  "Others",
+                  "Open to All Styles",
                 ].map((style) => (
                   <button
                     type="button"
                     key={style}
-                    onClick={() => togglePreference("art_style_specialization", style)}
+                    onClick={() =>
+                      togglePreference("art_style_specialization", style)
+                    }
                     className={`px-4 py-2 rounded-lg border ${
-                      preferences.art_style_specialization?.includes(style)
+                      preferences.art_style_specialization.includes(style)
                         ? "bg-blue-500 text-white border-blue-500"
                         : "border-gray-300 text-gray-700"
                     } hover:bg-blue-500 hover:text-white`}
@@ -396,11 +458,20 @@ const EditArtistProfile: React.FC = () => {
               <label className="text-gray-700">Preferred Medium</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {[
-                  "Paint & Canvas",
-                  "Digital Tools (Tablet, Software)",
-                  "Sculpting & Modeling Materials",
-                  "Wood, Metal, & Craft Materials",
+                  "Pencil & Paper",
+                  "Watercolor",
+                  "Gouache",
+                  "Acrylic Painting",
+                  "Oil Painting",
+                  "Digital Drawing Tools (Tablet, App)",
+                  "Mixed Media / Experimental",
+                  "Craft Supplies (Glue, Paper, Scissors)",
+                  "Sculpting Materials (Clay, Resin)",
+                  "Wood Materials",
+                  "Metal Materials",
                   "Fabric & Textiles",
+                  "Recycled / Found Objects",
+                  "Still Exploring / Beginner",
                   "Flexible / Open to Medium",
                 ].map((medium) => (
                   <button
@@ -408,7 +479,7 @@ const EditArtistProfile: React.FC = () => {
                     key={medium}
                     onClick={() => togglePreference("preferred_medium", medium)}
                     className={`px-4 py-2 rounded-lg border ${
-                      preferences.preferred_medium?.includes(medium)
+                      preferences.preferred_medium.includes(medium)
                         ? "bg-blue-500 text-white border-blue-500"
                         : "border-gray-300 text-gray-700"
                     } hover:bg-blue-500 hover:text-white`}
@@ -430,7 +501,9 @@ const EditArtistProfile: React.FC = () => {
               >
                 <option value="">Select...</option>
                 <option value="Local Only">Local Only</option>
-                <option value="Nationwide / Regional">Nationwide / Regional</option>
+                <option value="Nationwide / Regional">
+                  Nationwide / Regional
+                </option>
                 <option value="International">International</option>
               </select>
             </div>
@@ -439,13 +512,36 @@ const EditArtistProfile: React.FC = () => {
             <div>
               <label className="text-gray-700">Crafting Techniques</label>
               <div className="flex flex-wrap gap-2 mt-1">
-                {["Wood Carving", "Clay Modeling", "Fabric Weaving", "Metal Forging", "Jewelry Making"].map((technique) => (
+                {[
+                  "Drawing",
+                  "Sketching",
+                  "Painting (Acrylic, Oil, Watercolor)",
+                  "Digital Illustration",
+                  "Clay Modeling",
+                  "Pottery",
+                  "Wood Carving",
+                  "Wood Crafting",
+                  "Sewing",
+                  "Embroidery",
+                  "Jewelry Making",
+                  "DIY Jewelry",
+                  "Scrapbooking",
+                  "Papercraft",
+                  "3D Printing",
+                  "3D Modeling",
+                  "Metal Forging",
+                  "Fabric Weaving",
+                  "Recycled Art",
+                  "Eco-Friendly Crafting",
+                ].map((technique) => (
                   <button
                     type="button"
                     key={technique}
-                    onClick={() => togglePreference("crafting_techniques", technique)}
+                    onClick={() =>
+                      togglePreference("crafting_techniques", technique)
+                    }
                     className={`px-4 py-2 rounded-lg border ${
-                      preferences.crafting_techniques?.includes(technique)
+                      preferences.crafting_techniques.includes(technique)
                         ? "bg-blue-500 text-white border-blue-500"
                         : "border-gray-300 text-gray-700"
                     } hover:bg-blue-500 hover:text-white`}
@@ -455,8 +551,9 @@ const EditArtistProfile: React.FC = () => {
                 ))}
               </div>
             </div>
-  {/* Budget Range */}
-  <div>
+
+            {/* Budget Range */}
+            <div>
               <label className="text-gray-700">Budget Range</label>
               <select
                 name="budget_range"
@@ -470,7 +567,9 @@ const EditArtistProfile: React.FC = () => {
                 <option value="5000-10000">₱5,000 - ₱10,000</option>
                 <option value="10000-20000">₱10,000 - ₱20,000</option>
                 <option value="20000-above">₱20,000 and above</option>
-                <option value="Flexible Budget / Open">Flexible Budget / Open</option>
+                <option value="Flexible Budget / Open">
+                  Flexible Budget / Open
+                </option>
               </select>
             </div>
 
@@ -484,10 +583,32 @@ const EditArtistProfile: React.FC = () => {
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="Commissioned Art">Commissioned Art</option>
-                <option value="Gallery Exhibit">Gallery Exhibit</option>
-                <option value="Commercial Project">Commercial Project</option>
-                <option value="Personal Project">Personal Project</option>
+                <option value="Commissioned Artworks">
+                  Commissioned Artworks
+                </option>
+                <option value="Custom Crafts / Handmade Gifts">
+                  Custom Crafts / Handmade Gifts
+                </option>
+                <option value="Illustration / Concept Design">
+                  Illustration / Concept Design
+                </option>
+                <option value="Branding / Logo Design">
+                  Branding / Logo Design
+                </option>
+                <option value="Gallery / Showcase Pieces">
+                  Gallery / Showcase Pieces
+                </option>
+                <option value="School or Community Projects">
+                  School or Community Projects
+                </option>
+                <option value="Personal Art / Hobby Projects">
+                  Personal Art / Hobby Projects
+                </option>
+                <option value="Collaborative Group Projects">
+                  Collaborative Group Projects
+                </option>
+                <option value="Commercial Projects">Commercial Projects</option>
+                <option value="Other / Unlisted">Other / Unlisted</option>
               </select>
             </div>
 
@@ -501,17 +622,39 @@ const EditArtistProfile: React.FC = () => {
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="Personal Commissions">Personal Commissions</option>
-                <option value="Corporate Commissions">Corporate Commissions</option>
-                <option value="Community Art / Installations">Community Art / Installations</option>
-                <option value="Digital Design / Graphics">Digital Design / Graphics</option>
+                <option value="Hobby Art / Personal Projects">
+                  Hobby Art / Personal Projects
+                </option>
+                <option value="Client Work / Commissions">
+                  Client Work / Commissions
+                </option>
+                <option value="Corporate / Brand Projects">
+                  Corporate / Brand Projects
+                </option>
+                <option value="Freelance / Digital Design">
+                  Freelance / Digital Design
+                </option>
+                <option value="Craft Fairs / Handmade Markets">
+                  Craft Fairs / Handmade Markets
+                </option>
+                <option value="Community or School Projects">
+                  Community or School Projects
+                </option>
+                <option value="Gallery or Public Exhibits">
+                  Gallery or Public Exhibits
+                </option>
+                <option value="No Experience Yet / Beginner">
+                  No Experience Yet / Beginner
+                </option>
                 <option value="Open to All Types">Open to All Types</option>
               </select>
             </div>
 
             {/* Preferred Project Duration */}
             <div>
-              <label className="text-gray-700">Preferred Project Duration</label>
+              <label className="text-gray-700">
+                Preferred Project Duration
+              </label>
               <select
                 name="preferred_project_duration"
                 value={preferences.preferred_project_duration}
@@ -519,9 +662,15 @@ const EditArtistProfile: React.FC = () => {
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="Short-Term (Under 1 Month)">Short-Term (Under 1 Month)</option>
-                <option value="Medium-Term (1-3 Months)">Medium-Term (1-3 Months)</option>
-                <option value="Long-Term (Over 3 Months)">Long-Term (Over 3 Months)</option>
+                <option value="Short-Term (Under 1 Month)">
+                  Short-Term (Under 1 Month)
+                </option>
+                <option value="Medium-Term (1-3 Months)">
+                  Medium-Term (1-3 Months)
+                </option>
+                <option value="Long-Term (Over 3 Months)">
+                  Long-Term (Over 3 Months)
+                </option>
               </select>
             </div>
 
@@ -537,7 +686,9 @@ const EditArtistProfile: React.FC = () => {
                 <option value="">Select...</option>
                 <option value="Part-Time">Part-Time</option>
                 <option value="Full-Time">Full-Time</option>
-                <option value="Open to Occasional Projects">Open to Occasional Projects</option>
+                <option value="Open to Occasional Projects">
+                  Open to Occasional Projects
+                </option>
               </select>
             </div>
 
@@ -553,7 +704,9 @@ const EditArtistProfile: React.FC = () => {
                 <option value="">Select...</option>
                 <option value="Individual Clients">Individual Clients</option>
                 <option value="Small Businesses">Small Businesses</option>
-                <option value="Corporate / Organizations">Corporate / Organizations</option>
+                <option value="Corporate / Organizations">
+                  Corporate / Organizations
+                </option>
                 <option value="Open to All Types">Open to All Types</option>
               </select>
             </div>
@@ -591,11 +744,19 @@ const EditArtistProfile: React.FC = () => {
             <div>
               <label className="text-gray-700">Preferred Communication</label>
               <div className="flex flex-wrap gap-2 mt-1">
-                {["Email", "Phone", "In-app Messaging", "Video Calls", "Open to Any Method"].map((method) => (
+                {[
+                  "Email",
+                  "Phone",
+                  "In-app Messaging",
+                  "Video Calls",
+                  "Open to Any Method",
+                ].map((method) => (
                   <button
                     type="button"
                     key={method}
-                    onClick={() => togglePreference("preferred_communication", method)}
+                    onClick={() =>
+                      togglePreference("preferred_communication", method)
+                    }
                     className={`px-4 py-2 rounded-lg border ${
                       preferences.preferred_communication.includes(method)
                         ? "bg-blue-500 text-white border-blue-500"
@@ -610,21 +771,21 @@ const EditArtistProfile: React.FC = () => {
           </div>
         </div>
 
-      {/* Save Button */}
-<div className="text-center flex flex-col md:flex-row md:justify-center md:space-x-4">
-  <button
-    type="submit"
-    className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-200 mb-2 md:mb-0"
-  >
-    Save Changes
-  </button>
-  <Link
-    to="/artist-profile"
-    className="w-full md:w-auto px-6 py-2 bg-gray-500 text-white rounded-lg shadow hover:bg-gray-600 transition duration-200"
-  >
-    Cancel
-  </Link>
-</div>
+        {/* Save Button */}
+        <div className="text-center flex flex-col md:flex-row md:justify-center md:space-x-4">
+          <button
+            type="submit"
+            className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-200 mb-2 md:mb-0"
+          >
+            Save Changes
+          </button>
+          <Link
+            to="/artist-profile"
+            className="w-full md:w-auto px-6 py-2 bg-gray-500 text-white rounded-lg shadow hover:bg-gray-600 transition duration-200"
+          >
+            Cancel
+          </Link>
+        </div>
       </form>
     </div>
   );
