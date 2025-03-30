@@ -209,8 +209,9 @@ const EditArtistProfile: React.FC = () => {
       }
 
       // Ensure only the filename is sent, not the full CDN URL
-      if (uploadedImage.startsWith("http")) {
-        uploadedImage = uploadedImage.split("/").pop() || uploadedImage;
+      // If no image is uploaded or selected, set uploadedImage as an empty string
+      if (!uploadedImage) {
+        uploadedImage = "";
       }
 
       const payload = {
