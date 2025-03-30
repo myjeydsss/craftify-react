@@ -176,16 +176,17 @@ const EditClientProfile: React.FC = () => {
     setLoading(true);
 
     try {
-      let uploadedImage = clientProfile.profile_image;
+      let uploadedImage = clientProfile.profile_image || "";
 
+      // Check if a new image is uploaded
       if (imageFile) {
         const newImage = await uploadImage();
         if (newImage) uploadedImage = newImage;
       }
 
-      // Ensure only the filename is sent, not the full CDN URL
-      if (uploadedImage.startsWith("http")) {
-        uploadedImage = uploadedImage.split("/").pop() || uploadedImage;
+      // If no image is uploaded or selected, set uploadedImage as an empty string
+      if (!uploadedImage) {
+        uploadedImage = "";
       }
 
       const payload = {
