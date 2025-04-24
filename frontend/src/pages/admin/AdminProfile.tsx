@@ -15,7 +15,9 @@ interface AdminProfileData {
 
 const AdminProfile: React.FC = () => {
   const { user } = useAuth(); // Get the user from AuthProvider
-  const [adminProfile, setAdminProfile] = useState<AdminProfileData | null>(null);
+  const [adminProfile, setAdminProfile] = useState<AdminProfileData | null>(
+    null
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -32,7 +34,9 @@ const AdminProfile: React.FC = () => {
     }
 
     try {
-      const { data: sessionData } = await axios.get(`${API_BASE_URL}/admin-profile/${user.id}`);
+      const { data: sessionData } = await axios.get(
+        `${API_BASE_URL}/admin-profile/${user.id}`
+      );
       setAdminProfile(sessionData);
     } catch (err: any) {
       console.error("Error fetching admin profile:", err);
@@ -71,28 +75,40 @@ const AdminProfile: React.FC = () => {
           <FaUserCircle className="w-full h-full text-gray-300" />
         </div>
         <h1 className="text-2xl font-semibold text-gray-800">{`${adminProfile?.firstname} ${adminProfile?.lastname}`}</h1>
-        <p className="text-gray-600 text-lg">{adminProfile?.role || "No role assigned"}</p>
+        <p className="text-gray-600 text-lg">
+          {adminProfile?.role || "No role assigned"}
+        </p>
       </div>
 
       {/* Profile Details Section */}
       <div className="mt-8 bg-white shadow-lg rounded-lg p-6 w-full max-w-3xl mx-auto">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">Profile Details</h2>
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">
+          Profile Details
+        </h2>
         <div className="space-y-4">
           <div className="flex justify-between border-b pb-2">
             <span className="font-medium text-gray-600">Firstname:</span>
-            <span className="text-gray-700">{adminProfile?.firstname || "No username available"}</span>
+            <span className="text-gray-700">
+              {adminProfile?.firstname || "No username available"}
+            </span>
           </div>
           <div className="flex justify-between border-b pb-2">
             <span className="font-medium text-gray-600">Lastname:</span>
-            <span className="text-gray-700">{adminProfile?.lastname || "No username available"}</span>
+            <span className="text-gray-700">
+              {adminProfile?.lastname || "No username available"}
+            </span>
           </div>
           <div className="flex justify-between border-b pb-2">
             <span className="font-medium text-gray-600">Role:</span>
-            <span className="text-gray-700">{adminProfile?.role || "No username available"}</span>
+            <span className="text-gray-700">
+              {adminProfile?.role || "No username available"}
+            </span>
           </div>
           <div className="flex justify-between border-b pb-2">
             <span className="font-medium text-gray-600">Username:</span>
-            <span className="text-gray-700">{adminProfile?.username || "No username available"}</span>
+            <span className="text-gray-700">
+              {adminProfile?.username || "No username available"}
+            </span>
           </div>
           <div className="flex justify-between border-b pb-2">
             <span className="font-medium text-gray-600">Email:</span>

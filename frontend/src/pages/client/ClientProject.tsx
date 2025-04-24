@@ -21,7 +21,8 @@ interface Project {
   priority: string;
   proposal_id: string;
   budget?: string;
-  senderProfile?: any;
+  artistProfile?: any;
+  completion_percentage: number;
 }
 
 interface Proposal {
@@ -36,6 +37,14 @@ interface Proposal {
   senderProfile?: any;
 }
 
+interface Milestone {
+  milestone_id: number;
+  milestone_name: string;
+  due_date: string;
+  status: string;
+  completion_percentage: number;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ClientProject: React.FC = () => {
@@ -43,12 +52,18 @@ const ClientProject: React.FC = () => {
     document.title = "My Projects";
   }, []);
 
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [showMilestoneSidebar, setShowMilestoneSidebar] = useState(false);
+  const [showProjectDetails, setShowProjectDetails] = useState(false);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(
     null
   );
-  const [activeView, setActiveView] = useState<"Board" | "List">("Board");
+  const [activeView, setActiveView] = useState<"Board" | "List" | "Milestones">(
+    "Board"
+  );
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { user } = useAuth();
 
@@ -225,21 +240,22 @@ const ClientProject: React.FC = () => {
     }
   };
 
+  // View Project Details
   const handleViewDetails = async (project: Project) => {
     try {
       setSelectedProject(project);
+      setShowProjectDetails(true); // Open project details modal
 
       const response = await axios.get(
-        `${API_BASE_URL}/api/projects/${project.project_id}/details`
+        `${API_BASE_URL}/api/projects/${project.project_id}/artist_project_details`
       );
 
       if (response.data) {
         const updatedProject: Project = {
           ...project,
           budget: response.data.budget,
-          senderProfile: response.data.senderProfile,
+          artistProfile: response.data.artistProfile,
         };
-
         setSelectedProject(updatedProject);
       } else {
         console.error("Error fetching project details:", response);
@@ -248,6 +264,81 @@ const ClientProject: React.FC = () => {
       console.error("Error fetching project details:", err);
     }
   };
+
+  // Project Progress Status
+  useEffect(() => {
+    const fetchInProgressProjects = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/api/projects/in-progress-with-milestones`
+        );
+
+        if (Array.isArray(response.data)) {
+          setProjects((prevProjects) =>
+            prevProjects.map((p) => {
+              const matchingProject = response.data.find(
+                (inProgress: any) => inProgress.project_id === p.project_id
+              );
+              if (matchingProject) {
+                const milestones = matchingProject.milestones || [];
+                const totalCompletion = milestones.reduce(
+                  (acc: number, m: any) => acc + (m.completion_percentage || 0),
+                  0
+                );
+                const averageCompletion = milestones.length
+                  ? Math.round(totalCompletion / milestones.length)
+                  : 0;
+                return { ...p, completion_percentage: averageCompletion };
+              }
+              return p; // Leave other projects untouched
+            })
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching in-progress projects:", err);
+      }
+    };
+
+    fetchInProgressProjects();
+  }, [user]);
+
+  // Fetch Milestones
+  useEffect(() => {
+    const fetchMilestones = async () => {
+      if (!selectedProject) return;
+
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/api/projects/${selectedProject.project_id}/milestones`
+        );
+        setMilestones(response.data);
+      } catch (err) {
+        console.error("Error fetching milestones:", err);
+      }
+    };
+
+    fetchMilestones();
+  }, [selectedProject]); // Refetch milestones when the project changes
+
+  // Pagination for List View
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // Customize how many projects per page
+
+  // Pagination logic for List View
+  const indexOfLastProject = currentPage * itemsPerPage;
+  const indexOfFirstProject = indexOfLastProject - itemsPerPage;
+  const currentProjects = projects.slice(
+    indexOfFirstProject,
+    indexOfLastProject
+  );
+
+  const totalPages = Math.ceil(projects.length / itemsPerPage);
+
+  // Pagination for Milestone View
+  const [currentMilestonePage, setCurrentMilestonePage] = useState(1);
+  const milestonesPerPage = 5; // Customize how many projects per page in Milestone View
 
   return (
     <div className="container mx-auto px-4 py-16">
@@ -325,12 +416,14 @@ const ClientProject: React.FC = () => {
       </div>
 
       {/* View Options */}
-      <div className="flex justify-center mb-8 space-x-4">
-        {["Board", "List"].map((view) => (
+      <div className="flex flex-col sm:flex-row justify-center mb-8 space-y-4 sm:space-y-0 sm:space-x-4">
+        {["Board", "List", "Milestones"].map((view) => (
           <button
             key={view}
-            onClick={() => setActiveView(view as "Board" | "List")}
-            className={`flex items-center py-3 px-6 font-semibold rounded-lg shadow-md transition duration-300 ${
+            onClick={() =>
+              setActiveView(view as "Board" | "List" | "Milestones")
+            }
+            className={`flex items-center justify-center py-3 px-6 font-semibold rounded-lg shadow-md transition duration-300 ${
               activeView === view
                 ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -338,13 +431,16 @@ const ClientProject: React.FC = () => {
           >
             {view === "Board" ? (
               <FaTh className="mr-2" />
-            ) : (
+            ) : view === "List" ? (
               <FaList className="mr-2" />
+            ) : (
+              <FaRegClock className="mr-2" />
             )}
             {view}
           </button>
         ))}
       </div>
+
       <hr className="border-gray-300 mb-6" />
 
       {/* Board View */}
@@ -427,6 +523,7 @@ const ClientProject: React.FC = () => {
           </div>
         </div>
       )}
+
       {/* List View */}
       {activeView === "List" && (
         <div>
@@ -447,7 +544,7 @@ const ClientProject: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {projects.map((project) => (
+                  {currentProjects.map((project) => (
                     <tr
                       key={project.project_id}
                       className="border-b hover:bg-gray-100 transition duration-200"
@@ -484,13 +581,225 @@ const ClientProject: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              <div className="flex justify-center mt-4 space-x-2">
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentPage(index + 1)}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === index + 1
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Milestone View */}
+      {activeView === "Milestones" && (
+        <div className="container mx-auto px-4 py-8">
+          {projects.filter((p) => p.status?.toLowerCase() === "in progress")
+            .length > 0 ? (
+            <>
+              {projects
+                .filter((p) => p.status?.toLowerCase() === "in progress")
+                .slice(
+                  (currentMilestonePage - 1) * milestonesPerPage,
+                  currentMilestonePage * milestonesPerPage
+                )
+                .map((project) => (
+                  <div
+                    key={project.project_id}
+                    className="mb-8 bg-white rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-300"
+                  >
+                    {/* Project Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
+                      <div>
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-800">
+                          {project.project_name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {project.description ||
+                            "No project description available."}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 uppercase">
+                          In Progress
+                        </span>
+                        <span
+                          className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                            project.priority === "High"
+                              ? "bg-red-100 text-red-700"
+                              : project.priority === "Normal"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {project.priority} Priority
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                      <div className="flex-1 mr-0 sm:mr-4">
+                        <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">
+                          Overall Progress
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full ${
+                              project.completion_percentage || 0
+                                ? "bg-green-500"
+                                : "bg-blue-500"
+                            }`}
+                            style={{
+                              width: `${project.completion_percentage || 0}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 mt-2 sm:mt-0">
+                        {`${project.completion_percentage || 0}%`} Complete
+                      </span>
+                    </div>
+
+                    {/* View Milestone Button */}
+                    <div className="text-right">
+                      <button
+                        onClick={async () => {
+                          if (showProjectDetails) setShowProjectDetails(false); // Close the other modal first
+                          setSelectedProject(project);
+                          try {
+                            const response = await axios.get(
+                              `${API_BASE_URL}/api/projects/${project.project_id}/milestones`
+                            );
+                            setMilestones(response.data);
+                            setShowMilestoneSidebar(true);
+                          } catch (err) {
+                            console.error("Error fetching milestones:", err);
+                          }
+                        }}
+                        className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-2 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition duration-300"
+                      >
+                        View Milestone Stages
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              {/* Pagination Controls */}
+              <div className="flex justify-center mt-6 space-x-2">
+                {Array.from({
+                  length: Math.ceil(
+                    projects.filter(
+                      (p) => p.status?.toLowerCase() === "in progress"
+                    ).length / milestonesPerPage
+                  ),
+                }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentMilestonePage(index + 1)}
+                    className={`px-3 py-1 rounded ${
+                      currentMilestonePage === index + 1
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center text-gray-600 text-lg mt-12">
+              <p className="text-xl sm:text-2xl font-semibold mb-2">
+                No Projects In Progress
+              </p>
+              <p className="text-sm text-gray-500">
+                Once a project moves to "In Progress," you'll see it here.
+              </p>
+            </div>
+          )}
+
+          {/* Milestone Modal */}
+          {showMilestoneSidebar && selectedProject && !showProjectDetails && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300 ease-out">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-2xl w-11/12 sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 relative transform scale-95 animate-fadeIn max-h-[90vh] flex flex-col">
+                {/* Modal Header */}
+                <div className="sticky top-0 bg-white pb-4 border-b mb-4 z-0">
+                  <h3 className="text-xl sm:text-2xl font-bold text-center text-gray-800">
+                    Milestone Stages -{" "}
+                    <span className="text-[#5C0601]">
+                      {selectedProject.project_name}
+                    </span>
+                  </h3>
+                </div>
+
+                {/* Milestone Table */}
+                <div className="overflow-y-auto">
+                  <table className="w-full text-sm table-fixed border-collapse">
+                    <thead className="bg-gray-100">
+                      <tr className="text-left text-gray-600 text-xs sm:text-sm">
+                        <th className="py-2 px-3 sm:px-4 w-1/3">Stage</th>
+                        <th className="py-2 px-3 sm:px-4 w-1/4">Due Date</th>
+                        <th className="py-2 px-3 sm:px-4 w-1/4">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {milestones.map((milestone) => (
+                        <tr
+                          key={milestone.milestone_id}
+                          className="border-t hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="py-3 px-3 sm:px-4">
+                            {milestone.milestone_name}
+                          </td>
+                          <td className="py-3 px-3 sm:px-4">
+                            {milestone.due_date}
+                          </td>
+                          <td className="py-3 px-3 sm:px-4">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-semibold ${
+                                milestone.status === "Completed"
+                                  ? "bg-green-100 text-green-700"
+                                  : milestone.status === "In Progress"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {milestone.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Close Button */}
+                <div className="text-center mt-8">
+                  <button
+                    onClick={() => setShowMilestoneSidebar(false)}
+                    className="px-8 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Project Details Modal */}
-      {selectedProject && (
+      {showProjectDetails && selectedProject && !showMilestoneSidebar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full relative">
             {/* Close Button */}
@@ -562,15 +871,15 @@ const ClientProject: React.FC = () => {
               </div>
 
               {/* Sender Details Section */}
-              {selectedProject.senderProfile && (
+              {selectedProject.artistProfile && (
                 <div className="border-t pt-4 mt-4">
                   <h4 className="text-lg font-semibold text-gray-800 mb-2">
                     Sender Information
                   </h4>
                   <div className="flex items-center mb-2">
-                    {selectedProject.senderProfile.profile_image ? (
+                    {selectedProject.artistProfile.profile_image ? (
                       <img
-                        src={selectedProject.senderProfile.profile_image}
+                        src={selectedProject.artistProfile.profile_image}
                         alt="Sender Profile"
                         className="w-16 h-16 rounded-full object-cover border border-gray-200 mr-4"
                       />
@@ -579,16 +888,16 @@ const ClientProject: React.FC = () => {
                     )}
                     <div>
                       <p className="text-base font-medium text-gray-900">
-                        {selectedProject.senderProfile.firstname}{" "}
-                        {selectedProject.senderProfile.lastname}
+                        {selectedProject.artistProfile.firstname}{" "}
+                        {selectedProject.artistProfile.lastname}
                       </p>
                       <p className="text-sm text-gray-600">
                         <strong>Address:</strong>{" "}
-                        {selectedProject.senderProfile.address ||
+                        {selectedProject.artistProfile.address ||
                           "No address available"}
                       </p>
                       <Link
-                        to={`/profile/${selectedProject.senderProfile.profileType}/${selectedProject.senderProfile.user_id}`}
+                        to={`/profile/${selectedProject.artistProfile.profileType}/${selectedProject.artistProfile.user_id}`}
                         className="text-blue-500 hover:underline text-sm mt-2"
                       >
                         View Profile

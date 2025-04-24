@@ -6,7 +6,8 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
-const { galeShapley } = require("./utils/galeShapley");
+const { galeShapleyArtist } = require("./utils/galeShapleyArtist");
+const { galeShapleyClient } = require("./utils/galeShapleyClient");
 
 const app = express();
 const PORT = process.env.PORT || 8081;
@@ -127,9 +128,7 @@ app.post("/login", async (req, res) => {
   const { identifier, password } = req.body;
 
   if (!identifier || !password) {
-    return res
-      .status(400)
-      .json({ error: "Email/username and password are required." });
+    return res.status(400).json({ error: "Email and password are required." });
   }
 
   try {
@@ -2142,21 +2141,72 @@ app.post("/order", async (req, res) => {
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
 
 // ***** BROWSE ARTIST MATCHING ALGORITHM ******
-// Utility function reused
-function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
+
+// Utility function to ensure the preferences are parsed as arrays
+function ensureArray(data) {
+  if (Array.isArray(data)) {
+    return data;
+  }
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("Error parsing data as array:", e);
+    return [];
+  }
+}
+
+// Utility function to normalize and map similar art styles
+function normalizeArtStyle(style) {
+  const styleMap = {
+    "Geometric Art": "Geometric Patterns",
+    "Pattern-Based Design": "Pattern-Based Art",
+    "Craft & Handmade Art": "Handmade Crafts",
+    Sculpture: "3D Art",
+    Statues: "3D Art",
+    "Digital Art & Illustrations": "Digital Art & Illustrations",
+    "Beginner / Exploring Styles": "Beginner / Exploring Styles",
+    "Open to All Styles": "Open to All Styles",
+    "Furniture Making": "Handmade Crafts",
+    Woodworking: "Handmade Crafts",
+    "DIY Projects": "Handmade Crafts",
+    Others: "Open to All Styles",
+    Minimalist: "Modern Art",
+    "Modern Art": "Modern Art",
+  };
+  return styleMap[style] || style;
+}
+
+// ***** Calculate Score based on Preferences ******
+function calculateScore(clientPrefs, artistPrefs) {
   let score = 0;
 
   try {
-    // 🎨 Art Style Match
-    if (
-      Array.isArray(clientPrefs.preferred_art_style) &&
-      Array.isArray(artistPrefs.art_style_specialization)
-    ) {
-      const overlap = clientPrefs.preferred_art_style.filter((style) =>
-        artistPrefs.art_style_specialization.includes(style)
-      );
-      score += overlap.length * 2;
-    }
+    console.log("Calculating score for artist:");
+    console.log("Client Preferences:", JSON.stringify(clientPrefs));
+    console.log("Artist Preferences:", JSON.stringify(artistPrefs));
+
+    // 🎨 Art Style Match (Improved)
+    const clientStyles = ensureArray(clientPrefs.preferred_art_style).map(
+      normalizeArtStyle
+    );
+    const artistStyles = ensureArray(artistPrefs.art_style_specialization).map(
+      normalizeArtStyle
+    );
+
+    console.log("Client Styles (Processed):", clientStyles);
+    console.log("Artist Styles (Processed):", artistStyles);
+
+    // Improved matching logic to consider each style individually
+    const matchedStyles = clientStyles.filter((style) =>
+      artistStyles.includes(style)
+    );
+
+    const styleScore = matchedStyles.length * 2;
+    score += styleScore;
+    console.log(
+      `Art Style Match Score: ${styleScore} (for ${matchedStyles.length} matched styles)`
+    );
 
     // 📍 Location Match
     if (
@@ -2165,6 +2215,7 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       clientPrefs.location_requirement === artistPrefs.location_preference
     ) {
       score += 2;
+      console.log("Location Match Score: 2");
     }
 
     // 💰 Budget Match
@@ -2174,6 +2225,7 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       clientPrefs.budget_range === artistPrefs.budget_range
     ) {
       score += 2;
+      console.log("Budget Match Score: 2");
     }
 
     // ⏳ Project Duration Match
@@ -2183,6 +2235,7 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       clientPrefs.timeline === artistPrefs.preferred_project_duration
     ) {
       score += 1;
+      console.log("Project Duration Match Score: 1");
     }
 
     // 📞 Communication Preference Match
@@ -2194,6 +2247,7 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       )
     ) {
       score += 1;
+      console.log("Communication Preference Match Score: 1");
     }
 
     // 📂 Project Type Match
@@ -2203,6 +2257,7 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       clientPrefs.project_type.includes(artistPrefs.project_type)
     ) {
       score += 2;
+      console.log("Project Type Match Score: 2");
     }
 
     // 🧑‍🎨 Collaboration Type Match
@@ -2212,6 +2267,7 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       clientPrefs.collaboration_type === artistPrefs.collaboration_type
     ) {
       score += 1;
+      console.log("Collaboration Type Match Score: 1");
     }
 
     // 🧑‍💼 Client Type Preference Match
@@ -2221,6 +2277,7 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       artistPrefs.client_type_preference === clientPrefs.client_type
     ) {
       score += 1;
+      console.log("Client Type Preference Match Score: 1");
     }
 
     // 📐 Project Scale Match
@@ -2230,33 +2287,95 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       artistPrefs.project_scale === clientPrefs.project_scale
     ) {
       score += 1;
+      console.log("Project Scale Match Score: 1");
     }
 
-    // 👀 Boost from collaborative signals
-    score += collaborativeBoost;
+    console.log(`Total Calculated Score for Artist: ${score}`);
   } catch (err) {
-    console.warn("Scoring error for artist:", err);
+    console.warn("Error calculating score:", err);
   }
 
   return score;
 }
 
+// Get Collaborative Filtering Scores based on user activity
+async function getCollaborativeFilteringScores(userId) {
+  const collaborativeScores = {};
+
+  try {
+    // Fetch user interactions: likes, comments, and visits
+    const [likes, comments, visits] = await Promise.all([
+      supabase.from("community_likes").select("post_id").eq("user_id", userId),
+      supabase
+        .from("community_comments")
+        .select("post_id")
+        .eq("user_id", userId),
+      supabase
+        .from("profile_visits")
+        .select("visited_id")
+        .eq("visitor_id", userId),
+    ]);
+
+    // Collect post ids from likes and comments to find common artists
+    const postIds = [
+      ...new Set([
+        ...likes.data.map((item) => item.post_id),
+        ...comments.data.map((item) => item.post_id),
+      ]),
+    ];
+
+    // If no posts were interacted with, return empty scores
+    if (postIds.length === 0) return {};
+
+    // Find all artists who liked or commented on the same posts
+    const { data: likedArtists } = await supabase
+      .from("community_likes")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId);
+
+    const { data: commentedArtists } = await supabase
+      .from("community_comments")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId);
+
+    // Merge artists who interacted with the same posts
+    const allRecommendedArtists = [
+      ...likedArtists,
+      ...commentedArtists,
+      ...visits.data.map((item) => ({ user_id: item.visited_id })),
+    ];
+
+    // Calculate scores for these artists based on the frequency of interactions
+    allRecommendedArtists.forEach((artist) => {
+      const artistId = artist.user_id;
+      collaborativeScores[artistId] = (collaborativeScores[artistId] || 0) + 1;
+    });
+
+    console.log("Collaborative Filtering Scores:", collaborativeScores);
+    return collaborativeScores;
+  } catch (err) {
+    console.error("Error in collaborative filtering:", err);
+    return {};
+  }
+}
+
+// Combine Collaborative Filtering Scores with Gale-Shapley Matching Algorithm
 app.get("/match-artists/:userId", async (req, res) => {
   const { userId } = req.params;
-
   const ARTIST_CDN_URL =
     "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
   const CLIENT_CDN_URL =
     "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
 
   try {
-    // 1. Fetch client and their preferences
+    // 1. Fetch the logged-in client and their preferences
     const { data: client } = await supabase
       .from("client")
       .select("*")
       .eq("user_id", userId)
       .single();
-
     const { data: clientPrefs } = await supabase
       .from("client_preferences")
       .select("*")
@@ -2271,15 +2390,14 @@ app.get("/match-artists/:userId", async (req, res) => {
 
     const processedClient = {
       ...client,
+      preferences: clientPrefs || {},
       profile_image: client.profile_image
         ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
         : null,
-      preferences: clientPrefs || {},
     };
 
     // 2. Fetch all artists and their preferences
     const { data: artists } = await supabase.from("artist").select("*");
-
     const { data: artistPrefsData } = await supabase
       .from("artist_preferences")
       .select("*");
@@ -2289,243 +2407,362 @@ app.get("/match-artists/:userId", async (req, res) => {
       return acc;
     }, {});
 
-    const processedArtists = artists.map((artist) => ({
-      ...artist,
-      profile_image: artist.profile_image
-        ? `${ARTIST_CDN_URL}${artist.user_id}/${artist.profile_image}`
-        : null,
-      preferences: artistPrefsMap[artist.user_id] || {},
-    }));
+    const processedArtists = artists
+      .filter(
+        (artist) =>
+          artistPrefsMap[artist.user_id] &&
+          Object.keys(artistPrefsMap[artist.user_id]).length > 0
+      )
+      .map((artist) => ({
+        ...artist,
+        preferences: artistPrefsMap[artist.user_id],
+        profile_image: artist.profile_image
+          ? `${ARTIST_CDN_URL}${artist.user_id}/${artist.profile_image}`
+          : null,
+      }));
 
-    // 3. Fetch all profile visits for collaborative filtering
-    const { data: allVisits } = await supabase
-      .from("profile_visits")
-      .select("visitor_id, visited_id");
+    // 3. Fetch all clients to include in the preference matching (not just the logged-in user)
+    const { data: clients } = await supabase.from("client").select("*");
+    const { data: clientPrefsData } = await supabase
+      .from("client_preferences")
+      .select("*");
 
-    const clientIds = [...new Set(allVisits.map((v) => v.visitor_id))];
-    const artistIds = [...new Set(allVisits.map((v) => v.visited_id))];
+    const clientPrefsMap = clientPrefsData.reduce((acc, pref) => {
+      acc[pref.user_id] = pref;
+      return acc;
+    }, {});
 
-    // 4. Build client-artist interaction matrix
-    const interactionMatrix = {};
-    clientIds.forEach((clientId) => {
-      interactionMatrix[clientId] = artistIds.map((artistId) =>
-        allVisits.some(
-          (v) => v.visitor_id === clientId && v.visited_id === artistId
-        )
-          ? 1
-          : 0
-      );
-    });
+    const processedClients = clients
+      .filter(
+        (client) =>
+          clientPrefsMap[client.user_id] &&
+          Object.keys(clientPrefsMap[client.user_id]).length > 0
+      )
+      .map((client) => ({
+        ...client,
+        preferences: clientPrefsMap[client.user_id],
+        profile_image: client.profile_image
+          ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
+          : null,
+      }));
 
-    // 5. Cosine similarity function
-    function cosineSimilarity(vecA, vecB) {
-      const dot = vecA.reduce((sum, val, i) => sum + val * vecB[i], 0);
-      const magA = Math.sqrt(vecA.reduce((sum, val) => sum + val * val, 0));
-      const magB = Math.sqrt(vecB.reduce((sum, val) => sum + val * val, 0));
-      return magA && magB ? dot / (magA * magB) : 0;
-    }
-
-    // 6. Find k most similar clients
-    const currentVector =
-      interactionMatrix[userId] || Array(artistIds.length).fill(0);
-    const k = 3;
-
-    const similarityScores = clientIds
-      .filter((id) => id !== userId)
-      .map((id) => ({
-        clientId: id,
-        score: cosineSimilarity(currentVector, interactionMatrix[id]),
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, k);
-
-    // 7. Artists visited by similar clients
-    const similarArtistIds = new Set();
-    similarityScores.forEach(({ clientId }) => {
-      allVisits
-        .filter((v) => v.visitor_id === clientId)
-        .forEach((v) => similarArtistIds.add(v.visited_id));
-    });
-
-    // 8. Collaborative filtering boosts
-    const collaborativeBoosts = {};
-
-    // Direct visits by current client
-    allVisits
-      .filter((v) => v.visitor_id === userId)
-      .forEach((v) => {
-        collaborativeBoosts[v.visited_id] =
-          (collaborativeBoosts[v.visited_id] || 0) + 2;
+    // 4. Generate scores for each client-artist pair (Preference-based scores)
+    const scores = {};
+    processedArtists.forEach((artist) => {
+      processedClients.forEach((client) => {
+        const score = calculateScore(client.preferences, artist.preferences);
+        if (!scores[client.user_id]) scores[client.user_id] = {};
+        scores[client.user_id][artist.user_id] = score;
       });
-
-    // Artists visited by similar clients (k-NN)
-    similarArtistIds.forEach((artistId) => {
-      collaborativeBoosts[artistId] = (collaborativeBoosts[artistId] || 0) + 1;
     });
 
-    // 9. Generate ranked list of artists
+    // 5. Apply Gale-Shapley algorithm to find stable matches
+    const matches = galeShapleyArtist(
+      processedClients,
+      processedArtists,
+      scores
+    );
+
+    // 6. Get Collaborative Filtering scores for artists
+    const collaborativeScores = await getCollaborativeFilteringScores(userId);
+
+    // 7. Combine the preference-based and collaborative scores
     const artistRankings = processedArtists.map((artist) => {
-      const score = calculateScore(
-        processedClient.preferences,
-        artist.preferences,
-        collaborativeBoosts[artist.user_id] || 0
-      );
-      return { artistId: artist.user_id, score };
+      const preferenceScore =
+        scores[processedClient.user_id][artist.user_id] || 0;
+      const collaborativeBoost = collaborativeScores[artist.user_id] || 0;
+      const combinedScore = preferenceScore + collaborativeBoost;
+
+      return {
+        artistId: artist.user_id,
+        score: combinedScore,
+        artist,
+      };
     });
 
     artistRankings.sort((a, b) => b.score - a.score);
 
-    const clientData = [
-      {
-        user_id: processedClient.user_id,
-        preferences: artistRankings.map((a) => a.artistId),
-      },
-    ];
+    // Log ranked clients list
+    console.log("\n********** Ranked Artist List **********");
+    artistRankings.forEach((ranked, index) => {
+      console.log(
+        `Rank ${index + 1}: ${ranked.artist.firstname} ${
+          ranked.artist.lastname
+        }, Score: ${ranked.score}`
+      );
+    });
 
-    const artistData = processedArtists.map((artist) => ({
-      user_id: artist.user_id,
-      preferences: [processedClient.user_id],
+    // 8. Format the response with all ranked artists including their combined scores
+    const rankedMatches = artistRankings.map((ranked) => ({
+      artist: {
+        id: ranked.artist.user_id,
+        name: `${ranked.artist.firstname} ${ranked.artist.lastname}`,
+        role: ranked.artist.role,
+        address: ranked.artist.address,
+        profile_image: ranked.artist.profile_image,
+        score: ranked.score,
+      },
+      client: {
+        id: processedClient.user_id,
+        name: `${processedClient.firstname} ${processedClient.lastname}`,
+        role: processedClient.role,
+        address: processedClient.address,
+        profile_image: processedClient.profile_image,
+      },
     }));
 
-    // 10. Gale-Shapley Matching
-    const matches = galeShapley(clientData, artistData);
-
-    // 11. Format match result
-    const formattedMatches = Object.entries(matches).map(
-      ([artistId, clientId]) => {
-        const artist = processedArtists.find((a) => a.user_id === artistId);
-        const clientMatch =
-          processedClient.user_id === clientId ? processedClient : null;
-
-        return {
-          artist: {
-            id: artist?.user_id || "Unknown",
-            name: artist
-              ? `${artist.firstname} ${artist.lastname}`
-              : "Unknown Artist",
-            role: artist?.role || "Unknown Role",
-            address: artist?.address || "Unknown Address",
-            profile_image: artist?.profile_image || null,
-          },
-          client: {
-            id: clientMatch?.user_id || "Unknown",
-            name: clientMatch
-              ? `${clientMatch.firstname} ${clientMatch.lastname}`
-              : "Unknown Client",
-            role: clientMatch?.role || "Unknown Role",
-            address: clientMatch?.address || "Unknown Address",
-            profile_image: clientMatch?.profile_image || null,
-          },
-        };
-      }
+    // Filter matches to only include the logged-in user's final match
+    const finalMatch = rankedMatches.find(
+      (match) => match.client.id === processedClient.user_id
     );
 
-    return res.status(200).json({ matches: formattedMatches });
+    return res
+      .status(200)
+      .json({ matches: rankedMatches, stableMatches: matches, finalMatch });
   } catch (error) {
-    console.error("Error running Gale-Shapley for artist match:", error);
-    return res.status(500).json({ error: "Matchmaking failed." });
+    console.error("Error in matching algorithm:", error);
+    return res.status(500).json({ error: "Matching failed." });
   }
 });
 // ***** BROWSE ARTIST MATCHING ALGORITHM END... ******
 
 // ***** BROWSE CLIENT MATCHING ALGORITHM ******
-// Utility function to calculate preference match score
-function calculateScore(artistPrefs, clientPrefs, collaborativeBoost = 0) {
-  let score = 0;
+// Ensure the data is an array and provide a fallback for undefined or null values
+function ensureArray1(data) {
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (data === undefined || data === null) {
+    return []; // Return empty array if data is undefined or null
+  }
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("Error parsing data as array:", e);
+    return [];
+  }
+}
+
+// Utility function to normalize and map similar art styles
+function normalizeArtStyle1(style1) {
+  const styleMap1 = {
+    "Geometric Art": "Geometric Patterns",
+    "Pattern-Based Design": "Pattern-Based Art",
+    "Craft & Handmade Art": "Handmade Crafts",
+    Sculpture: "3D Art",
+    Statues: "3D Art",
+    "Digital Art & Illustrations": "Digital Art & Illustrations",
+    "Beginner / Exploring Styles": "Beginner / Exploring Styles",
+    "Open to All Styles": "Open to All Styles",
+    "Furniture Making": "Handmade Crafts",
+    Woodworking: "Handmade Crafts",
+    "DIY Projects": "Handmade Crafts",
+    Others: "Open to All Styles",
+    Minimalist: "Modern Art",
+    "Modern Art": "Modern Art",
+  };
+  return styleMap1[style1] || style1;
+}
+
+// ***** Calculate Score based on Preferences ******
+function calculateScore1(artistPrefs1, clientPrefs1) {
+  let score1 = 0;
 
   try {
-    // 🎨 Art Style Match
-    if (
-      Array.isArray(artistPrefs.art_style_specialization) &&
-      Array.isArray(clientPrefs.preferred_art_style)
-    ) {
-      const overlap = artistPrefs.art_style_specialization.filter((style) =>
-        clientPrefs.preferred_art_style.includes(style)
-      );
-      score += overlap.length * 2;
-    }
+    console.log("Calculating score for client:");
+    console.log("Client Preferences:", JSON.stringify(clientPrefs1));
+    console.log("Artist Preferences:", JSON.stringify(artistPrefs1));
+
+    // 🎨 Art Style Match (Improved)
+    const clientStyles1 = ensureArray1(clientPrefs1.preferred_art_style).map(
+      normalizeArtStyle1
+    );
+    const artistStyles1 = ensureArray1(
+      artistPrefs1.art_style_specialization
+    ).map(normalizeArtStyle1);
+
+    console.log(
+      "Client Art Style Preferences:",
+      clientPrefs1.preferred_art_style
+    );
+    console.log(
+      "Artist Art Style Preferences:",
+      artistPrefs1.art_style_specialization
+    );
+
+    // Improved matching logic to consider each style individually
+    const matchedStyles1 = artistStyles1.filter((style1) =>
+      clientStyles1.includes(style1)
+    );
+
+    console.log("Matched Styles Count:", matchedStyles1.length);
+    console.log("Matched Styles List:", matchedStyles1);
+
+    const styleScore1 = matchedStyles1.length * 2;
+    score1 += styleScore1;
+    console.log(
+      `Art Style Match Score: ${styleScore1} (for ${matchedStyles1.length} matched styles)`
+    );
 
     // 📍 Location Match
     if (
-      artistPrefs.location_preference &&
-      clientPrefs.location_requirement &&
-      artistPrefs.location_preference === clientPrefs.location_requirement
+      artistPrefs1.location_requirement &&
+      clientPrefs1.location_preference &&
+      artistPrefs1.location_requirement === artistPrefs1.location_preference
     ) {
-      score += 2;
+      score1 += 2;
+      console.log("Location Match Score: 2");
     }
 
     // 💰 Budget Match
     if (
-      artistPrefs.budget_range &&
-      clientPrefs.budget_range &&
-      artistPrefs.budget_range === clientPrefs.budget_range
+      artistPrefs1.budget_range &&
+      clientPrefs1.budget_range &&
+      artistPrefs1.budget_range === clientPrefs1.budget_range
     ) {
-      score += 2;
+      score1 += 2;
+      console.log("Budget Match Score: 2");
     }
 
     // ⏳ Project Duration Match
     if (
-      artistPrefs.preferred_project_duration &&
-      clientPrefs.timeline &&
-      artistPrefs.preferred_project_duration === clientPrefs.timeline
+      artistPrefs1.timeline &&
+      clientPrefs1.preferred_project_duration &&
+      artistPrefs1.timeline === clientPrefs1.preferred_project_duration
     ) {
-      score += 1;
+      score1 += 1;
+      console.log("Project Duration Match Score: 1");
     }
 
     // 📞 Communication Preference Match
     if (
-      artistPrefs.preferred_communication &&
-      Array.isArray(clientPrefs.communication_preferences) &&
-      clientPrefs.communication_preferences.includes(
-        artistPrefs.preferred_communication
+      Array.isArray(artistPrefs1.communication_preferences) &&
+      clientPrefs1.preferred_communication &&
+      artistPrefs1.communication_preferences.includes(
+        clientPrefs1.preferred_communication
       )
     ) {
-      score += 1;
+      score1 += 1;
+      console.log("Communication Preference Match Score: 1");
     }
 
     // 📂 Project Type Match
     if (
-      artistPrefs.project_type &&
-      Array.isArray(clientPrefs.project_type) &&
-      clientPrefs.project_type.includes(artistPrefs.project_type)
+      Array.isArray(artistPrefs1.project_type) &&
+      clientPrefs1.project_type &&
+      artistPrefs1.project_type.includes(clientPrefs1.project_type)
     ) {
-      score += 2;
+      score1 += 2;
+      console.log("Project Type Match Score: 2");
     }
 
-    // 🤝 Collaboration Type Match
+    // 🧑‍🎨 Collaboration Type Match
     if (
-      artistPrefs.collaboration_type &&
-      clientPrefs.collaboration_type &&
-      artistPrefs.collaboration_type === clientPrefs.collaboration_type
+      artistPrefs1.collaboration_type &&
+      clientPrefs1.collaboration_type &&
+      artistPrefs1.collaboration_type === clientPrefs1.collaboration_type
     ) {
-      score += 1;
+      score1 += 1;
+      console.log("Collaboration Type Match Score: 1");
     }
 
-    // 🧑‍💼 Client Type Match
+    // 🧑‍💼 Client Type Preference Match
     if (
-      clientPrefs.client_type &&
-      artistPrefs.client_type_preference &&
-      clientPrefs.client_type === artistPrefs.client_type_preference
+      clientPrefs1.client_type_preference &&
+      artistPrefs1.client_type &&
+      clientPrefs1.client_type_preference === artistPrefs1.client_type
     ) {
-      score += 1;
+      score1 += 1;
+      console.log("Client Type Preference Match Score: 1");
     }
 
     // 📐 Project Scale Match
     if (
-      artistPrefs.project_scale &&
-      clientPrefs.project_scale &&
-      artistPrefs.project_scale === clientPrefs.project_scale
+      clientPrefs1.project_scale &&
+      artistPrefs1.project_scale &&
+      clientPrefs1.project_scale === artistPrefs1.project_scale
     ) {
-      score += 1;
+      score1 += 1;
+      console.log("Project Scale Match Score: 1");
     }
 
-    // 👀 Collaborative Boost
-    score += collaborativeBoost;
+    // 👀 Boost from collaborative signals
+    if (collaborativeBoost1) {
+      score1 += collaborativeBoost1;
+      console.log(`Collaborative Boost Score: ${collaborativeBoost1}`);
+    }
+
+    console.log(`Total Calculated Score for Artist: ${score1}`);
   } catch (err) {
-    console.warn("Scoring error for client:", err);
+    console.warn("Error calculating score:", err);
   }
 
-  return score;
+  return score1;
+}
+
+// Get Collaborative Filtering Scores based on user activity
+async function getCollaborativeFilteringScores1(userId) {
+  const collaborativeScores1 = {};
+
+  try {
+    // Fetch user interactions: likes, comments, and visits
+    const [likes, comments, visits] = await Promise.all([
+      supabase.from("community_likes").select("post_id").eq("user_id", userId),
+      supabase
+        .from("community_comments")
+        .select("post_id")
+        .eq("user_id", userId),
+      supabase
+        .from("profile_visits")
+        .select("visited_id")
+        .eq("visitor_id", userId),
+    ]);
+
+    // Collect post ids from likes and comments to find common clients
+    const postIds = [
+      ...new Set([
+        ...likes.data.map((item) => item.post_id),
+        ...comments.data.map((item) => item.post_id),
+      ]),
+    ];
+
+    // If no posts were interacted with, return empty scores
+    if (postIds.length === 0) return {};
+
+    // Find all clients who liked or commented on the same posts
+    const { data: likedClients } = await supabase
+      .from("community_likes")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId);
+
+    const { data: commentedClients } = await supabase
+      .from("community_comments")
+      .select("user_id")
+      .in("post_id", postIds)
+      .neq("user_id", userId);
+
+    // Merge clients who interacted with the same posts
+    const allRecommendedClients = [
+      ...likedClients,
+      ...commentedClients,
+      ...visits.data.map((item) => ({ user_id: item.visited_id })),
+    ];
+
+    // Calculate scores for these client based on the frequency of interactions
+    allRecommendedClients.forEach((client) => {
+      const clientId = client.user_id;
+      collaborativeScores1[clientId] =
+        (collaborativeScores1[clientId] || 0) + 1;
+    });
+
+    console.log("Collaborative Filtering Scores:", collaborativeScores1);
+    return collaborativeScores1;
+  } catch (err) {
+    console.error("Error in collaborative filtering:", err);
+    return {};
+  }
 }
 
 app.get("/match-clients/:userId", async (req, res) => {
@@ -2537,180 +2774,165 @@ app.get("/match-clients/:userId", async (req, res) => {
     "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
 
   try {
-    // 1. Fetch artist profile and preferences
-    const { data: artist, error: artistError } = await supabase
+    // 1. Fetch the logged-in artist and their preferences
+    const { data: artist } = await supabase
       .from("artist")
       .select("*")
       .eq("user_id", userId)
       .single();
 
-    if (artistError || !artist) {
-      return res.status(404).json({ error: "Artist not found." });
-    }
-
-    const { data: artistPrefs } = await supabase
+    const { data: artistPrefs1 } = await supabase
       .from("artist_preferences")
       .select("*")
       .eq("user_id", userId)
       .single();
 
-    const processedArtist = {
+    if (!artist || !artistPrefs1) {
+      return res
+        .status(404)
+        .json({ error: "Artist or preferences not found." });
+    }
+
+    const processedArtist1 = {
       ...artist,
+      preferences: artistPrefs1 || {},
       profile_image: artist.profile_image
         ? `${ARTIST_CDN_URL}${artist.user_id}/${artist.profile_image}`
         : null,
-      preferences: artistPrefs || {},
     };
 
     // 2. Fetch all clients and their preferences
     const { data: clients } = await supabase.from("client").select("*");
-    const { data: clientPrefsData } = await supabase
+    const { data: clientPrefsData1 } = await supabase
       .from("client_preferences")
       .select("*");
 
-    const clientPrefsMap = clientPrefsData.reduce((acc, pref) => {
+    const clientPrefsMap1 = clientPrefsData1.reduce((acc, pref) => {
       acc[pref.user_id] = pref;
       return acc;
     }, {});
 
-    const processedClients = clients.map((client) => ({
-      ...client,
-      profile_image: client.profile_image
-        ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
-        : null,
-      preferences: clientPrefsMap[client.user_id] || {},
-    }));
+    const processedClients1 = clients
+      .filter(
+        (client) =>
+          clientPrefsMap1[client.user_id] &&
+          Object.keys(clientPrefsMap1[client.user_id]).length > 0
+      )
+      .map((client) => ({
+        ...client,
+        preferences: clientPrefsMap1[client.user_id],
+        profile_image: client.profile_image
+          ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
+          : null,
+      }));
 
-    // 3. Fetch all profile visits (for collaborative filtering)
-    const { data: allVisits } = await supabase
-      .from("profile_visits")
-      .select("visitor_id, visited_id");
+    // 3. Fetch all clients to include in the preference matching (not just the logged-in user)
+    const { data: artists } = await supabase.from("artist").select("*");
+    const { data: artistPrefsData1 } = await supabase
+      .from("artist_preferences")
+      .select("*");
 
-    const artistIds = [...new Set(allVisits.map((v) => v.visitor_id))];
-    const clientIds = [...new Set(allVisits.map((v) => v.visited_id))];
+    const artistPrefsMap1 = artistPrefsData1.reduce((acc, pref) => {
+      acc[pref.user_id] = pref;
+      return acc;
+    }, {});
 
-    // 4. Build artist-client interaction matrix
-    const interactionMatrix = {};
-    artistIds.forEach((artistId) => {
-      interactionMatrix[artistId] = clientIds.map((clientId) =>
-        allVisits.some(
-          (v) => v.visitor_id === artistId && v.visited_id === clientId
-        )
-          ? 1
-          : 0
-      );
-    });
+    const processedArtists1 = artists
+      .filter(
+        (artist) =>
+          artistPrefsMap1[artist.user_id] &&
+          Object.keys(artistPrefsMap1[artist.user_id]).length > 0
+      )
+      .map((artist) => ({
+        ...artist,
+        preferences: artistPrefsMap1[artist.user_id],
+        profile_image: artist.profile_image
+          ? `${ARTIST_CDN_URL}${artist.user_id}/${artist.profile_image}`
+          : null,
+      }));
 
-    // 5. Cosine similarity function
-    function cosineSimilarity(vecA, vecB) {
-      const dot = vecA.reduce((sum, val, i) => sum + val * vecB[i], 0);
-      const magA = Math.sqrt(vecA.reduce((sum, val) => sum + val * val, 0));
-      const magB = Math.sqrt(vecB.reduce((sum, val) => sum + val * val, 0));
-      return magA && magB ? dot / (magA * magB) : 0;
-    }
-
-    // 6. Get k nearest neighbors of current artist
-    const currentVector =
-      interactionMatrix[userId] || Array(clientIds.length).fill(0);
-    const k = 3;
-
-    const similarityScores = artistIds
-      .filter((id) => id !== userId)
-      .map((id) => ({
-        artistId: id,
-        score: cosineSimilarity(currentVector, interactionMatrix[id]),
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, k);
-
-    // 7. Clients visited by similar artists
-    const similarClientIds = new Set();
-    similarityScores.forEach(({ artistId }) => {
-      allVisits
-        .filter((v) => v.visitor_id === artistId)
-        .forEach((v) => similarClientIds.add(v.visited_id));
-    });
-
-    // 8. Create collaborativeBoosts
-    const collaborativeBoosts = {};
-
-    // Direct visits by current artist
-    allVisits
-      .filter((v) => v.visitor_id === userId)
-      .forEach((v) => {
-        collaborativeBoosts[v.visited_id] =
-          (collaborativeBoosts[v.visited_id] || 0) + 2;
+    // 4. Generate scores for each client-artist pair
+    const scores1 = {};
+    processedClients1.forEach((client) => {
+      processedArtists1.forEach((artist) => {
+        const score1 = calculateScore1(artist.preferences, client.preferences);
+        if (!scores1[artist.user_id]) scores1[artist.user_id] = {};
+        scores1[artist.user_id][client.user_id] = score1;
       });
-
-    // Visits by similar artists (k-NN)
-    similarClientIds.forEach((clientId) => {
-      collaborativeBoosts[clientId] = (collaborativeBoosts[clientId] || 0) + 1;
     });
 
-    // 9. Generate ranked clients
-    const clientRankings = processedClients.map((client) => {
-      const score = calculateScore(
-        processedArtist.preferences,
-        client.preferences,
-        collaborativeBoosts[client.user_id] || 0
-      );
-      return { clientId: client.user_id, score };
-    });
-
-    clientRankings.sort((a, b) => b.score - a.score);
-
-    const artistData = [
-      {
-        user_id: processedArtist.user_id,
-        preferences: clientRankings.map((c) => c.clientId),
-      },
-    ];
-
-    const clientData = processedClients.map((client) => ({
-      user_id: client.user_id,
-      preferences: [processedArtist.user_id], // one-to-one match
-    }));
-
-    // 10. Run Gale-Shapley
-    const matches = galeShapley(clientData, artistData);
-
-    // 11. Format match output
-    const formattedMatches = Object.entries(matches).map(
-      ([artistId, clientId]) => {
-        const client = processedClients.find((c) => c.user_id === clientId);
-        const artistMatch =
-          processedArtist.user_id === artistId ? processedArtist : null;
-
-        return {
-          client: {
-            id: client?.user_id || "Unknown",
-            name: client
-              ? `${client.firstname} ${client.lastname}`
-              : "Unknown Client",
-            role: client?.role || "Unknown Role",
-            address: client?.address || "Unknown Address",
-            profile_image: client?.profile_image || null,
-          },
-          artist: {
-            id: artistMatch?.user_id || "Unknown",
-            name: artistMatch
-              ? `${artistMatch.firstname} ${artistMatch.lastname}`
-              : "Unknown Artist",
-            role: artistMatch?.role || "Unknown Role",
-            address: artistMatch?.address || "Unknown Address",
-            profile_image: artistMatch?.profile_image || null,
-          },
-        };
-      }
+    // 5. Apply Gale-Shapley algorithm to find stable matches
+    const matches1 = galeShapleyClient(
+      processedArtists1,
+      processedClients1,
+      scores1
     );
 
-    return res.status(200).json({ matches: formattedMatches });
+    // 6. Get Collaborative Filtering scores for artists
+    const collaborativeScores1 = await getCollaborativeFilteringScores1(userId);
+
+    // 7. Combine the preference-based and collaborative scores
+    const clientRankings1 = processedClients1.map((client) => {
+      const preferenceScore1 =
+        scores1[processedArtist1.user_id][client.user_id] || 0;
+      const collaborativeBoost1 = collaborativeScores1[client.user_id] || 0;
+      const combinedScore1 = preferenceScore1 + collaborativeBoost1;
+
+      return {
+        artistId: client.user_id,
+        score1: combinedScore1,
+        client,
+      };
+    });
+
+    clientRankings1.sort((a, b) => b.score1 - a.score1);
+
+    // Log ranked clients list
+    console.log("\n********** Ranked Client List **********");
+    clientRankings1.forEach((ranked, index) => {
+      console.log(
+        `Rank ${index + 1}: ${ranked.client.firstname} ${
+          ranked.client.lastname
+        }, Score: ${ranked.score1}`
+      );
+    });
+
+    // 8. Format the response with all ranked clients including their scores
+    const rankedMatches1 = clientRankings1.map((ranked) => ({
+      client: {
+        id: ranked.client.user_id,
+        name: `${ranked.client.firstname} ${ranked.client.lastname}`,
+        role: ranked.client.role,
+        address: ranked.client.address,
+        profile_image: ranked.client.profile_image,
+        score1: ranked.score1,
+      },
+      artist: {
+        id: processedArtist1.user_id,
+        name: `${processedArtist1.firstname} ${processedArtist1.lastname}`,
+        role: processedArtist1.role,
+        address: processedArtist1.address,
+        profile_image: processedArtist1.profile_image,
+      },
+    }));
+
+    // Filter matches to only include the logged-in user's final match
+    const finalMatch1 = rankedMatches1.find(
+      (match1) => match1.artist.id === processedArtist1.user_id
+    );
+
+    return res.status(200).json({
+      matches1: rankedMatches1,
+      stableMatches1: matches1,
+      finalMatch1,
+    });
   } catch (error) {
-    console.error("Error running enhanced matching:", error);
-    return res.status(500).json({ error: "Matchmaking failed." });
+    console.error("Error in matching algorithm:", error);
+    return res.status(500).json({ error: "Matching failed." });
   }
 });
-// ***** BROWSE CLIENT MATCHING ALGORITHM END ******
+
+// ***** BROWSE CLIENT MATCHING ALGORITHM END... ******
 
 // ****** SEND PROPOSAL ENDPOINT ******
 // Proposal Endpoint
@@ -2835,32 +3057,52 @@ const POST_CDNURL =
 
 // **GET Community Posts with User Details & Comments**
 app.get("/community-posts", async (req, res) => {
-  const { page = 1, limit = 5 } = req.query;
+  const { page = 1, limit = 5, category, hasMedia, order = "desc" } = req.query;
   const offset = (page - 1) * limit;
 
   try {
-    // Fetch posts with pagination
-    const { data: postsData, error: postsError } = await supabase
+    // Main query for fetching posts
+    let query = supabase
       .from("community_posts")
       .select(
         `
-        id, content, images, created_at, user_id,
+        id, content, images, category, created_at, user_id,
         community_comments (id, content, user_id, created_at),
         community_likes (user_id)
       `
       )
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order("created_at", { ascending: order === "asc" }); // Order based on frontend filter
+
+    if (category) query = query.eq("category", category);
+    if (hasMedia === "true") query = query.neq("images", "[]");
+    if (hasMedia === "false") query = query.eq("images", "[]");
+
+    const { data: postsData, error: postsError } = await query.range(
+      offset,
+      offset + limit - 1
+    );
 
     if (postsError) {
       console.error("Error fetching posts:", postsError);
       return res.status(500).json({ error: "Failed to fetch posts" });
     }
 
-    const { count: totalCount } = await supabase
+    // Count query (same filters)
+    let countQuery = supabase
       .from("community_posts")
       .select("id", { count: "exact", head: true });
 
+    if (category) countQuery = countQuery.eq("category", category);
+    if (hasMedia === "true") countQuery = countQuery.neq("images", "[]");
+    if (hasMedia === "false") countQuery = countQuery.eq("images", "[]");
+
+    const { count: totalCount, error: countError } = await countQuery;
+    if (countError) {
+      console.error("Error counting posts:", countError);
+      return res.status(500).json({ error: "Failed to count posts" });
+    }
+
+    // Gather user IDs
     const userIds = [
       ...new Set(
         postsData.flatMap((post) => [
@@ -2870,7 +3112,7 @@ app.get("/community-posts", async (req, res) => {
       ),
     ];
 
-    // Fetch user details (artists, clients, and admins)
+    // Fetch user details
     const { data: artistData } = await supabase
       .from("artist")
       .select("user_id, firstname, lastname, profile_image")
@@ -2906,7 +3148,7 @@ app.get("/community-posts", async (req, res) => {
       return acc;
     }, {});
 
-    // Format posts with user details, images, and comments
+    // Format posts
     const postsWithDetails = postsData.map((post) => ({
       ...post,
       images: post.images
@@ -2919,7 +3161,7 @@ app.get("/community-posts", async (req, res) => {
         : [],
       user: userMap[post.user_id] || {
         firstname: "Unknown",
-        lastname: "User ",
+        lastname: "User",
         profile_image: null,
       },
       comments: post.community_comments
@@ -2927,7 +3169,7 @@ app.get("/community-posts", async (req, res) => {
             ...comment,
             user: userMap[comment.user_id] || {
               firstname: "Unknown",
-              lastname: "User ",
+              lastname: "User",
               profile_image: null,
             },
           }))
@@ -2941,52 +3183,10 @@ app.get("/community-posts", async (req, res) => {
   }
 });
 
-// **GET User Details for Posting**
-app.get("/user/:user_id", async (req, res) => {
-  const { user_id } = req.params;
-
-  try {
-    const { data: artistData } = await supabase
-      .from("artist")
-      .select("user_id, firstname, lastname, profile_image")
-      .eq("user_id", user_id)
-      .single();
-
-    const { data: clientData } = await supabase
-      .from("client")
-      .select("user_id, firstname, lastname, profile_image")
-      .eq("user_id", user_id)
-      .single();
-
-    const { data: adminData } = await supabase
-      .from("admin")
-      .select("user_id, firstname, lastname, profile_image")
-      .eq("user_id", user_id)
-      .single();
-
-    const userData = artistData || clientData || adminData;
-    if (!userData) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const isArtist = !!artistData;
-    userData.profile_image = userData.profile_image
-      ? `${isArtist ? ARTIST_CDNURL : CLIENT_CDNURL}${userData.user_id}/${
-          userData.profile_image
-        }`
-      : null;
-
-    res.status(200).json(userData);
-  } catch (err) {
-    console.error("Error fetching user data:", err);
-    res.status(500).json({ error: "Failed to fetch user data" });
-  }
-});
-
 // **POST Community Post with Image Uploads**
 app.post("/community-posts", upload.array("images"), async (req, res) => {
   try {
-    const { user_id, content } = req.body;
+    const { user_id, content, category } = req.body;
     if (!user_id)
       return res.status(400).json({ error: "User  ID is required" });
 
@@ -3022,6 +3222,7 @@ app.post("/community-posts", upload.array("images"), async (req, res) => {
         user_id,
         content,
         images: imageUrls,
+        category, // Add this line
       })
       .select("id, content, images, created_at, user_id")
       .single();
@@ -3312,14 +3513,21 @@ app.post("/community-comments", async (req, res) => {
 // **PATCH Community Post (Edit Post)**
 app.patch("/community-posts/:id", async (req, res) => {
   const { id } = req.params;
-  const { content } = req.body;
+  const { content, category } = req.body;
+
+  // Validation
+  if (!content?.trim() || !category) {
+    return res
+      .status(400)
+      .json({ error: "Content and category cannot be empty." });
+  }
 
   try {
     const { data, error } = await supabase
       .from("community_posts")
-      .update({ content })
+      .update({ content, category }) // Include category in the update
       .eq("id", id)
-      .select("id, content, images, created_at, user_id")
+      .select("id, content, category, images, created_at, user_id")
       .single();
 
     if (error) {
@@ -3501,7 +3709,7 @@ app.post("/artist/proposals/accept", async (req, res) => {
   const { proposal } = req.body;
 
   try {
-    // nsert into the `projects` table and get the new project ID
+    // Insert into the `projects` table and get the new project ID
     const { data: newProject, error: projectError } = await supabase
       .from("projects")
       .insert([
@@ -3565,12 +3773,12 @@ app.post("/artist/proposals/accept", async (req, res) => {
   }
 });
 
-// Endpoint to accept a proposal and create a project
+// Endpoint to accept a proposal and create a project (client to artist)
 app.post("/client/proposals/accept", async (req, res) => {
   const { proposal } = req.body;
 
   try {
-    // nsert into the `projects` table and get the new project ID
+    // Insert into the `projects` table and get the new project ID
     const { data: newProject, error: projectError } = await supabase
       .from("projects")
       .insert([
@@ -3594,7 +3802,7 @@ app.post("/client/proposals/accept", async (req, res) => {
       throw new Error(`Error creating project: ${projectError.message}`);
     }
 
-    //  Update the `proposals` table with the `project_id` and `updated_at`
+    // Update the `proposals` table with the `project_id` and `updated_at`
     const { error: proposalError } = await supabase
       .from("proposals")
       .update({
@@ -3608,7 +3816,7 @@ app.post("/client/proposals/accept", async (req, res) => {
       throw new Error(`Error updating proposal: ${proposalError.message}`);
     }
 
-    //  Create a notification for the recipient
+    // Create a notification for the recipient
     const notificationMessage = `Your proposal for "${proposal.project_name}" has been accepted and a project has been created.`;
     const { error: notificationError } = await supabase
       .from("notifications")
@@ -3692,7 +3900,7 @@ app.post("/api/projects/update-status", async (req, res) => {
   const { project_id, status } = req.body;
 
   try {
-    //  Fetch the project to get the client and artist IDs
+    // Fetch the project details
     const { data: projectData, error: fetchError } = await supabase
       .from("projects")
       .select("client_id, artist_id, project_name")
@@ -3705,19 +3913,78 @@ app.post("/api/projects/update-status", async (req, res) => {
     }
 
     // Update the project status
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("projects")
       .update({ status, updated_at: new Date() })
       .eq("project_id", project_id);
 
-    if (error) {
-      throw new Error(`Error updating project status: ${error.message}`);
+    if (updateError) {
+      throw new Error(`Error updating project status: ${updateError.message}`);
     }
 
-    // Create a notification for the client
-    const notificationMessage = `The status for the project "${projectData.project_name}" has been updated to "${status}".`;
+    // -------- MILESTONE INSERTION LOGIC --------
+    if (status === "In Progress") {
+      // Check if milestones exist for the project
+      const { data: existingMilestones, error: milestoneFetchError } =
+        await supabase
+          .from("milestones")
+          .select("milestone_id")
+          .eq("project_id", project_id);
+
+      if (milestoneFetchError) {
+        console.error("Error checking milestones:", milestoneFetchError);
+        return res.status(500).json({ error: "Failed to check milestones." });
+      }
+
+      // If no milestones exist, insert the default ones
+      if (!existingMilestones || existingMilestones.length === 0) {
+        const defaultMilestones = [
+          {
+            milestone_name: "Concept Approved",
+            description: "Initial concept approved by the client",
+            status: "Not Started",
+          },
+          {
+            milestone_name: "Sketch Completed",
+            description: "Sketch phase completed",
+            status: "Not Started",
+          },
+          {
+            milestone_name: "Artwork In Progress",
+            description: "Main artwork development ongoing",
+            status: "Not Started",
+          },
+          {
+            milestone_name: "Adding Details",
+            description: "Final detailing and adjustments",
+            status: "Not Started",
+          },
+          {
+            milestone_name: "Final Review",
+            description: "Project under final review",
+            status: "Not Started",
+          },
+        ];
+
+        const milestoneInsertPromises = defaultMilestones.map((milestone) =>
+          supabase.from("milestones").insert({
+            project_id,
+            milestone_name: milestone.milestone_name,
+            description: milestone.description,
+            status: milestone.status,
+            completion_percentage: 0,
+            created_at: new Date(),
+            updated_at: new Date(),
+          })
+        );
+
+        await Promise.all(milestoneInsertPromises);
+      }
+    }
+    // -------- END MILESTONE INSERTION LOGIC --------
 
     // Notify the client
+    const notificationMessage = `The status for the project "${projectData.project_name}" has been updated to "${status}".`;
     const { error: clientNotificationError } = await supabase
       .from("notifications")
       .insert([
@@ -3740,7 +4007,7 @@ app.post("/api/projects/update-status", async (req, res) => {
         .json({ error: "Failed to create client notification." });
     }
 
-    //  Notify the artist only if the status is "Confirmed"
+    // Notify the artist only if status is "Confirmed"
     if (status === "Confirmed") {
       const artistNotificationMessage = `The project "${projectData.project_name}" has been confirmed.`;
       const { error: artistNotificationError } = await supabase
@@ -3833,8 +4100,8 @@ app.post("/api/projects/update-priority", async (req, res) => {
   }
 });
 
-// Endpoint to fetch project details along with sender information
-app.get("/api/projects/:projectId/details", async (req, res) => {
+// Endpoint to fetch project details along with client information
+app.get("/api/projects/:projectId/client_project_details", async (req, res) => {
   const { projectId } = req.params;
 
   try {
@@ -3850,7 +4117,7 @@ app.get("/api/projects/:projectId/details", async (req, res) => {
 
     const { data: proposalData, error: proposalError } = await supabase
       .from("proposals")
-      .select("budget, sender_id")
+      .select("budget")
       .eq("proposal_id", projectData.proposal_id)
       .single();
 
@@ -3860,12 +4127,56 @@ app.get("/api/projects/:projectId/details", async (req, res) => {
       );
     }
 
-    const senderProfile = await fetchProfileDetails(proposalData.sender_id);
+    // Fetch client info directly from the project client_id
+    const clientProfile = await fetchProfileDetails(projectData.client_id);
 
     const projectDetails = {
       ...projectData,
       budget: proposalData.budget,
-      senderProfile: senderProfile,
+      clientProfile,
+    };
+
+    res.json(projectDetails);
+  } catch (err) {
+    console.error("Error fetching project details:", err);
+    res.status(500).json({ error: "Failed to fetch project details." });
+  }
+});
+
+// Endpoint to fetch project details along with artist information
+app.get("/api/projects/:projectId/artist_project_details", async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const { data: projectData, error: projectError } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("project_id", projectId)
+      .single();
+
+    if (projectError) {
+      throw new Error(`Error fetching project: ${projectError.message}`);
+    }
+
+    const { data: proposalData, error: proposalError } = await supabase
+      .from("proposals")
+      .select("budget")
+      .eq("proposal_id", projectData.proposal_id)
+      .single();
+
+    if (proposalError) {
+      throw new Error(
+        `Error fetching proposal details: ${proposalError.message}`
+      );
+    }
+
+    // Fetch client info directly from the project client_id
+    const artistProfile = await fetchProfileDetails(projectData.artist_id);
+
+    const projectDetails = {
+      ...projectData,
+      budget: proposalData.budget,
+      artistProfile,
     };
 
     res.json(projectDetails);
@@ -3951,337 +4262,6 @@ app.get("/messages/:conversationId", async (req, res) => {
   }
 });
 // ***** MESSAGE FUNCTION END ******
-
-//***** TRANSACTION FUNCTION ******/
-app.get("/orders/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    console.log("Fetching orders for userId:", userId);
-    const { data: orders, error } = await supabase
-      .from("orders")
-      .select(
-        `
-                id,
-                created_at,
-                amount,
-                status,
-                description
-            `
-      )
-      .eq("user_id", userId);
-
-    if (error) {
-      console.error("Error fetching orders:", error);
-      return res.status(400).json({ error: "Failed to fetch orders." });
-    }
-
-    console.log("Orders fetched:", orders);
-
-    // Check if orders are empty and log a message
-    if (orders.length === 0) {
-      console.warn(`No orders found for userId: ${userId}`);
-    }
-
-    // Format the orders data
-    const formattedOrders = orders.map((order) => ({
-      id: order.id,
-      date: order.created_at,
-      amount: order.amount / 100,
-      status: order.status,
-      description: order.description,
-    }));
-
-    res.status(200).json(formattedOrders);
-  } catch (err) {
-    console.error("Unexpected error fetching orders:", err);
-    res.status(500).json({ error: "Failed to fetch orders." });
-  }
-});
-
-// ****** COLLABORATIVE FILTERING ENDPOINT client ******
-app.get("/recommend-clients/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const visitorId = req.query.visitorId;
-
-  const CLIENT_CDN_URL =
-    "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
-
-  try {
-    // Fetch the user's likes, comments, and visits
-    const [likes, comments, visits] = await Promise.all([
-      supabase.from("community_likes").select("post_id").eq("user_id", userId),
-      supabase
-        .from("community_comments")
-        .select("post_id")
-        .eq("user_id", userId),
-      supabase
-        .from("profile_visits")
-        .select("visited_id")
-        .eq("visitor_id", visitorId),
-    ]);
-
-    // Check if visits.data is null or undefined
-    if (!visits.data) {
-      return res.status(200).json([]);
-    }
-
-    const postIds = [
-      ...new Set([
-        ...likes.data.map((item) => item.post_id),
-        ...comments.data.map((item) => item.post_id),
-      ]),
-    ];
-
-    const visitedClientIds = visits.data.map((item) => item.visited_id);
-
-    if (postIds.length === 0 && visitedClientIds.length === 0) {
-      return res.status(200).json([]);
-    }
-
-    const { data: recommendedClientsLikes, error: likesError } = await supabase
-      .from("community_likes")
-      .select("user_id")
-      .in("post_id", postIds)
-      .neq("user_id", userId);
-
-    const { data: recommendedClientsComments, error: commentsError } =
-      await supabase
-        .from("community_comments")
-        .select("user_id")
-        .in("post_id", postIds)
-        .neq("user_id", userId);
-
-    if (likesError || commentsError) {
-      console.error(
-        "Error fetching recommended clients:",
-        likesError || commentsError
-      );
-      return res
-        .status(500)
-        .json({ error: "Failed to fetch recommendations." });
-    }
-
-    // Combine the results from likes, comments, and visits
-    const allRecommendedClients = [
-      ...recommendedClientsLikes,
-      ...recommendedClientsComments,
-      ...visitedClientIds.map((visitedId) => ({ user_id: visitedId })),
-    ];
-
-    // Get unique user IDs from the recommendations
-    const uniqueClientIds = [
-      ...new Set(allRecommendedClients.map((client) => client.user_id)),
-    ];
-
-    // Fetch client details for the recommended clients
-    const { data: clientsDetails, error: clientsError } = await supabase
-      .from("client")
-      .select("*")
-      .in("user_id", uniqueClientIds);
-
-    if (clientsError) {
-      console.error("Error fetching client details:", clientsError);
-      return res.status(500).json({ error: "Failed to fetch client details." });
-    }
-
-    // If no recommendations found, return an empty array
-    if (clientsDetails.length === 0) {
-      return res.status(200).json([]);
-    }
-
-    const processedClientsDetails = clientsDetails.map((client) => ({
-      ...client,
-      profile_image: client.profile_image
-        ? `${CLIENT_CDN_URL}${client.user_id}/${client.profile_image}`
-        : null,
-    }));
-
-    // Count visit frequencies for each client
-    const visitCounts = visits.data.reduce((acc, visit) => {
-      acc[visit.visited_id] = (acc[visit.visited_id] || 0) + 1; // Increment the count for each visited client
-      return acc;
-    }, {});
-
-    // Add visit counts to processed clients
-    const clientsWithCounts = processedClientsDetails.map((client) => ({
-      ...client,
-      visit_count: visitCounts[client.user_id] || 0, // Add visit count
-    }));
-
-    // Filter out the currently visited client from the recommendations
-    const filteredClientsDetails = clientsWithCounts.filter(
-      (client) => client.user_id !== userId // Exclude the currently visited client
-    );
-
-    // Sort clients by visit count in descending order
-    filteredClientsDetails.sort((a, b) => b.visit_count - a.visit_count);
-
-    // Return the filtered and sorted recommended clients directly
-    res.status(200).json(filteredClientsDetails);
-  } catch (err) {
-    console.error("Unexpected error in recommendations:", err);
-    res.status(500).json({ error: "An unexpected error occurred." });
-  }
-});
-
-// visit profile endpoint
-app.post("/log-profile-visit/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const { visitorId } = req.body;
-
-  console.log("Logging visit for userId:", userId, "by visitorId:", visitorId);
-  if (!visitorId) {
-    return res.status(400).json({ error: "Visitor ID is required." });
-  }
-
-  try {
-    // Log the profile visit
-    const { error } = await supabase
-      .from("profile_visits")
-      .insert([
-        { visitor_id: visitorId, visited_id: userId, visited_at: new Date() },
-      ]);
-
-    if (error) {
-      return res.status(500).json({ error: "Failed to log profile visit." });
-    }
-
-    res.status(200).json({ message: "Profile visit logged successfully." });
-  } catch (err) {
-    console.error("Error logging profile visit:", err);
-    res.status(500).json({ error: "An unexpected error occurred." });
-  }
-});
-// ****** COLLABORATIVE FILTERING ENDPOINT client END ******
-
-// ****** COLLABORATIVE FILTERING ENDPOINT ARTIST ******
-app.get("/recommend-artists/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const visitorId = req.query.visitorId;
-
-  const CDNURL_ARTIST =
-    "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
-
-  try {
-    // Fetch the user's likes, comments, and visits
-    const [likes, comments, visits] = await Promise.all([
-      supabase.from("community_likes").select("post_id").eq("user_id", userId),
-      supabase
-        .from("community_comments")
-        .select("post_id")
-        .eq("user_id", userId),
-      supabase
-        .from("profile_visits")
-        .select("visited_id")
-        .eq("visitor_id", visitorId),
-    ]);
-
-    if (!visits.data) {
-      console.warn("No visits found for visitorId:", visitorId);
-      return res.status(200).json([]);
-    }
-
-    const postIds = [
-      ...new Set([
-        ...likes.data.map((item) => item.post_id),
-        ...comments.data.map((item) => item.post_id),
-      ]),
-    ];
-
-    const visitedArtistIds = visits.data.map((item) => item.visited_id);
-
-    // If no interactions, return an empty array
-    if (postIds.length === 0 && visitedArtistIds.length === 0) {
-      return res.status(200).json([]);
-    }
-
-    // Fetch artists who have liked or commented on the same posts
-    const { data: recommendedArtistsLikes, error: likesError } = await supabase
-      .from("community_likes")
-      .select("user_id")
-      .in("post_id", postIds)
-      .neq("user_id", userId);
-    const { data: recommendedArtistsComments, error: commentsError } =
-      await supabase
-        .from("community_comments")
-        .select("user_id")
-        .in("post_id", postIds)
-        .neq("user_id", userId);
-
-    if (likesError || commentsError) {
-      console.error(
-        "Error fetching recommended artists:",
-        likesError || commentsError
-      );
-      return res
-        .status(500)
-        .json({ error: "Failed to fetch recommendations." });
-    }
-
-    // Combine the results from likes, comments, and visits
-    const allRecommendedArtists = [
-      ...recommendedArtistsLikes,
-      ...recommendedArtistsComments,
-      ...visitedArtistIds.map((visitedId) => ({ user_id: visitedId })),
-    ];
-
-    // Get unique user IDs from the recommendations
-    const uniqueArtistIds = [
-      ...new Set(allRecommendedArtists.map((artist) => artist.user_id)),
-    ];
-
-    // Fetch artist details for the recommended artists
-    const { data: artistsDetails, error: artistsError } = await supabase
-      .from("artist")
-      .select("*")
-      .in("user_id", uniqueArtistIds);
-
-    if (artistsError) {
-      console.error("Error fetching artist details:", artistsError);
-      return res.status(500).json({ error: "Failed to fetch artist details." });
-    }
-
-    // If no recommendations found, return an empty array
-    if (artistsDetails.length === 0) {
-      return res.status(200).json([]);
-    }
-
-    const processedArtistsDetails = artistsDetails.map((artist) => ({
-      ...artist,
-      profile_image: artist.profile_image
-        ? `${CDNURL_ARTIST}${artist.user_id}/${artist.profile_image}`
-        : null,
-    }));
-
-    // Count visit frequencies for each artist
-    const visitCounts = visits.data.reduce((acc, visit) => {
-      acc[visit.visited_id] = (acc[visit.visited_id] || 0) + 1; // Increment the count for each visited artist
-      return acc;
-    }, {});
-
-    // Add visit counts to processed artists
-    const artistsWithCounts = processedArtistsDetails.map((artist) => ({
-      ...artist,
-      visit_count: visitCounts[artist.user_id] || 0,
-    }));
-
-    // Filter out the currently visited artist from the recommendations
-    const filteredArtistsDetails = artistsWithCounts.filter(
-      (artist) => artist.user_id !== userId // Exclude the currently visited artist
-    );
-
-    // Sort artists by visit count in descending order
-    filteredArtistsDetails.sort((a, b) => b.visit_count - a.visit_count);
-
-    // Return the filtered and sorted recommended artists directly
-    res.status(200).json(filteredArtistsDetails);
-  } catch (err) {
-    console.error("Unexpected error in recommendations:", err);
-    res.status(500).json({ error: "An unexpected error occurred." });
-  }
-});
-// ****** COLLABORATIVE FILTERING ENDPOINT ARTIST END ******
 
 //***** TRANSACTION FUNCTION ******/
 app.get("/orders/:userId", async (req, res) => {
@@ -4734,6 +4714,8 @@ app.post(
 
 // ****** ARTIST UPLOAD VERIFICATION END... ******
 
+// ***** VERIFIED ARTIST FUNCTION ******
+
 app.get("/verified-artists", async (req, res) => {
   const CDNURL =
     "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
@@ -4796,3 +4778,255 @@ app.get("/verified-artists", async (req, res) => {
     res.status(500).json({ error: "Unexpected server error." });
   }
 });
+
+// ***** VERIFIED ARTIST FUNCTION END... ******
+
+// ***** ENHANCED RECOMMENDED ARTISTS FOR CLIENT ******
+app.get("/recommend-artists/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  const ARTIST_CDN_URL =
+    "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+
+  try {
+    // 1. Fetch client preferences
+    const { data: clientPrefs, error: clientError } = await supabase
+      .from("client_preferences")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (clientError || !clientPrefs) {
+      return res.status(404).json({ error: "Client preferences not found." });
+    }
+
+    // 2. Fetch all artists and their preferences
+    const { data: artists } = await supabase.from("artist").select("*");
+    const { data: artistPrefsData } = await supabase
+      .from("artist_preferences")
+      .select("*");
+
+    const artistPrefsMap = artistPrefsData.reduce((acc, pref) => {
+      acc[pref.user_id] = pref;
+      return acc;
+    }, {});
+
+    const processedArtists = artists.map((artist) => ({
+      ...artist,
+      profile_image: artist.profile_image
+        ? `${ARTIST_CDN_URL}${artist.user_id}/${artist.profile_image}`
+        : null,
+      preferences: artistPrefsMap[artist.user_id] || {},
+    }));
+
+    // 3. Generate ranked artists
+    const artistRankings = processedArtists.map((artist) => {
+      const score = calculateScore(clientPrefs, artist.preferences);
+      return { artistId: artist.user_id, score, artist };
+    });
+
+    // Sort by match score in descending order
+    artistRankings.sort((a, b) => b.score - a.score);
+
+    // Format the response
+    const formattedArtists = artistRankings.map((item) => ({
+      id: item.artist.user_id,
+      name: `${item.artist.firstname} ${item.artist.lastname}`,
+      role: item.artist.role,
+      address: item.artist.address,
+      profile_image: item.artist.profile_image,
+      score: item.score,
+    }));
+
+    return res.status(200).json({ recommended: formattedArtists });
+  } catch (error) {
+    console.error("Error fetching recommended artists:", error);
+    return res.status(500).json({ error: "Recommendation failed." });
+  }
+});
+// ***** ENHANCED RECOMMENDED ARTISTS FOR CLIENT END ******
+
+// visit profile endpoint
+app.post("/log-profile-visit/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { visitorId } = req.body;
+
+  console.log("Logging visit for userId:", userId, "by visitorId:", visitorId);
+  if (!visitorId) {
+    return res.status(400).json({ error: "Visitor ID is required." });
+  }
+
+  try {
+    // Log the profile visit
+    const { error } = await supabase
+      .from("profile_visits")
+      .insert([
+        { visitor_id: visitorId, visited_id: userId, visited_at: new Date() },
+      ]);
+
+    if (error) {
+      return res.status(500).json({ error: "Failed to log profile visit." });
+    }
+
+    res.status(200).json({ message: "Profile visit logged successfully." });
+  } catch (err) {
+    console.error("Error logging profile visit:", err);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+// visit profile endpoint end....
+
+// ***** MILESTONE ENDPOINT ******
+// Endpoint to fetch all projects with status "In Progress" and their milestones
+app.get("/api/projects/in-progress-with-milestones", async (req, res) => {
+  try {
+    const { data: projects, error: projectError } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("status", "In Progress");
+
+    if (projectError) {
+      throw new Error(`Error fetching projects: ${projectError.message}`);
+    }
+
+    const projectsWithMilestones = await Promise.all(
+      projects.map(async (project) => {
+        const { data: milestones, error: milestoneError } = await supabase
+          .from("milestones")
+          .select("*")
+          .eq("project_id", project.project_id)
+          .order("due_date", { ascending: true });
+
+        if (milestoneError) {
+          throw new Error(
+            `Error fetching milestones: ${milestoneError.message}`
+          );
+        }
+
+        // ✅ Compute project-level average of milestone completion percentages
+        const total = milestones.reduce(
+          (acc, m) => acc + (m.completion_percentage || 0),
+          0
+        );
+        const avg = milestones.length ? total / milestones.length : 0;
+
+        return {
+          ...project,
+          milestones,
+          completion_percentage: Math.round(avg),
+        };
+      })
+    );
+
+    res.status(200).json(projectsWithMilestones);
+  } catch (err) {
+    console.error("Error fetching projects and milestones:", err);
+    res.status(500).json({ error: "Failed to fetch projects and milestones." });
+  }
+});
+
+// Fetch milestones for a specific project
+app.get("/api/projects/:projectId/milestones", async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("milestones")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("due_date", { ascending: true });
+
+    if (error) throw error;
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching milestones:", err);
+    res.status(500).json({ error: "Failed to fetch milestones." });
+  }
+});
+
+// Create a new milestone for a project
+app.post("/api/projects/:projectId/milestones", async (req, res) => {
+  const { projectId } = req.params;
+  const {
+    milestone_name,
+    description,
+    due_date,
+    status,
+    completion_percentage,
+  } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from("milestones")
+      .insert([
+        {
+          project_id: projectId,
+          milestone_name,
+          description,
+          due_date,
+          status,
+          completion_percentage: completion_percentage || 0,
+        },
+      ])
+      .select();
+
+    if (error) throw error;
+
+    res.status(201).json(data[0]);
+  } catch (err) {
+    console.error("Error creating milestone:", err);
+    res.status(500).json({ error: "Failed to create milestone." });
+  }
+});
+
+// Update a milestone (allowing partial updates and updating completion_percentage)
+app.put("/api/milestones/:milestoneId", async (req, res) => {
+  const { milestoneId } = req.params;
+  const { milestone_name, status, due_date } = req.body;
+
+  // Only include fields that are provided
+  const updates = {};
+  if (milestone_name !== undefined) updates.milestone_name = milestone_name;
+  if (status !== undefined) updates.status = status;
+  if (due_date !== undefined) updates.due_date = due_date;
+
+  // Calculate completion_percentage based on status if provided
+  if (status !== undefined) {
+    if (status === "Completed") {
+      updates.completion_percentage = 100;
+    } else if (status === "In Progress") {
+      updates.completion_percentage = 50;
+    } else if (status === "Not Started") {
+      updates.completion_percentage = 0;
+    }
+  }
+
+  updates.updated_at = new Date(); // Always update timestamp
+
+  if (Object.keys(updates).length === 1) {
+    // Only updated_at is present
+    return res
+      .status(400)
+      .json({ error: "No valid fields provided for update." });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("milestones")
+      .update(updates)
+      .eq("milestone_id", milestoneId)
+      .select();
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "Milestone not found." });
+    }
+
+    res.status(200).json(data[0]);
+  } catch (err) {
+    console.error("Error updating milestone:", err);
+    res.status(500).json({ error: "Failed to update milestone." });
+  }
+});
+// ***** MILESTONE ENDPOINT END... ******

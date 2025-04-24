@@ -42,7 +42,9 @@ const EditAdminProfile: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`${API_BASE_URL}/admin-profile/${user.id}`);
+      const response = await axios.get(
+        `${API_BASE_URL}/admin-profile/${user.id}`
+      );
       setAdminProfile(response.data);
     } catch (err) {
       console.error("Error fetching admin profile:", err);
@@ -56,7 +58,11 @@ const EditAdminProfile: React.FC = () => {
     fetchAdminProfile();
   }, [user]);
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleProfileChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
     setAdminProfile((prev) => ({ ...prev, [name]: value }));
   };
@@ -69,7 +75,10 @@ const EditAdminProfile: React.FC = () => {
     setLoading(true);
 
     try {
-      await axios.put(`${API_BASE_URL}/admin-profile`, { userId: user.id, profile: adminProfile });
+      await axios.put(`${API_BASE_URL}/admin-profile`, {
+        userId: user.id,
+        profile: adminProfile,
+      });
       navigate("/admin-profile");
     } catch (error) {
       console.error("Failed to save profile:", error);
@@ -79,22 +88,28 @@ const EditAdminProfile: React.FC = () => {
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-gray-50">
-      <ClipLoader color="#3498db" loading={loading} size={80} />
-      <p className="mt-4 text-gray-600">Loading...</p>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <ClipLoader color="#3498db" loading={loading} size={80} />
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    );
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    {error && <div className="text-red-500 text-center mb-4">{error}</div>}
-    <form onSubmit={handleSave} className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-3xl font-semibold text-[#5C0601] mb-4">My Profile</h2>
-        <hr className="border-gray-300 mb-6" />
-      </div>
+      {error && <div className="text-red-500 text-center mb-4">{error}</div>}
+      <form
+        onSubmit={handleSave}
+        className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6"
+      >
+        {/* Header */}
+        <div className="text-center">
+          <h2 className="text-3xl font-semibold text-[#5C0601] mb-4">
+            My Profile
+          </h2>
+          <hr className="border-gray-300 mb-6" />
+        </div>
 
         {/* Profile Picture Upload Section */}
         <div className="relative mx-auto w-40 h-40">
@@ -161,7 +176,10 @@ const EditAdminProfile: React.FC = () => {
           >
             Save Changes
           </button>
-          <Link to="/admin-profile" className="ml-4 text-gray-500 hover:underline">
+          <Link
+            to="/admin-profile"
+            className="ml-4 text-gray-500 hover:underline"
+          >
             Cancel
           </Link>
         </div>

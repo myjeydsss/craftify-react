@@ -10,7 +10,6 @@ import {
   FaChevronUp,
   FaUserCircle,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
 import MessagePopup from "./MessagePopup.tsx";
 import ClipLoader from "react-spinners/ClipLoader";
 import Swal from "sweetalert2";
@@ -39,7 +38,6 @@ interface Preferences {
 
 const ViewProfileClient: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [preferences, setPreferences] = useState<Preferences | null>(null);
@@ -47,7 +45,6 @@ const ViewProfileClient: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAllPreferences, setShowAllPreferences] = useState<boolean>(false);
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [recommendedClients, setRecommendedClients] = useState<Client[]>([]);
 
   const [projectName, setProjectName] = useState<string>("");
   const [projectDescription, setProjectDescription] = useState<string>("");
@@ -72,17 +69,6 @@ const ViewProfileClient: React.FC = () => {
           `${import.meta.env.VITE_API_URL}/client-preferences/${userId}`
         );
         setPreferences(preferencesResponse.data);
-
-        if (user && user.id) {
-          const recommendationsResponse = await axios.get<Client[]>(
-            `${
-              import.meta.env.VITE_API_URL
-            }/recommend-clients/${userId}?visitorId=${user.id}`
-          );
-          setRecommendedClients(recommendationsResponse.data);
-        } else {
-          setError("User  is not authenticated.");
-        }
       } catch (err) {
         console.error("Error fetching client details:", err);
         setError("Failed to load client details.");
@@ -93,6 +79,7 @@ const ViewProfileClient: React.FC = () => {
 
     fetchClientDetails();
   }, [userId, user]);
+
   const togglePreferences = () => setShowAllPreferences(!showAllPreferences);
 
   const hasValidPreferences =
@@ -441,59 +428,6 @@ const ViewProfileClient: React.FC = () => {
                 )}
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Recommended Clients Section */}
-        {recommendedClients.length > 0 ? (
-          <div className="bg-white shadow-lg rounded-lg p-8 mb-12">
-            <h2 className="text-3xl font-semibold text-gray-900 mb-6">
-              Recommended Clients
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recommendedClients.map((recClient) => (
-                <div
-                  key={recClient.user_id}
-                  className="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 mb-6 cursor-pointer"
-                >
-                  <div className="flex flex-col items-center text-center p-6">
-                    {recClient.profile_image ? (
-                      <img
-                        src={recClient.profile_image}
-                        alt={`${recClient.firstname} ${recClient.lastname}`}
-                        className="w-32 h-32 object-cover rounded-full border-4 border-gray-300 mb-4"
-                      />
-                    ) : (
-                      <FaUserCircle className="w-32 h-32 text-gray-400 border-4 border-gray-300 rounded-full mb-4" />
-                    )}
-                    <h3 className="text-2xl font-bold text-gray-800 mb-1">
-                      {recClient.firstname} {recClient.lastname}
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      {recClient.address || "No address available"}
-                    </p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/profile/client/${recClient.user_id}`);
-                      }}
-                      className="bg-orange-600 text-white px-5 py-2 rounded-lg shadow hover:bg-orange-700 transition duration-200"
-                    >
-                      View Profile
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white shadow-md rounded-lg p-8 mb-12 text-center">
-            <h2 className="text-3xl font-semibold text-gray-900 mb-4">
-              Recommended Clients
-            </h2>
-            <p className="text-gray-600">
-              No recommended clients for you at this time.
-            </p>
           </div>
         )}
       </div>

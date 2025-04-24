@@ -356,17 +356,20 @@ const EditClientProfile: React.FC = () => {
                   "Sci-Fi",
                   "Nature Art",
                   "Botanical Illustration",
-                  "Geometric Art",
-                  "Pattern-Based Design",
+                  "Geometric Patterns",
+                  "Pattern-Based Art",
                   "Pop Art",
                   "Urban Style",
-                  "Minimalist",
-                  "Modern Art",
-                  "Craft & Handmade Art",
-                  "Sculpture",
-                  "Statues",
+                  "Traditional Art (Paintings & Drawings)",
                   "Digital Art & Illustrations",
+                  "Sculpture",
+                  "3D Art",
+                  "Furniture Making",
+                  "Woodworking",
+                  "Handmade Crafts",
+                  "DIY Projects",
                   "Beginner / Exploring Styles",
+                  "Others",
                   "Open to All Styles",
                 ].map((style) => (
                   <button
@@ -408,11 +411,11 @@ const EditClientProfile: React.FC = () => {
                 className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
               >
                 <option value="">Select...</option>
-                <option value="under-1000">Under ₱1,000</option>
-                <option value="1000-5000">₱1,000 - ₱5,000</option>
-                <option value="5000-10000">₱5,000 - ₱10,000</option>
-                <option value="10000-20000">₱10,000 - ₱20,000</option>
-                <option value="20000-above">₱20,000 and above</option>
+                <option value="Under ₱1,000">Under ₱1,000</option>
+                <option value="₱1,000 - ₱5,000">₱1,000 - ₱5,000</option>
+                <option value="₱5,000 - ₱10,000">₱5,000 - ₱10,000</option>
+                <option value="₱10,000 - ₱20,000">₱10,000 - ₱20,000</option>
+                <option value="₱20,000 and above">₱20,000 and above</option>
                 <option value="Flexible Budget / Open">
                   Flexible Budget / Open
                 </option>
