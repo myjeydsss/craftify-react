@@ -870,11 +870,11 @@ const ClientProject: React.FC = () => {
                 </p>
               </div>
 
-              {/* Sender Details Section */}
+              {/* Artist Details Section */}
               {selectedProject.artistProfile && (
                 <div className="border-t pt-4 mt-4">
                   <h4 className="text-lg font-semibold text-gray-800 mb-2">
-                    Sender Information
+                    Artist Information
                   </h4>
                   <div className="flex items-center mb-2">
                     {selectedProject.artistProfile.profile_image ? (

@@ -887,7 +887,7 @@ const ArtistProject: React.FC = () => {
                               <input
                                 type="text"
                                 className="border px-2 py-1 rounded w-full text-xs sm:text-sm"
-                                value={milestone.milestone_name}
+                                value={milestone.milestone_name ?? ""}
                                 onChange={(e) =>
                                   handleEditChange(
                                     e,
@@ -898,7 +898,7 @@ const ArtistProject: React.FC = () => {
                               />
                             ) : (
                               <span className="text-gray-800 text-xs sm:text-sm">
-                                {milestone.milestone_name}
+                                {milestone.milestone_name ?? ""}
                               </span>
                             )}
                           </td>
@@ -907,7 +907,7 @@ const ArtistProject: React.FC = () => {
                               <input
                                 type="date"
                                 className="border px-2 py-1 rounded w-full text-xs sm:text-sm"
-                                value={milestone.due_date}
+                                value={milestone.due_date ?? ""}
                                 onChange={(e) =>
                                   handleEditChange(
                                     e,
@@ -918,7 +918,7 @@ const ArtistProject: React.FC = () => {
                               />
                             ) : (
                               <span className="text-gray-600 text-xs sm:text-sm">
-                                {milestone.due_date}
+                                {milestone.due_date ?? ""}
                               </span>
                             )}
                           </td>
@@ -926,7 +926,7 @@ const ArtistProject: React.FC = () => {
                             {editMode === milestone.milestone_id ? (
                               <select
                                 className="border px-2 py-1 rounded w-full text-xs sm:text-sm"
-                                value={milestone.status}
+                                value={milestone.status ?? "Not Started"}
                                 onChange={(e) =>
                                   handleEditChange(
                                     e,
@@ -949,7 +949,7 @@ const ArtistProject: React.FC = () => {
                                     : "bg-gray-100 text-gray-600"
                                 }`}
                               >
-                                {milestone.status}
+                                {milestone.status ?? "Not Started"}
                               </span>
                             )}
                           </td>
