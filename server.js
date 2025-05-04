@@ -4940,7 +4940,7 @@ app.post("/log-profile-visit/:userId", async (req, res) => {
   const { userId } = req.params;
   const { visitorId } = req.body;
 
-  console.log("Logging visit for userId:", userId, "by visitorId:", visitorId);
+  console.log("Logging visit for userId Fuck you:", userId, "by visitorId:", visitorId);
   if (!visitorId) {
     return res.status(400).json({ error: "Visitor ID is required." });
   }
@@ -5142,5 +5142,60 @@ app.get("/artist/:userId", async (req, res) => {
   } catch (err) {
     console.error("Unexpected error fetching artist_id:", err);
     res.status(500).json({ error: "Failed to fetch artist_id." });
+  }
+});
+
+// Fetch orders by user_id
+app.get("/orders/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    console.log("Fetching orders for userId:", userId);
+
+    // Query the orders table for the given user_id
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select(
+        `
+        id,
+        created_at,
+        amount,
+        status,
+        description,
+        payment_intent_id,
+        checkout_url,
+        artist_id,
+        art_id
+      `
+      )
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error fetching orders:", error.message);
+      return res.status(400).json({ error: "Failed to fetch orders." });
+    }
+
+    if (!orders || orders.length === 0) {
+      console.warn(`No orders found for userId: ${userId}`);
+      return res.status(404).json({ message: "No orders found." });
+    }
+
+    // Format the orders data
+    const formattedOrders = orders.map((order) => ({
+      id: order.id,
+      date: order.created_at,
+      amount: order.amount,
+      status: order.status,
+      description: order.description,
+      payment_intent_id: order.payment_intent_id,
+      checkout_url: order.checkout_url,
+      artist_id: order.artist_id,
+      art_id: order.art_id,
+    }));
+
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.error("Unexpected error fetching orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders." });
   }
 });
