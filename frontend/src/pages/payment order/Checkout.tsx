@@ -270,11 +270,9 @@ const Checkout: React.FC = () => {
           </h2>
           <div className="space-y-4">
             {cartItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col border-b pb-4"
-              >
+              <div key={item.id} className="flex flex-col border-b pb-4">
                 <div className="flex items-center justify-between">
+                  {/* Item Details */}
                   <div className="flex items-center space-x-4">
                     <img
                       src={item.arts.image_url}
@@ -286,40 +284,32 @@ const Checkout: React.FC = () => {
                         {item.arts.title}
                       </h3>
                       <p className="text-gray-600">
-                        ₱{parseFloat(item.arts.price).toLocaleString()} x{" "}
-                        {item.quantity}
+                        ₱{parseFloat(item.arts.price).toLocaleString()} x {item.quantity}
                       </p>
                     </div>
                   </div>
                   <p className="text-lg font-bold text-gray-900">
-                    ₱
-                    {(
-                      parseFloat(item.arts.price) * item.quantity
-                    ).toLocaleString()}
+                    ₱{(parseFloat(item.arts.price) * item.quantity).toLocaleString()}
                   </p>
                 </div>
-<<<<<<< Updated upstream
-                <p className="text-lg font-bold text-gray-900">
-                  ₱{(parseFloat(item.arts.price) * item.quantity).toLocaleString()}
-                </p>
-=======
 
-                {/* Artist Information */}
-                <div className="mt-4 p-4 rounded-lg shadow-sm">
-  <h4 className="text-lg font-semibold text-gray-800 mb-2">Artist Information</h4>
-  <div className="space-y-2">
-    <p className="text-gray-700">
-      <strong>Artist Name:</strong> {item.arts.artist ? `${item.arts.artist.firstname} ${item.arts.artist.lastname}` : "Unknown Artist"}
-    </p>
-    <p className="text-gray-700">
-      <strong>Address:</strong> {item.arts.artist?.address || "Unknown Address"}
-    </p>
-    <p className="text-gray-700">
-      <strong>Phone:</strong> {item.arts.artist?.phone || "Unknown Phone"}
-    </p>
-  </div>
-</div>
->>>>>>> Stashed changes
+                {/* Artist Details */}
+                {item.arts.artist && (
+                  <div className="mt-2 text-sm text-gray-700">
+                    <p>
+                      <span className="font-semibold">Artist:</span>{" "}
+                      {item.arts.artist.firstname} {item.arts.artist.lastname} (
+                      {item.arts.artist.username})
+                    </p>
+                    <p>
+                      <span className="font-semibold">Address:</span>{" "}
+                      {item.arts.artist.address}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Phone:</span> {item.arts.artist.phone}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

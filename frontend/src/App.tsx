@@ -45,16 +45,6 @@ import Verification from "./pages/admin/Verification";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import FAQ from "./pages/FAQ";
-<<<<<<< Updated upstream
-=======
-import PasswordReset from "./pages/PasswordReset";
-import UpdatePassword from "./pages/UpdatePassword";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminProfile from "./pages/admin/AdminProfile";
-import EditAdminProfile from "./pages/admin/EditAdminProfile";
-import DynamicDashboard from "./components/DynamicDashboard";
-import ArtistTransactions from "./pages/artist/ArtistTransaction";
->>>>>>> Stashed changes
 
 const App = () => {
   
@@ -89,7 +79,6 @@ const App = () => {
                         <Route path="/artist-track-project" element={<ArtistProject />} />
 
 
-<<<<<<< Updated upstream
 
                     {/* Admin routes */}
                         <Route path="/admin-dashboard" element={<AdminDashboard />} />
@@ -140,79 +129,6 @@ const App = () => {
             </div>
         </>
     );
-=======
-          {/* ✅ Protected routes */}
-          <Route element={<AuthRoute />}>
-            <Route path="/dashboard" element={<DynamicDashboard />} />{" "}
-            {/* ✅ Dynamic route */}
-            <Route path="/artist-profile" element={<ArtistProfile />} />
-            <Route
-              path="/edit-artist-profile"
-              element={<EditArtistProfile />}
-            />
-            <Route
-              path="/artist-verification"
-              element={<ArtistVerification />}
-            />
-            <Route path="/artist-arts" element={<MyArts />} />
-            <Route path="/artist-post-arts" element={<PostArts />} />
-            <Route path="/edit-art/:artId" element={<EditArtPage />} />
-            <Route path="/artist-track-project" element={<ArtistProject />} />
-            {/* Admin routes */}
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/admin-profile" element={<AdminProfile />} />
-            <Route path="/edit-admin-profile" element={<EditAdminProfile />} />
-            <Route path="/users-table" element={<UserTable />} />
-            <Route path="/tags-table" element={<TagTable />} />
-            <Route path="/arts-table" element={<ArtsTable />} />
-            <Route path="/verification" element={<Verification />} />
-            {/* Client routes */}
-            <Route path="/client-profile" element={<ClientProfile />} />
-            <Route
-              path="/edit-client-profile"
-              element={<EditClientProfile />}
-            />
-            <Route path="/client-project-page" element={<ClientProject />} />
-            {/* Other routes */}
-            <Route path="/browse-artists" element={<BrowseArtist />} />
-            <Route
-              path="/profile/artist/:userId"
-              element={<ViewProfileArtist />}
-            />
-            <Route path="/browse-arts" element={<BrowseArts />} />
-            <Route path="/art/:artId" element={<ArtDetail />} />
-            <Route path="/browse-clients" element={<BrowseClient />} />
-            <Route
-              path="/profile/client/:userId"
-              element={<ViewProfileClient />}
-            />
-            <Route path="/community" element={<Community />} />
-            <Route path="/update-password" element={<UpdatePassword />} />
-            <Route path="/notifications" element={<Notification />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route
-              path="/message-popup"
-              element={
-                <MessagePopup
-                  onClose={() => {}}
-                  sender_id={""}
-                  receiver_id={""}
-                />
-              }
-            />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route
-              path="/transaction-history"
-              element={<TransactionHistory />}
-            />
-            <Route path="/artist-transactions" element={<ArtistTransactions />} />
-          </Route>
-        </Routes>
-      </div>
-    </>
-  );
->>>>>>> Stashed changes
 };
 
 export default App;
