@@ -51,7 +51,7 @@ const ArtistTransactionHistory: React.FC = () => {
             }
 
             const ordersResponse = await axios.get(`${API_BASE_URL}/artist-orders/${artistId}`);
-            console.log("Orders fetched:", ordersResponse.data); // Debug log
+            console.log("Orders fetched: all ", ordersResponse.data); // Debug log
             setOrders(ordersResponse.data);
 
             // Initialize editStatuses and savingStates
@@ -145,7 +145,7 @@ const ArtistTransactionHistory: React.FC = () => {
                                 </div>
                                 <p className="mt-2">{order.description}</p>
                                 <p className="mt-2 text-gray-700">
-                                    Your art has been purchased by <span className="font-bold">{order.user_name}</span> on{" "}
+                                    Your art has been purchased by <span className="font-bold">A Client</span> on{" "}
                                     {new Date(order.date).toLocaleDateString()}.
                                 </p>
                                 <p className="mt-2 font-bold">₱{(order.amount / 100).toFixed(2)}</p>

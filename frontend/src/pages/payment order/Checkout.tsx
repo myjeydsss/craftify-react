@@ -13,6 +13,7 @@ interface CartItem {
     title: string;
     image_url: string;
     price: string;
+    artist_id: string;
     artist?: {
       firstname: string;
       lastname: string;
@@ -123,16 +124,33 @@ const Checkout: React.FC = () => {
             });
 
             const checkoutUrl = response.data;
-
+            const orderItems = cartItems.map((item) => ({
+              art_id: item.art_id,
+              artist_id: item.arts.artist_id,
+              amount: parseFloat(item.arts.price) * item.quantity * 100, // Convert to cents
+              description: `Art Purchased: ${item.arts.title}`,
+            }));
+        
+            // Log the payload for debugging
+            console.log("Order payload:", {
+              user_id: user?.id,
+              status: "pending",
+              user_email: user?.email,
+              user_name: user?.email,
+              payment_intent_id: response.data.payment_intent_id,
+              checkout_url: checkoutUrl,
+              items: orderItems,
+            });
+        
+            // Send the order request
             await axios.post(`${import.meta.env.VITE_API_URL}/order`, {
                 user_id: user?.id,
                 status: 'pending',
                 user_email: user?.email,
                 user_name: user?.email,
-                amount: totalAmount,
-                description: 'Purchase from Craftify',
                 payment_intent_id: response.data.payment_intent_id,
                 checkout_url: checkoutUrl,
+                items: orderItems,
             });
 
             // Step 3: Notify user and artist
