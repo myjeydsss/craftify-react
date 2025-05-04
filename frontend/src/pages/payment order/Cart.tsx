@@ -15,6 +15,9 @@ interface CartItem {
     title: string;
     image_url: string;
     price: string;
+    artist?: {
+      username: string;
+    }; // Nested artist object
   };
 }
 
@@ -122,6 +125,16 @@ const Cart: React.FC = () => {
     );
   }
 
+  // Group items by artist
+  const groupedItems = cartItems.reduce((acc, item) => {
+    const artistName = item.arts.artist?.username || "Unknown Artist";
+    if (!acc[artistName]) {
+      acc[artistName] = [];
+    }
+    acc[artistName].push(item);
+    return acc;
+  }, {} as Record<string, CartItem[]>);
+
   // SweetAlert Toast configuration
   const Toast = Swal.mixin({
     toast: true,
@@ -138,6 +151,7 @@ const Cart: React.FC = () => {
   return (
     <div className="min-h-screen px-4 py-16">
       <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-8">
+<<<<<<< Updated upstream
         <h1 className="text-4xl font-bold text-[#5C0601] mb-8">Your Art Collection</h1>
         <div className="space-y-6">
           {cartItems.map((item) => (
@@ -171,21 +185,68 @@ const Cart: React.FC = () => {
                   </p>
                 </div>
               </div>
+=======
+        <h1 className="text-4xl font-bold text-[#5C0601] mb-8">
+          Your Art Collection
+        </h1>
+        <div className="space-y-8">
+          {Object.entries(groupedItems).map(([artistName, items]) => (
+            <div key={artistName}>
+              {/* Artist Section */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {artistName}
+              </h2>
+              <div className="space-y-6">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col md:flex-row items-center justify-between border-b pb-4"
+                  >
+                    {/* Item Details */}
+                    <div className="flex items-center space-x-4 w-full">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.some(
+                          (selected) => selected.art_id === item.art_id
+                        )}
+                        onChange={() => handleSelectItem(item)}
+                        className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                      <img
+                        src={item.arts.image_url}
+                        alt={item.arts.title}
+                        className="w-24 h-24 object-cover rounded-lg shadow-md cursor-pointer"
+                        onClick={() => handleViewArtDetails(item.art_id)}
+                      />
+                      <div className="flex-1">
+                        <h2 className="text-lg font-bold text-gray-900">
+                          {item.arts.title}
+                        </h2>
+                        <p className="text-gray-600">
+                          ₱{parseFloat(item.arts.price).toLocaleString()} x{" "}
+                          {item.quantity}
+                        </p>
+                      </div>
+                    </div>
+>>>>>>> Stashed changes
 
-              {/* Actions */}
-              <div className="flex items-center space-x-6 mt-4 md:mt-0">
-                <p className="text-lg font-medium text-gray-900">
-                  ₱
-                  {(
-                    parseFloat(item.arts.price) * item.quantity
-                  ).toLocaleString()}
-                </p>
-                <button
-                  onClick={() => handleRemoveItem(item.art_id)}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  <FaTrashAlt size={20} />
-                </button>
+                    {/* Actions */}
+                    <div className="flex items-center space-x-6 mt-4 md:mt-0">
+                      <p className="text-lg font-medium text-gray-900">
+                        ₱
+                        {(
+                          parseFloat(item.arts.price) * item.quantity
+                        ).toLocaleString()}
+                      </p>
+                      <button
+                        onClick={() => handleRemoveItem(item.art_id)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <FaTrashAlt size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

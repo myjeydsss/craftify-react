@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useAuth } from "../context/AuthProvider";
+import { useAuth } from "../../context/AuthProvider";
 import ClipLoader from "react-spinners/ClipLoader";
 
 interface Order {
@@ -19,7 +19,7 @@ const statusColors: Record<string, string> = {
 
 const ITEMS_PER_PAGE = 5; // Number of items to display per page
 
-const TransactionHistory: React.FC = () => {
+const ArtistTransaction: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -46,15 +46,23 @@ const TransactionHistory: React.FC = () => {
     }
   };
 
+  const updateOrderStatus = async (orderId: string, status: string) => {
+    const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+    try {
+      await axios.put(`${API_BASE_URL}/orders/${orderId}`, { status });
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId ? { ...order, status } : order
+        )
+      );
+    } catch (err) {
+      console.error("Error updating order status:", err);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
-
-    // Poll for updates every 5 seconds
-    const interval = setInterval(() => {
-      fetchOrders();
-    }, 5000);
-
-    return () => clearInterval(interval); // Cleanup on component unmount
   }, [user]);
 
   if (loading)
@@ -87,30 +95,36 @@ const TransactionHistory: React.FC = () => {
 
         {currentOrders.length > 0 ? (
           <div className="space-y-4">
-            {currentOrders.map((order) => {
-              console.log("Order:", order); // Debug log
-              return (
-                <div
-                  key={order.id}
-                  className="border rounded-lg p-4 bg-white shadow hover:shadow-md transition"
-                >
-                  <div className="flex justify-between">
-                    <span className="font-semibold">
-                      {new Date(order.date).toLocaleDateString()}
-                    </span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-sm ${
-                        statusColors[order.status] || "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
-                  <p className="mt-2">{order.description}</p>
-                  <p className="mt-2 font-bold">₱{(order.amount / 100).toFixed(2)}</p>
+            {currentOrders.map((order) => (
+              <div
+                key={order.id}
+                className="border rounded-lg p-4 bg-white shadow hover:shadow-md transition"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">
+                    {new Date(order.date).toLocaleDateString()}
+                  </span>
+                  <select
+                    value={order.status}
+                    className={`px-2 py-1 rounded-full text-sm ${
+                      statusColors[order.status] || "bg-gray-200 text-gray-700"
+                    }`}
+                    onChange={(e) => {
+                      const updatedStatus = e.target.value;
+                      updateOrderStatus(order.id, updatedStatus); // Save to backend
+                    }}
+                  >
+                    {Object.keys(statusColors).map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              );
-            })}
+                <p className="mt-2">{order.description}</p>
+                <p className="mt-2 font-bold">₱{(order.amount / 100).toFixed(2)}</p>
+              </div>
+            ))}
           </div>
         ) : (
           <p className="text-gray-700">No orders found.</p>
@@ -141,4 +155,4 @@ const TransactionHistory: React.FC = () => {
   );
 };
 
-export default TransactionHistory;
+export default ArtistTransaction;

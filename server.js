@@ -1652,9 +1652,25 @@ app.get('/art/:artId', async (req, res) => {
 app.get("/cart/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
+    debugger; // Add debugger here
     const { data, error } = await supabase
       .from("cart")
-      .select("*, arts (title, image_url, price)")
+      .select(`
+        *,
+        arts (
+          title,
+          image_url,
+          price,
+          user_id,
+          artist:artist_id (
+            username,
+            firstname,
+            lastname,
+            address,
+            phone
+          )
+        )
+      `)
       .eq("user_id", userId);
 
     if (error) return res.status(400).json({ error: error.message });
@@ -3217,6 +3233,9 @@ app.get("/messages/:conversationId", async (req, res) => {
 // ***** MESSAGE FUNCTION END ******
 
 //***** TRANSACTION FUNCTION ******/
+
+
+
 app.get("/orders/:userId", async (req, res) => {
     const { userId } = req.params;
 
@@ -3556,6 +3575,60 @@ app.get("/orders/:userId", async (req, res) => {
       res.status(500).json({ error: "Failed to fetch orders." });
   }
 });
+
+app.get("/orders/:artistId", async (req, res) => {
+  const { artistId } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`
+        id,
+        created_at,
+        amount,
+        status,
+        description,
+        client_id, -- Client ID
+        arts (
+          title,
+          artist_id
+        )
+      `)
+      .eq("arts.artist_id", artistId);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching artist orders:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.put("/orders/:orderId", async (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  try {
+    // Update the order status
+    const { data, error } = await supabase
+      .from("orders")
+      .update({ status })
+      .eq("id", orderId);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.status(200).json({ message: "Order status updated successfully" });
+  } catch (err) {
+    console.error("Error updating order status:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 //***** TRANSACTION FUNCTION END...******/
 
 

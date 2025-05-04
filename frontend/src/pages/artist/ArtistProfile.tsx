@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthProvider";
 import Swal from "sweetalert2";
 import ClipLoader from "react-spinners/ClipLoader";
 import TransactionHistory from '../TransactionHistory'; // Adjust the path as necessary
+import ArtistTransactions from "./ArtistTransaction";
 
 interface ArtistProfileData {
   firstname: string;
@@ -329,7 +330,7 @@ const ArtistProfile: React.FC = () => {
 
   const renderOrders = () => (
     <div className="space-y-4">
-      <TransactionHistory />
+      <ArtistTransactions />
     </div>
   );
 

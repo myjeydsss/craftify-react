@@ -13,6 +13,13 @@ interface CartItem {
     title: string;
     image_url: string;
     price: string;
+    artist?: {
+      firstname: string;
+      lastname: string;
+      username: string;
+      address: string;
+      phone: string;
+    };
   };
 }
 
@@ -265,27 +272,54 @@ const Checkout: React.FC = () => {
             {cartItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between border-b pb-2"
+                className="flex flex-col border-b pb-4"
               >
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={item.arts.image_url}
-                    alt={item.arts.title}
-                    className="w-16 h-16 object-cover rounded-lg shadow-md"
-                  />
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {item.arts.title}
-                    </h3>
-                    <p className="text-gray-600">
-                      ₱{parseFloat(item.arts.price).toLocaleString()} x{" "}
-                      {item.quantity}
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={item.arts.image_url}
+                      alt={item.arts.title}
+                      className="w-16 h-16 object-cover rounded-lg shadow-md"
+                    />
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {item.arts.title}
+                      </h3>
+                      <p className="text-gray-600">
+                        ₱{parseFloat(item.arts.price).toLocaleString()} x{" "}
+                        {item.quantity}
+                      </p>
+                    </div>
                   </div>
+                  <p className="text-lg font-bold text-gray-900">
+                    ₱
+                    {(
+                      parseFloat(item.arts.price) * item.quantity
+                    ).toLocaleString()}
+                  </p>
                 </div>
+<<<<<<< Updated upstream
                 <p className="text-lg font-bold text-gray-900">
                   ₱{(parseFloat(item.arts.price) * item.quantity).toLocaleString()}
                 </p>
+=======
+
+                {/* Artist Information */}
+                <div className="mt-4 p-4 rounded-lg shadow-sm">
+  <h4 className="text-lg font-semibold text-gray-800 mb-2">Artist Information</h4>
+  <div className="space-y-2">
+    <p className="text-gray-700">
+      <strong>Artist Name:</strong> {item.arts.artist ? `${item.arts.artist.firstname} ${item.arts.artist.lastname}` : "Unknown Artist"}
+    </p>
+    <p className="text-gray-700">
+      <strong>Address:</strong> {item.arts.artist?.address || "Unknown Address"}
+    </p>
+    <p className="text-gray-700">
+      <strong>Phone:</strong> {item.arts.artist?.phone || "Unknown Phone"}
+    </p>
+  </div>
+</div>
+>>>>>>> Stashed changes
               </div>
             ))}
           </div>
@@ -297,7 +331,7 @@ const Checkout: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Tax (5%):</h3>
+              <h3 className="text-xl font-bold text-gray-900">For Developer (5%):</h3>
               <p className="text-xl font-bold text-gray-900">
                 ₱{calculateTax(calculateSubtotal()).toLocaleString()}
               </p>
