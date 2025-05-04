@@ -4,155 +4,205 @@ import { useAuth } from "../../context/AuthProvider";
 import ClipLoader from "react-spinners/ClipLoader";
 
 interface Order {
-  id: string;
-  date: string;
-  amount: number;
-  status: string;
-  description: string;
+    id: string;
+    date: string;
+    amount: number;
+    status: string;
+    description: string;
+    user_name: string; // Added user_name field
 }
 
 const statusColors: Record<string, string> = {
-  Completed: "bg-green-200 text-green-700",
-  Pending: "bg-yellow-200 text-yellow-700",
-  Canceled: "bg-red-200 text-red-700",
+    Completed: "bg-green-200 text-green-700",
+    Pending: "bg-yellow-200 text-yellow-700",
+    Canceled: "bg-red-200 text-red-700",
 };
 
 const ITEMS_PER_PAGE = 5; // Number of items to display per page
 
-const ArtistTransaction: React.FC = () => {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+const ArtistTransactionHistory: React.FC = () => {
+    const { user } = useAuth();
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState<number>(1);
 
-  const fetchOrders = async () => {
-    if (!user) {
-      setError("User not logged in.");
-      setLoading(false);
-      return;
+    // State to track the status and saving state for each order
+    const [editStatuses, setEditStatuses] = useState<Record<string, string>>({});
+    const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
+
+    const fetchOrders = async () => {
+        if (!user) {
+            setError("User not logged in.");
+            setLoading(false);
+            return;
+        }
+
+        const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+        try {
+            const artistResponse = await axios.get(`${API_BASE_URL}/artist/${user.id}`);
+            const artistId = artistResponse.data.artist_id;
+
+            if (!artistId) {
+                setError("Artist ID not found for this user.");
+                setLoading(false);
+                return;
+            }
+
+            const ordersResponse = await axios.get(`${API_BASE_URL}/artist-orders/${artistId}`);
+            console.log("Orders fetched:", ordersResponse.data); // Debug log
+            setOrders(ordersResponse.data);
+
+            // Initialize editStatuses and savingStates
+            const initialStatuses = ordersResponse.data.reduce((acc: Record<string, string>, order: Order) => {
+                acc[order.id] = order.status;
+                return acc;
+            }, {});
+            setEditStatuses(initialStatuses);
+
+            const initialSavingStates = ordersResponse.data.reduce((acc: Record<string, boolean>, order: Order) => {
+                acc[order.id] = false;
+                return acc;
+            }, {});
+            setSavingStates(initialSavingStates);
+        } catch (err: any) {
+            console.error("Error fetching orders:", err);
+            setError(err.response?.data?.error || "Failed to fetch orders.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchOrders();
+    }, [user]);
+
+    const handleStatusChange = (orderId: string, newStatus: string) => {
+        setEditStatuses((prev) => ({ ...prev, [orderId]: newStatus }));
+    };
+
+    const saveStatus = async (orderId: string) => {
+        setSavingStates((prev) => ({ ...prev, [orderId]: true }));
+        try {
+            const API_BASE_URL = import.meta.env.VITE_API_URL;
+            await axios.put(`${API_BASE_URL}/order/${orderId}`, { status: editStatuses[orderId] });
+            console.log(`Order ${orderId} status updated to ${editStatuses[orderId]}`);
+            setOrders((prev) =>
+                prev.map((order) =>
+                    order.id === orderId ? { ...order, status: editStatuses[orderId] } : order
+                )
+            );
+        } catch (err) {
+            console.error("Error updating status:", err);
+            alert("Failed to update status. Please try again.");
+        } finally {
+            setSavingStates((prev) => ({ ...prev, [orderId]: false }));
+        }
+    };
+
+    if (loading)
+        return (
+            <div className="flex justify-center items-center h-screen bg-gray-50">
+                <ClipLoader color="#3498db" loading={loading} size={80} />
+                <p className="mt-4 text-gray-600">Loading...</p>
+            </div>
+        );
+
+    if (error) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="text-red-500 text-lg">{error}</div>
+            </div>
+        );
     }
 
-    const API_BASE_URL = import.meta.env.VITE_API_URL;
+    // Calculate the current orders to display
+    const indexOfLastOrder = currentPage * ITEMS_PER_PAGE;
+    const indexOfFirstOrder = indexOfLastOrder - ITEMS_PER_PAGE;
+    const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+    const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
 
-    try {
-      const response = await axios.get(`${API_BASE_URL}/orders/${user.id}`);
-      setOrders(response.data);
-    } catch (err: any) {
-      console.error("Error fetching orders:", err);
-      setError(err.response?.data?.error || "Failed to fetch orders.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateOrderStatus = async (orderId: string, status: string) => {
-    const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-    try {
-      await axios.put(`${API_BASE_URL}/orders/${orderId}`, { status });
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status } : order
-        )
-      );
-    } catch (err) {
-      console.error("Error updating order status:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-  }, [user]);
-
-  if (loading)
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <ClipLoader color="#3498db" loading={loading} size={80} />
-        <p className="mt-4 text-gray-600">Loading...</p>
-      </div>
-    );
+        <div className="min-h-screen px-4 py-20">
+            <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-[#5C0601] mb-6">Transaction History</h1>
+                <hr className="border-gray-300 mb-6" />
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-red-500 text-lg">{error}</div>
-      </div>
-    );
-  }
+                {currentOrders.length > 0 ? (
+                    <div className="space-y-4">
+                        {currentOrders.map((order) => (
+                            <div key={order.id} className="border rounded-lg p-4 bg-white shadow hover:shadow-md transition">
+                                <div className="flex justify-between">
+                                    <span className="font-semibold">{new Date(order.date).toLocaleDateString()}</span>
+                                    <span
+                                        className={`px-2 py-1 rounded-full text-sm ${
+                                            statusColors[order.status] || "bg-gray-200 text-gray-700"
+                                        }`}
+                                    >
+                                        {order.status}
+                                    </span>
+                                </div>
+                                <p className="mt-2">{order.description}</p>
+                                <p className="mt-2 text-gray-700">
+                                    Your art has been purchased by <span className="font-bold">{order.user_name}</span> on{" "}
+                                    {new Date(order.date).toLocaleDateString()}.
+                                </p>
+                                <p className="mt-2 font-bold">₱{(order.amount * 0.1).toFixed(2)}</p>
 
-  // Calculate the current orders to display
-  const indexOfLastOrder = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstOrder = indexOfLastOrder - ITEMS_PER_PAGE;
-  const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
-  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
+                                {/* Dropdown for status */}
+                                <div className="mt-4">
+                                    <label htmlFor={`status-${order.id}`} className="block text-sm font-medium text-gray-700">
+                                        Update Status:
+                                    </label>
+                                    <select
+                                        id={`status-${order.id}`}
+                                        value={editStatuses[order.id]}
+                                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-[#5C0601] focus:border-[#5C0601] sm:text-sm"
+                                    >
+                                        <option value="Pending">Pending</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Canceled">Canceled</option>
+                                    </select>
+                                    <button
+                                        onClick={() => saveStatus(order.id)}
+                                        disabled={savingStates[order.id]}
+                                        className="mt-2 px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50"
+                                    >
+                                        {savingStates[order.id] ? "Saving..." : "Save"}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-700">No orders found.</p>
+                )}
 
-  return (
-    <div className="min-h-screen px-4 py-20">
-      <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-6 md:p-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-[#5C0601] mb-6">Transaction History</h1>
-        <hr className="border-gray-300 mb-6" />
-
-        {currentOrders.length > 0 ? (
-          <div className="space-y-4">
-            {currentOrders.map((order) => (
-              <div
-                key={order.id}
-                className="border rounded-lg p-4 bg-white shadow hover:shadow-md transition"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">
-                    {new Date(order.date).toLocaleDateString()}
-                  </span>
-                  <select
-                    value={order.status}
-                    className={`px-2 py-1 rounded-full text-sm ${
-                      statusColors[order.status] || "bg-gray-200 text-gray-700"
-                    }`}
-                    onChange={(e) => {
-                      const updatedStatus = e.target.value;
-                      updateOrderStatus(order.id, updatedStatus); // Save to backend
-                    }}
-                  >
-                    {Object.keys(statusColors).map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
+                {/* Pagination Controls */}
+                <div className="flex flex-col md:flex-row justify-between items-center mt-6">
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50 mb-2 md:mb-0"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-gray-700">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50"
+                    >
+                        Next
+                    </button>
                 </div>
-                <p className="mt-2">{order.description}</p>
-                <p className="mt-2 font-bold">₱{(order.amount / 100).toFixed(2)}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-700">No orders found.</p>
-        )}
-
-        {/* Pagination Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-center mt-6">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50 mb-2 md:mb-0"
-          >
-            Previous
-          </button>
-          <span className="text-gray-700">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-[#5C0601] text-white rounded-md hover:bg-[#7A0A0A] disabled:opacity-50"
-          >
-            Next
-          </button>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
-export default ArtistTransaction;
+export default ArtistTransactionHistory;

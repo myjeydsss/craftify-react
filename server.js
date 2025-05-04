@@ -3236,7 +3236,7 @@ app.get("/messages/:conversationId", async (req, res) => {
 
 
 
-app.get("/orders/:userId", async (req, res) => {
+app.get("/client-orders/:userId", async (req, res) => {
     const { userId } = req.params;
 
     try {
@@ -3575,6 +3575,37 @@ app.get("/orders/:userId", async (req, res) => {
       res.status(500).json({ error: "Failed to fetch orders." });
   }
 });
+app.put("/order/:orderId", async (req, res) => {
+  const { orderId } = req.params; // Get the order ID from the request parameters
+  const { status } = req.body; // Get the new status from the request body
+
+  if (!status) {
+    return res.status(400).json({ error: "Status is required." });
+  }
+  console.log("Updating order with ID:", orderId);
+  try {
+    // Update the order status in the database
+    const { data, error } = await supabase
+      .from("orders")
+      .update({ status })
+      .eq("id", orderId)
+      .select();
+
+    if (error) {
+      console.error("Error updating order status:", error.message);
+      return res.status(500).json({ error: "Failed to update order status." });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    res.status(200).json({ message: "Order status updated successfully.", order: data[0] });
+  } catch (err) {
+    console.error("Unexpected error updating order status:", err);
+    res.status(500).json({ error: "Failed to update order status." });
+  }
+});
 
 app.get("/orders/:artistId", async (req, res) => {
   const { artistId } = req.params;
@@ -3626,6 +3657,52 @@ app.put("/orders/:orderId", async (req, res) => {
   } catch (err) {
     console.error("Error updating order status:", err);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/artist-orders/:artistId", async (req, res) => {
+  const { artistId } = req.params; // Use artistId from the request parameters
+
+  try {
+    console.log("Fetching orders for artistId:", artistId);
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select(
+        `
+              id,
+              created_at,
+              amount,
+              status,
+              description,
+              user_name
+          `
+      )
+      .eq("artist_id", artistId); // Filter by artist_id instead of user_id
+
+    if (error) {
+      console.error("Error fetching orders:", error);
+      return res.status(400).json({ error: "Failed to fetch orders." });
+    }
+
+    console.log("Orders fetched:", orders);
+
+    if (orders.length === 0) {
+      console.warn(`No orders found for artistId: ${artistId}`);
+    }
+
+    // Format the orders data
+    const formattedOrders = orders.map((order) => ({
+      id: order.id,
+      date: order.created_at,
+      amount: order.amount,
+      status: order.status,
+      description: order.description,
+    }));
+
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.error("Unexpected error fetching orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders." });
   }
 });
 
@@ -4002,3 +4079,27 @@ app.post("/api/artist-verification/:verificationId/:action", async (req, res) =>
 });
 
 // ****** ARTIST UPLOAD VERIFICATION END... ******
+
+//fetch artist_id from user_id
+app.get("/artist/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  console.log(userId)
+  try {
+    const { data: artist, error } = await supabase
+      .from("artist")
+      .select("artist_id")
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching artist_id:", error);
+      return res.status(400).json({ error: "Failed to fetch artist_id." });
+    }
+
+    res.status(200).json({ artist_id: artist.artist_id });
+  } catch (err) {
+    console.error("Unexpected error fetching artist_id:", err);
+    res.status(500).json({ error: "Failed to fetch artist_id." });
+  }
+});
