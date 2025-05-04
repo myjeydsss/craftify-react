@@ -70,7 +70,7 @@ const ArtistProfile: React.FC = () => {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address" | "orders" | "wishlist">("profile");
+  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address" | "orders" | "wishlist" | "transactions">("profile");
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -330,6 +330,12 @@ const ArtistProfile: React.FC = () => {
 
   const renderOrders = () => (
     <div className="space-y-4">
+      <TransactionHistory />
+    </div>
+  );
+
+  const renderTransactions = () => (
+    <div className="space-y-4">
       <ArtistTransactions />
     </div>
   );
@@ -429,17 +435,26 @@ const ArtistProfile: React.FC = () => {
             </button>
 
             <button
-  onClick={() => setActiveSection("orders")}
-  className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
-    activeSection === "orders"
-      ? "bg-blue-600 text-white font-semibold"
-      : "text-gray-700 hover:bg-gray-200"
-  }`}
->
-  <FaShoppingCart /> <span>Orders</span>
-</button>
+              onClick={() => setActiveSection("transactions")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "transactions"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaShoppingCart /> <span>Transactions</span>
+            </button>
 
-
+            <button
+              onClick={() => setActiveSection("orders")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "orders"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaShoppingCart /> <span>Orders</span>
+            </button>
 
             <button
               onClick={() => setActiveSection("wishlist")}
@@ -461,6 +476,8 @@ const ArtistProfile: React.FC = () => {
     ? renderPreferences()
     : activeSection === "address"
     ? renderAddress()
+    : activeSection === "transactions"
+    ? renderTransactions()
     : activeSection === "orders"
     ? renderOrders()
     : renderWishlist()}

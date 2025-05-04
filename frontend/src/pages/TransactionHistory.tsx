@@ -82,7 +82,7 @@ const TransactionHistory: React.FC = () => {
   return (
     <div className="min-h-screen px-4 py-20">
       <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-lg p-6 md:p-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-[#5C0601] mb-6">Transaction History</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-[#5C0601] mb-6">Orders History</h1>
         <hr className="border-gray-300 mb-6" />
 
         {currentOrders.length > 0 ? (

@@ -13,8 +13,8 @@ interface Order {
 }
 
 const statusColors: Record<string, string> = {
-    Completed: "bg-green-200 text-green-700",
     Pending: "bg-yellow-200 text-yellow-700",
+    Completed: "bg-green-200 text-green-700",
     Canceled: "bg-red-200 text-red-700",
 };
 
@@ -148,7 +148,7 @@ const ArtistTransactionHistory: React.FC = () => {
                                     Your art has been purchased by <span className="font-bold">{order.user_name}</span> on{" "}
                                     {new Date(order.date).toLocaleDateString()}.
                                 </p>
-                                <p className="mt-2 font-bold">₱{(order.amount * 0.1).toFixed(2)}</p>
+                                <p className="mt-2 font-bold">₱{(order.amount / 100).toFixed(2)}</p>
 
                                 {/* Dropdown for status */}
                                 <div className="mt-4">
