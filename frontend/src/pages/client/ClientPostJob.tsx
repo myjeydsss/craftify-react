@@ -16,7 +16,7 @@ interface Job {
   deadline: string;
   preferred_art_styles: string | string[];
   created_at: string;
-  status?: "Open" | "Closed";
+  status?: "Open" | "Closed" | "Completed" | "In Progress";
 }
 
 interface Applicant {
@@ -494,6 +494,7 @@ const ClientPostJob: React.FC = () => {
                     <h3 className="text-xl font-bold text-[#5C0601]">
                       {job.title}
                     </h3>
+
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         job.status === "Closed"
@@ -502,10 +503,12 @@ const ClientPostJob: React.FC = () => {
                           ? "bg-yellow-100 text-yellow-700"
                           : job.status === "Completed"
                           ? "bg-blue-100 text-blue-700"
-                          : "bg-green-100 text-green-800"
+                          : job.status === "Open"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-500"
                       }`}
                     >
-                      {job.status}
+                      {job.status ?? "Unknown"}
                     </span>
                   </div>
 
