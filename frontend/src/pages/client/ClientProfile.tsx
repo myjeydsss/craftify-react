@@ -29,7 +29,6 @@ interface ClientProfileData {
 
 interface ClientPreferences {
   preferred_art_style: string[];
-  project_requirements: string;
   budget_range: string;
   location_requirement: string;
   timeline: string;
@@ -375,7 +374,7 @@ const ClientProfile: React.FC = () => {
               onClick={() => setActiveSection("preferences")}
               className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
                 activeSection === "preferences"
-                  ? "bg-blue- 600 text-white font-semibold"
+                  ? "bg-blue-600 text-white font-semibold"
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >

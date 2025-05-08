@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
-import { FaUsers, FaUserTie, FaPalette } from "react-icons/fa";
+import { FaUsers, FaUserTie, FaPalette, FaSpinner } from "react-icons/fa";
 
 interface Artist {
   firstname: string;
@@ -83,7 +83,7 @@ const ArtistDashboard: React.FC = () => {
       </div>
 
       {/* Quick Navigation Buttons */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div
           className="bg-white p-6 shadow-lg rounded-lg flex flex-col items-center hover:shadow-xl transition transform hover:-translate-y-2 cursor-pointer"
           onClick={() => navigate("/browse-artists")}
@@ -118,6 +118,17 @@ const ArtistDashboard: React.FC = () => {
           <h2 className="text-xl font-bold text-gray-700 mt-4">Browse Arts</h2>
           <p className="mt-2 text-gray-500 text-center">
             Explore amazing artworks and get inspired.
+          </p>
+        </div>
+
+        <div
+          className="bg-white p-6 shadow-lg rounded-lg flex flex-col items-center hover:shadow-xl transition transform hover:-translate-y-2 cursor-pointer"
+          onClick={() => navigate("/browse-jobs")}
+        >
+          <FaSpinner className="text-5xl text-red-500" />
+          <h2 className="text-xl font-bold text-gray-700 mt-4">Browse Jobs</h2>
+          <p className="mt-2 text-gray-500 text-center">
+            Look for commissions and job offers you can apply for.
           </p>
         </div>
       </div>

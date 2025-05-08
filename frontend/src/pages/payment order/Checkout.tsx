@@ -13,14 +13,18 @@ interface CartItem {
     title: string;
     image_url: string;
     price: string;
+    artist_id: string;
+    artist?: {
+      firstname: string;
+      lastname: string;
+      username: string;
+      address: string;
+      phone: string;
+    };
   };
 }
 
 const Checkout: React.FC = () => {
-  useEffect(() => {
-    document.title = "Checkout";
-  }, []);
-
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -117,23 +121,40 @@ const Checkout: React.FC = () => {
         {
           amount: totalAmount,
           currency: "PHP",
-          description: "Purchase from Craftify",
+          description: "Purchase from " + user?.email,
           email: user?.email,
-          name: user?.email,
+          name: "Art",
         }
       );
 
       const checkoutUrl = response.data;
+      const orderItems = cartItems.map((item) => ({
+        art_id: item.art_id,
+        artist_id: item.arts.artist_id,
+        amount: parseFloat(item.arts.price) * item.quantity, // Convert to cents
+        description: `${item.arts.title}`,
+      }));
 
+      // Log the payload for debugging
+      console.log("Order payload:", {
+        user_id: user?.id,
+        status: "pending",
+        user_email: user?.email,
+        user_name: user?.email,
+        payment_intent_id: response.data.payment_intent_id,
+        checkout_url: checkoutUrl,
+        items: orderItems,
+      });
+
+      // Send the order request
       await axios.post(`${import.meta.env.VITE_API_URL}/order`, {
         user_id: user?.id,
         status: "pending",
         user_email: user?.email,
         user_name: user?.email,
-        amount: totalAmount,
-        description: "Purchase from Craftify",
         payment_intent_id: response.data.payment_intent_id,
         checkout_url: checkoutUrl,
+        items: orderItems,
       });
 
       // Step 3: Notify user and artist
@@ -276,32 +297,51 @@ const Checkout: React.FC = () => {
           </h2>
           <div className="space-y-4">
             {cartItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border-b pb-2"
-              >
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={item.arts.image_url}
-                    alt={item.arts.title}
-                    className="w-16 h-16 object-cover rounded-lg shadow-md"
-                  />
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {item.arts.title}
-                    </h3>
-                    <p className="text-gray-600">
-                      ₱{parseFloat(item.arts.price).toLocaleString()} x{" "}
-                      {item.quantity}
+              <div key={item.id} className="flex flex-col border-b pb-4">
+                <div className="flex items-center justify-between">
+                  {/* Item Details */}
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={item.arts.image_url}
+                      alt={item.arts.title}
+                      className="w-16 h-16 object-cover rounded-lg shadow-md"
+                    />
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {item.arts.title}
+                      </h3>
+                      <p className="text-gray-600">
+                        ₱{parseFloat(item.arts.price).toLocaleString()} x{" "}
+                        {item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900">
+                    ₱
+                    {(
+                      parseFloat(item.arts.price) * item.quantity
+                    ).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Artist Details */}
+                {item.arts.artist && (
+                  <div className="mt-2 text-sm text-gray-700">
+                    <p>
+                      <span className="font-semibold">Artist:</span>{" "}
+                      {item.arts.artist.firstname} {item.arts.artist.lastname} (
+                      {item.arts.artist.username})
+                    </p>
+                    <p>
+                      <span className="font-semibold">Address:</span>{" "}
+                      {item.arts.artist.address}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Phone:</span>{" "}
+                      {item.arts.artist.phone}
                     </p>
                   </div>
-                </div>
-                <p className="text-lg font-bold text-gray-900">
-                  ₱
-                  {(
-                    parseFloat(item.arts.price) * item.quantity
-                  ).toLocaleString()}
-                </p>
+                )}
               </div>
             ))}
           </div>
@@ -313,7 +353,9 @@ const Checkout: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Tax (5%):</h3>
+              <h3 className="text-xl font-bold text-gray-900">
+                For Developer (5%):
+              </h3>
               <p className="text-xl font-bold text-gray-900">
                 ₱{calculateTax(calculateSubtotal()).toLocaleString()}
               </p>

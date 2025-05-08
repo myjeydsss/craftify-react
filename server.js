@@ -1145,7 +1145,7 @@ app.get("/client-preferences/:userId", async (req, res) => {
     const { data, error } = await supabase
       .from("client_preferences")
       .select(
-        "preferred_art_style, project_requirements, budget_range, location_requirement, timeline, artist_experience_level, communication_preferences, project_type"
+        "preferred_art_style, budget_range, location_requirement, timeline, artist_experience_level, communication_preferences, project_type"
       )
       .eq("user_id", userId)
       .single();
@@ -1303,7 +1303,6 @@ app.post("/client-preferences/create-default", async (req, res) => {
     const defaultPreferences = {
       user_id: userId,
       preferred_art_style: [],
-      project_requirements: "",
       budget_range: "",
       location_requirement: "",
       timeline: "",
@@ -1881,9 +1880,28 @@ app.get("/art/:artId", async (req, res) => {
 app.get("/cart/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
+    debugger; // Add debugger here
     const { data, error } = await supabase
       .from("cart")
-      .select("*, arts (title, image_url, price)")
+      .select(
+        `
+        *,
+        arts (
+          title,
+          image_url,
+          price,
+          user_id,
+          artist_id,
+          artist:artist_id (
+            username,
+            firstname,
+            lastname,
+            address,
+            phone
+          )
+        )
+      `
+      )
       .eq("user_id", userId);
 
     if (error) return res.status(400).json({ error: error.message });
@@ -2102,40 +2120,87 @@ app.post("/order", async (req, res) => {
     status,
     user_email,
     user_name,
-    amount,
-    description,
     payment_intent_id,
     checkout_url,
+    items, // Expecting an array of items
   } = req.body;
 
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "No items provided for the order." });
+  }
+
   try {
-    const { data, error } = await supabase
-      .from("orders")
-      .insert([
-        {
-          user_id,
-          status,
-          user_email,
-          user_name,
-          amount,
-          description,
-          payment_intent_id,
-          checkout_url,
-        },
-      ])
-      .single();
+    console.log("Order payload:", {
+      user_id: user_id,
+      status: "pending",
+      user_email: user_email,
+      user_name: user_name,
+      payment_intent_id: payment_intent_id,
+      checkout_url: checkout_url,
+      items: items, // Ensure this matches the server's expected format
+    });
+    // Map the items to create an array of order objects
+    const orders = items.map((item) => ({
+      user_id,
+      status,
+      user_email,
+      user_name,
+      amount: item.amount, // Amount specific to the item
+      description: item.description,
+      payment_intent_id,
+      checkout_url,
+      artist_id: item.artist_id,
+      art_id: item.art_id,
+    }));
+
+    // Insert all orders into the database
+    const { data, error } = await supabase.from("orders").insert(orders);
 
     if (error) {
-      console.error("Error inserting order:", error.message);
-      return res.status(500).json({ error: "Failed to place order." });
+      console.error("Error inserting orders:", error.message);
+      return res.status(500).json({ error: "Failed to place orders." });
     }
 
     res
       .status(201)
-      .json({ message: "Order placed successfully.", order: data });
+      .json({ message: "Orders placed successfully.", orders: data });
   } catch (error) {
-    console.error("Error processing order:", error);
-    res.status(500).json({ error: "Failed to process order." });
+    console.error("Error processing orders:", error);
+    res.status(500).json({ error: "Failed to process orders." });
+  }
+});
+
+app.put("/order/:orderId", async (req, res) => {
+  const { orderId } = req.params; // Get the order ID from the request parameters
+  const { status } = req.body; // Get the new status from the request body
+
+  if (!status) {
+    return res.status(400).json({ error: "Status is required." });
+  }
+  console.log("Updating order with ID:", orderId);
+  try {
+    // Update the order status in the database
+    const { data, error } = await supabase
+      .from("orders")
+      .update({ status })
+      .eq("id", orderId)
+      .select();
+
+    if (error) {
+      console.error("Error updating order status:", error.message);
+      return res.status(500).json({ error: "Failed to update order status." });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Order status updated successfully.", order: data[0] });
+  } catch (err) {
+    console.error("Unexpected error updating order status:", err);
+    res.status(500).json({ error: "Failed to update order status." });
   }
 });
 // ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
@@ -4264,7 +4329,7 @@ app.get("/messages/:conversationId", async (req, res) => {
 // ***** MESSAGE FUNCTION END ******
 
 //***** TRANSACTION FUNCTION ******/
-app.get("/orders/:userId", async (req, res) => {
+app.get("/client-orders/:userId", async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -4291,6 +4356,52 @@ app.get("/orders/:userId", async (req, res) => {
 
     if (orders.length === 0) {
       console.warn(`No orders found for userId: ${userId}`);
+    }
+
+    // Format the orders data
+    const formattedOrders = orders.map((order) => ({
+      id: order.id,
+      date: order.created_at,
+      amount: order.amount,
+      status: order.status,
+      description: order.description,
+    }));
+
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.error("Unexpected error fetching orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders." });
+  }
+});
+
+app.get("/artist-orders/:artistId", async (req, res) => {
+  const { artistId } = req.params; // Use artistId from the request parameters
+
+  try {
+    console.log("Fetching orders for artistId:", artistId);
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select(
+        `
+              id,
+              created_at,
+              amount,
+              status,
+              description,
+              user_name
+          `
+      )
+      .eq("artist_id", artistId); // Filter by artist_id instead of user_id
+
+    if (error) {
+      console.error("Error fetching orders:", error);
+      return res.status(400).json({ error: "Failed to fetch orders." });
+    }
+
+    console.log("Orders fetched:", orders);
+
+    if (orders.length === 0) {
+      console.warn(`No orders found for artistId: ${artistId}`);
     }
 
     // Format the orders data
@@ -4851,7 +4962,6 @@ app.post("/log-profile-visit/:userId", async (req, res) => {
   const { userId } = req.params;
   const { visitorId } = req.body;
 
-  console.log("Logging visit for userId:", userId, "by visitorId:", visitorId);
   if (!visitorId) {
     return res.status(400).json({ error: "Visitor ID is required." });
   }
@@ -5029,4 +5139,477 @@ app.put("/api/milestones/:milestoneId", async (req, res) => {
     res.status(500).json({ error: "Failed to update milestone." });
   }
 });
+
 // ***** MILESTONE ENDPOINT END... ******
+
+// ORDERS/TRANSACTIONS
+//fetch artist_id from user_id
+app.get("/artist/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  console.log(userId);
+  try {
+    const { data: artist, error } = await supabase
+      .from("artist")
+      .select("artist_id")
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching artist_id:", error);
+      return res.status(400).json({ error: "Failed to fetch artist_id." });
+    }
+
+    res.status(200).json({ artist_id: artist.artist_id });
+  } catch (err) {
+    console.error("Unexpected error fetching artist_id:", err);
+    res.status(500).json({ error: "Failed to fetch artist_id." });
+  }
+});
+
+// Fetch orders by user_id
+app.get("/orders/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    console.log("Fetching orders for userId:", userId);
+
+    // Query the orders table for the given user_id
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select(
+        `
+        id,
+        created_at,
+        amount,
+        status,
+        description,
+        payment_intent_id,
+        checkout_url,
+        artist_id,
+        art_id
+      `
+      )
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error fetching orders:", error.message);
+      return res.status(400).json({ error: "Failed to fetch orders." });
+    }
+
+    if (!orders || orders.length === 0) {
+      console.warn(`No orders found for userId: ${userId}`);
+      return res.status(200).json([]); // Return empty array, not error
+    }
+
+    // Format the orders data
+    const formattedOrders = orders.map((order) => ({
+      id: order.id,
+      date: order.created_at,
+      amount: order.amount,
+      status: order.status,
+      description: order.description,
+      payment_intent_id: order.payment_intent_id,
+      checkout_url: order.checkout_url,
+      artist_id: order.artist_id,
+      art_id: order.art_id,
+    }));
+
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.error("Unexpected error fetching orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders." });
+  }
+});
+
+// ORDERS/TRANSACTIONS END ******
+
+// JOBS OFFER ENDPOINT... ******
+// Create a new job post
+app.post("/api/jobs", async (req, res) => {
+  const {
+    user_id,
+    title,
+    description,
+    budget,
+    deadline,
+    preferred_art_styles,
+    status = "Open", // default if not provided
+  } = req.body;
+
+  if (
+    !user_id ||
+    !title ||
+    !description ||
+    !budget ||
+    !deadline ||
+    !preferred_art_styles ||
+    !status
+  ) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("jobs")
+      .insert([
+        {
+          user_id,
+          title,
+          description,
+          budget,
+          deadline,
+          preferred_art_styles: preferred_art_styles.join(", "),
+          status,
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error("Error inserting job:", error.message);
+      return res.status(400).json({ error: "Failed to post job." });
+    }
+
+    res.status(201).json(data[0]);
+  } catch (err) {
+    console.error("Unexpected error posting job:", err);
+    res.status(500).json({ error: "Failed to post job." });
+  }
+});
+
+// Update jobs posted by the client
+app.patch("/api/jobs/:jobId", async (req, res) => {
+  const { jobId } = req.params;
+  const { title, description, budget, deadline, preferred_art_styles, status } =
+    req.body;
+
+  try {
+    const { error } = await supabase
+      .from("jobs")
+      .update({
+        title,
+        description,
+        budget,
+        deadline,
+        preferred_art_styles: Array.isArray(preferred_art_styles)
+          ? preferred_art_styles.join(", ")
+          : preferred_art_styles,
+        status,
+      })
+      .eq("job_id", jobId);
+
+    if (error) {
+      console.error("Error updating job:", error);
+      return res.status(400).json({ error: "Failed to update job post." });
+    }
+
+    res.status(200).json({ message: "Job post updated successfully." });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "Server error while updating job post." });
+  }
+});
+
+// Fetch jobs posted by a client
+app.get("/api/jobs/client/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data: jobs, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching jobs:", error.message);
+      return res.status(400).json({ error: "Failed to fetch job posts." });
+    }
+
+    res.status(200).json(jobs);
+  } catch (err) {
+    console.error("Unexpected error fetching job posts:", err);
+    res.status(500).json({ error: "Server error while fetching jobs." });
+  }
+});
+
+// Delete jobs posted by the client
+app.delete("/api/jobs/:jobId", async (req, res) => {
+  const { jobId } = req.params;
+
+  try {
+    const { error } = await supabase.from("jobs").delete().eq("job_id", jobId);
+
+    if (error) {
+      console.error("Error deleting job:", error);
+      return res.status(400).json({ error: "Failed to delete job post." });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: "Server error while deleting job post." });
+  }
+});
+
+// Fetch Jobs to Artist
+app.get("/api/open-jobs", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("status", "Open")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching open jobs:", err);
+    res.status(500).json({ error: "Failed to fetch jobs." });
+  }
+});
+
+// Artist Applying Jobs
+app.post("/api/apply-job", async (req, res) => {
+  const { job_id, user_id } = req.body;
+
+  if (!job_id || !user_id) {
+    return res.status(400).json({ error: "Job ID and User ID are required." });
+  }
+
+  try {
+    // Check if already applied
+    const { data: existing, error: checkError } = await supabase
+      .from("job_applications")
+      .select("*")
+      .eq("job_id", job_id)
+      .eq("user_id", user_id)
+      .single();
+
+    if (existing) {
+      return res.status(409).json({ error: "Already applied to this job." });
+    }
+
+    if (checkError && checkError.code !== "PGRST116") {
+      // Not found is fine (PGRST116 = no rows)
+      console.error("Error checking existing application:", checkError);
+      return res.status(500).json({ error: "Server error." });
+    }
+
+    // Insert application
+    const { error: insertError } = await supabase
+      .from("job_applications")
+      .insert([
+        {
+          job_id,
+          user_id,
+          applied_at: new Date().toISOString(),
+          status: "Pending",
+        },
+      ]);
+
+    if (insertError) {
+      console.error("Error inserting application:", insertError);
+      return res.status(500).json({ error: "Failed to apply for the job." });
+    }
+
+    return res.status(201).json({ message: "Application submitted." });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    return res.status(500).json({ error: "Unexpected server error." });
+  }
+});
+
+// Already Applied Job
+app.get("/api/my-applied-jobs/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data, error } = await supabase
+      .from("job_applications")
+      .select("job_id, status")
+      .eq("user_id", userId);
+
+    if (error) throw error;
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Error fetching applied jobs:", err);
+    res.status(500).json({ error: "Failed to fetch applied jobs" });
+  }
+});
+
+// New endpoint: Get jobs the artist has applied to (regardless of job status)
+app.get("/api/my-applied-job-details/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data: applications, error: appError } = await supabase
+      .from("job_applications")
+      .select("job_id")
+      .eq("user_id", userId);
+
+    if (appError) throw appError;
+
+    const jobIds = applications.map((a) => a.job_id);
+    if (!jobIds.length) return res.status(200).json([]);
+
+    const { data: jobs, error: jobError } = await supabase
+      .from("jobs")
+      .select("*")
+      .in("job_id", jobIds)
+      .order("created_at", { ascending: false });
+
+    if (jobError) throw jobError;
+
+    res.status(200).json(jobs);
+  } catch (err) {
+    console.error("Error fetching applied job details:", err);
+    res.status(500).json({ error: "Failed to fetch applied jobs." });
+  }
+});
+
+// Unapply from a job
+app.delete("/api/unapply-job", async (req, res) => {
+  const { job_id, user_id } = req.body;
+
+  if (!job_id || !user_id) {
+    return res.status(400).json({ error: "Missing job_id or user_id" });
+  }
+
+  try {
+    const { error } = await supabase
+      .from("job_applications")
+      .delete()
+      .eq("job_id", job_id)
+      .eq("user_id", user_id);
+
+    if (error) throw error;
+
+    res.status(200).json({ message: "Unapplied successfully" });
+  } catch (err) {
+    console.error("Error unapplying from job:", err);
+    res.status(500).json({ error: "Failed to unapply from job" });
+  }
+});
+
+// Get applicants for a specific job
+app.get("/api/job-applicants/:jobId", async (req, res) => {
+  const { jobId } = req.params;
+  const CDNURL1 =
+    "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
+
+  try {
+    // 1. Get job applications for the given job ID
+    const { data: applications, error: appError } = await supabase
+      .from("job_applications")
+      .select("user_id, status")
+      .eq("job_id", jobId);
+
+    if (appError) throw appError;
+    if (!applications.length) return res.status(200).json([]);
+
+    // 2. Fetch artist profiles
+    const userIds = applications.map((a) => a.user_id);
+
+    const { data: artists, error: artistError } = await supabase
+      .from("artist")
+      .select("user_id, firstname, lastname, email, profile_image")
+      .in("user_id", userIds);
+
+    if (artistError) throw artistError;
+
+    // 3. Merge application status with artist profile
+    const applicants = applications.map((app) => {
+      const profile = artists.find((a) => a.user_id === app.user_id);
+      return {
+        user_id: app.user_id,
+        status: app.status,
+        firstname: profile?.firstname || "",
+        lastname: profile?.lastname || "",
+        email: profile?.email || "",
+        profile_image: profile?.profile_image
+          ? `${CDNURL1}${profile.user_id}/${profile.profile_image}`
+          : null,
+      };
+    });
+
+    res.status(200).json(applicants);
+  } catch (err) {
+    console.error("Error fetching applicants:", err);
+    res.status(500).json({ error: "Failed to fetch applicants." });
+  }
+});
+
+// Update application status
+app.patch("/api/job-applicants/status", async (req, res) => {
+  const { job_id, user_id, status } = req.body;
+
+  try {
+    // 1. Update the application status
+    const { error: updateError } = await supabase
+      .from("job_applications")
+      .update({ status })
+      .eq("job_id", job_id)
+      .eq("user_id", user_id);
+
+    if (updateError) throw updateError;
+
+    // 2. If accepted, update the job status to "In Progress"
+    if (status === "Accepted") {
+      const { error: jobError } = await supabase
+        .from("jobs")
+        .update({ status: "In Progress" })
+        .eq("job_id", job_id);
+
+      if (jobError) throw jobError;
+    }
+
+    res.status(200).json({ message: "Status updated successfully." });
+  } catch (err) {
+    console.error("Error updating status:", err);
+    res.status(500).json({ error: "Failed to update status." });
+  }
+});
+
+// Remove an accepted or rejected application from job_applications
+app.delete("/api/delete-application", async (req, res) => {
+  const { job_id, user_id } = req.body;
+
+  if (!job_id || !user_id) {
+    return res.status(400).json({ error: "job_id and user_id are required." });
+  }
+
+  try {
+    // First, check the status of the application
+    const { data: existing, error: fetchError } = await supabase
+      .from("job_applications")
+      .select("status")
+      .eq("job_id", job_id)
+      .eq("user_id", user_id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    if (!["Accepted", "Rejected"].includes(existing.status)) {
+      return res.status(403).json({
+        error: "Only accepted or rejected applications can be deleted.",
+      });
+    }
+
+    // Proceed to delete
+    const { error: deleteError } = await supabase
+      .from("job_applications")
+      .delete()
+      .eq("job_id", job_id)
+      .eq("user_id", user_id);
+
+    if (deleteError) throw deleteError;
+
+    res.status(200).json({ message: "Application successfully removed." });
+  } catch (err) {
+    console.error("Error deleting application:", err);
+    res.status(500).json({ error: "Failed to delete application." });
+  }
+});
+// JOBS OFFER ENDPOINT END... ******

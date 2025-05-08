@@ -130,6 +130,17 @@ const ClientDashboard: React.FC = () => {
             Explore amazing artworks and get inspired.
           </p>
         </div>
+
+        <div
+          className="bg-white p-6 shadow-lg rounded-lg flex flex-col items-center hover:shadow-xl transition transform hover:-translate-y-2 cursor-pointer"
+          onClick={() => navigate("/post-job")}
+        >
+          <FaUserTie className="text-5xl text-orange-500" />
+          <h2 className="text-xl font-bold text-gray-700 mt-4">Post a Job</h2>
+          <p className="mt-2 text-gray-500 text-center">
+            Offer a project and find the right artist for your vision.
+          </p>
+        </div>
       </div>
 
       {/* Artworks Section */}

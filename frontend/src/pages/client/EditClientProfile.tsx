@@ -20,7 +20,6 @@ interface ClientProfile {
 
 interface Preferences {
   preferred_art_style: string[];
-  project_requirements: string;
   budget_range: string;
   location_requirement: string;
   timeline: string;
@@ -51,7 +50,6 @@ const EditClientProfile: React.FC = () => {
 
   const [preferences, setPreferences] = useState<Preferences>({
     preferred_art_style: [],
-    project_requirements: "",
     budget_range: "",
     location_requirement: "",
     timeline: "",
@@ -85,8 +83,6 @@ const EditClientProfile: React.FC = () => {
         setPreferences({
           preferred_art_style:
             preferencesResponse.data.preferred_art_style || [],
-          project_requirements:
-            preferencesResponse.data.project_requirements || "",
           budget_range: preferencesResponse.data.budget_range || "",
           location_requirement:
             preferencesResponse.data.location_requirement || "",
@@ -388,17 +384,6 @@ const EditClientProfile: React.FC = () => {
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Project Requirements */}
-            <div>
-              <label className="text-gray-700">Project Requirements</label>
-              <textarea
-                name="project_requirements"
-                value={preferences.project_requirements || ""}
-                onChange={handlePreferencesChange}
-                className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
-              />
             </div>
 
             {/* Budget Range */}

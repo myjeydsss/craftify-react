@@ -46,6 +46,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProfile from "./pages/admin/AdminProfile";
 import EditAdminProfile from "./pages/admin/EditAdminProfile";
 import DynamicDashboard from "./components/DynamicDashboard";
+import ClientPostJob from "./pages/client/ClientPostJob";
+import BrowseJobs from "./pages/BrowseJobs";
 
 const App = () => {
   const location = useLocation();
@@ -112,6 +114,7 @@ const App = () => {
             <Route path="/browse-arts" element={<BrowseArts />} />
             <Route path="/art/:artId" element={<ArtDetail />} />
             <Route path="/browse-clients" element={<BrowseClient />} />
+            <Route path="/browse-jobs" element={<BrowseJobs />} />
             <Route
               path="/profile/client/:userId"
               element={<ViewProfileClient />}
@@ -136,6 +139,7 @@ const App = () => {
               path="/transaction-history"
               element={<TransactionHistory />}
             />
+            <Route path="/post-job" element={<ClientPostJob />} />
           </Route>
         </Routes>
       </div>

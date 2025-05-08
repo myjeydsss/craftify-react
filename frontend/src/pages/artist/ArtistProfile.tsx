@@ -17,7 +17,8 @@ import {
 import { useAuth } from "../../context/AuthProvider";
 import Swal from "sweetalert2";
 import ClipLoader from "react-spinners/ClipLoader";
-import TransactionHistory from '../TransactionHistory'; // Adjust the path as necessary
+import TransactionHistory from "../TransactionHistory"; // Adjust the path as necessary
+import ArtistTransactions from "./ArtistTransaction";
 
 interface ArtistProfileData {
   firstname: string;
@@ -64,16 +65,23 @@ interface WishlistItem {
 }
 
 const ArtistProfile: React.FC = () => {
-   useEffect(() => {
-      document.title = "My Profile";
-    }, []);
-  
-  const [artistProfile, setArtistProfile] = useState<ArtistProfileData | null>(null);
-  const [preferences, setPreferences] = useState<ArtistPreferences | null>(null);
+  const [artistProfile, setArtistProfile] = useState<ArtistProfileData | null>(
+    null
+  );
+  const [preferences, setPreferences] = useState<ArtistPreferences | null>(
+    null
+  );
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"profile" | "preferences" | "address" | "orders" | "wishlist">("profile");
+  const [activeSection, setActiveSection] = useState<
+    | "profile"
+    | "preferences"
+    | "address"
+    | "orders"
+    | "wishlist"
+    | "transactions"
+  >("profile");
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -88,11 +96,12 @@ const ArtistProfile: React.FC = () => {
       const API_BASE_URL = import.meta.env.VITE_API_URL;
 
       try {
-        const [profileResponse, preferencesResponse, wishlistResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/artist-profile/${user.id}`),
-          axios.get(`${API_BASE_URL}/artist-preferences/${user.id}`),
-          axios.get(`${API_BASE_URL}/wishlist/${user.id}`),
-        ]);
+        const [profileResponse, preferencesResponse, wishlistResponse] =
+          await Promise.all([
+            axios.get(`${API_BASE_URL}/artist-profile/${user.id}`),
+            axios.get(`${API_BASE_URL}/artist-preferences/${user.id}`),
+            axios.get(`${API_BASE_URL}/wishlist/${user.id}`),
+          ]);
 
         setArtistProfile(profileResponse.data);
 
@@ -102,10 +111,12 @@ const ArtistProfile: React.FC = () => {
         } else {
           setPreferences({
             ...preferencesData,
-            art_style_specialization: preferencesData.art_style_specialization || [],
+            art_style_specialization:
+              preferencesData.art_style_specialization || [],
             preferred_medium: preferencesData.preferred_medium || [],
             crafting_techniques: preferencesData.crafting_techniques || [],
-            preferred_communication: preferencesData.preferred_communication || [],
+            preferred_communication:
+              preferencesData.preferred_communication || [],
           });
         }
 
@@ -144,53 +155,56 @@ const ArtistProfile: React.FC = () => {
   const handleDeleteAllWishlist = async () => {
     if (!user) {
       Swal.fire({
-        icon: 'warning',
-        title: 'Not Logged In',
-        text: 'Please log in to manage your wishlist.',
-        confirmButtonText: 'OK',
+        icon: "warning",
+        title: "Not Logged In",
+        text: "Please log in to manage your wishlist.",
+        confirmButtonText: "OK",
       });
       return;
     }
-  
+
     const result = await Swal.fire({
-      title: 'Are you sure?',
+      title: "Are you sure?",
       text: "You won't be able to revert this!",
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'Cancel',
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
     });
-  
+
     if (result.isConfirmed) {
       try {
-        await axios.delete(`${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`);
+        await axios.delete(
+          `${import.meta.env.VITE_API_URL}/wishlist/${user.id}/all`
+        );
         setWishlist([]);
         Swal.fire({
-          icon: 'success',
-          title: 'Deleted!',
-          text: 'Your wishlist has been cleared.',
-          confirmButtonText: 'OK',
+          icon: "success",
+          title: "Deleted!",
+          text: "Your wishlist has been cleared.",
+          confirmButtonText: "OK",
         });
       } catch (err) {
         console.error("Error clearing wishlist:", err);
         Swal.fire({
-          icon: 'error',
-          title: 'Error!',
-          text: 'Failed to clear wishlist. Please try again.',
-          confirmButtonText: 'OK',
+          icon: "error",
+          title: "Error!",
+          text: "Failed to clear wishlist. Please try again.",
+          confirmButtonText: "OK",
         });
       }
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-gray-50">
-      <ClipLoader color="#3498db" loading={loading} size={80} />
-      <p className="mt-4 text-gray-600">Loading...</p>
-    </div>);  
-  
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <ClipLoader color="#3498db" loading={loading} size={80} />
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    );
 
   if (error) {
     return (
@@ -202,13 +216,18 @@ const ArtistProfile: React.FC = () => {
 
   const renderProfile = () => (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-700">Profile Information</h2>
+      <h2 className="text-lg font-semibold text-gray-700">
+        Profile Information
+      </h2>
       {[
         { label: "Bio", value: artistProfile?.bio },
         { label: "First Name", value: artistProfile?.firstname },
         { label: "Last Name", value: artistProfile?.lastname },
         { label: "Gender", value: artistProfile?.gender || "Not specified" },
-        { label: "Date Of Birth", value: artistProfile?.date_of_birth || "Not specified" },
+        {
+          label: "Date Of Birth",
+          value: artistProfile?.date_of_birth || "Not specified",
+        },
         { label: "Email", value: artistProfile?.email },
         { label: "Role", value: artistProfile?.role },
       ].map(({ label, value }) => (
@@ -231,15 +250,22 @@ const ArtistProfile: React.FC = () => {
     <div>
       {preferences ? (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-700">Artist Preferences</h2>
+          <h2 className="text-lg font-semibold text-gray-700">
+            Artist Preferences
+          </h2>
           {Object.entries(preferences).map(([key, value]) =>
             Array.isArray(value) ? (
               <div key={key} className="border-b pb-2">
-                <h3 className="font-medium text-gray-600 mb-1 capitalize">{key.replace(/_/g, " ")}:</h3>
+                <h3 className="font-medium text-gray-600 mb-1 capitalize">
+                  {key.replace(/_/g, " ")}:
+                </h3>
                 {value.length ? (
                   <div className="flex flex-wrap gap-2">
                     {value.map((item) => (
-                      <span key={item} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
+                      <span
+                        key={item}
+                        className="bg-gray-200 px-3 py-1 rounded-full text-sm"
+                      >
                         {item}
                       </span>
                     ))}
@@ -250,8 +276,12 @@ const ArtistProfile: React.FC = () => {
               </div>
             ) : (
               <div key={key} className="flex justify-between border-b pb-2">
-                <span className="font-medium text-gray-600 capitalize">{key.replace(/_/g, " ")}:</span>
-                <span className="text-gray-700">{value || "Not specified"}</span>
+                <span className="font-medium text-gray-600 capitalize">
+                  {key.replace(/_/g, " ")}:
+                </span>
+                <span className="text-gray-700">
+                  {value || "Not specified"}
+                </span>
               </div>
             )
           )}
@@ -275,7 +305,10 @@ const ArtistProfile: React.FC = () => {
       <h2 className="text-lg font-semibold text-gray-700">Address & Contact</h2>
       {[
         { label: "Address", value: artistProfile?.address || "Not provided" },
-        { label: "Contact Number", value: artistProfile?.phone || "Not provided" },
+        {
+          label: "Contact Number",
+          value: artistProfile?.phone || "Not provided",
+        },
       ].map(({ label, value }) => (
         <div key={label} className="flex justify-between border-b pb-2">
           <span className="font-medium text-gray-600">{label}:</span>
@@ -317,11 +350,17 @@ const ArtistProfile: React.FC = () => {
                 alt={item.title}
                 className="w-full h-48 object-cover rounded-md mb-2"
               />
-              <h3 className="text-lg font-semibold text-gray-800">{item.title}</h3>
+              <h3 className="text-lg font-semibold text-gray-800">
+                {item.title}
+              </h3>
               <p className="text-sm text-gray-600">
-                {item.artist ? `${item.artist.firstname} ${item.artist.lastname}` : "Unknown Artist"}
+                {item.artist
+                  ? `${item.artist.firstname} ${item.artist.lastname}`
+                  : "Unknown Artist"}
               </p>
-              <p className="text-sm font-bold text-orange-600 mt-2">₱{item.price}</p>
+              <p className="text-sm font-bold text-orange-600 mt-2">
+                ₱{item.price}
+              </p>
             </div>
           ))}
         </div>
@@ -334,6 +373,12 @@ const ArtistProfile: React.FC = () => {
   const renderOrders = () => (
     <div className="space-y-4">
       <TransactionHistory />
+    </div>
+  );
+
+  const renderTransactions = () => (
+    <div className="space-y-4">
+      <ArtistTransactions />
     </div>
   );
 
@@ -358,45 +403,45 @@ const ArtistProfile: React.FC = () => {
             </h2>
             <p className="text-sm text-gray-500">{artistProfile?.email}</p>
 
-
-{/* Verification Button */}
-<div className="mt-4">
-  {artistProfile?.verification_id ? (
-    artistProfile?.status === "pending" ? (
-      <div className="flex items-center justify-center gap-2 text-yellow-600 font-semibold">
-        <FaTimesCircle className="text-yellow-600" /> Verification Pending
-      </div>
-    ) : artistProfile?.status === "rejected" ? ( 
-      <div className="flex items-center justify-center gap-2">
-        
-        <button
-          onClick={handleVerificationClick}
-          className="flex items-center justify-center font-semibold gap-2 text-red-600 hover:bg-red-50 transition"
-        >
-          <div className="text-red-600" /> Verification Rejected
-        </button>
-        <div className="relative group">
-          <FaInfoCircle className="text-red-600 cursor-pointer" />
-          <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-48 bg-gray-800 text-white text-sm rounded-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            Credentials invalid. Please review your information and try submitting again.
+            {/* Verification Button */}
+            <div className="mt-4">
+              {artistProfile?.verification_id ? (
+                artistProfile?.status === "pending" ? (
+                  <div className="flex items-center justify-center gap-2 text-yellow-600 font-semibold">
+                    <FaTimesCircle className="text-yellow-600" /> Verification
+                    Pending
+                  </div>
+                ) : artistProfile?.status === "rejected" ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={handleVerificationClick}
+                      className="flex items-center justify-center font-semibold gap-2 text-red-600 hover:bg-red-50 transition"
+                    >
+                      <div className="text-red-600" /> Verification Rejected
+                    </button>
+                    <div className="relative group">
+                      <FaInfoCircle className="text-red-600 cursor-pointer" />
+                      <div className="absolute left-1/2 transform -translate-x-1/2 mt-1 w-48 bg-gray-800 text-white text-sm rounded-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        Credentials invalid. Please review your information and
+                        try submitting again.
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 text-green-600 font-semibold">
+                    <FaCheckCircle /> Verified Artist
+                  </div>
+                )
+              ) : (
+                <button
+                  onClick={handleVerificationClick}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
+                >
+                  <FaTimesCircle className="text-blue-600" /> Get Verified Now
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
-    ) : (
-      <div className="flex items-center justify-center gap-2 text-green-600 font-semibold">
-        <FaCheckCircle /> Verified Artist
-      </div>
-    )
-  ) : (
-    <button
-      onClick={handleVerificationClick}
-      className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition"
-    >
-      <FaTimesCircle className="text-blue-600" /> Get Verified Now
-    </button>
-  )}
-</div>
-</div>
 
           {/* Navigation Links */}
           <nav className="space-y-4">
@@ -408,7 +453,7 @@ const ArtistProfile: React.FC = () => {
                   : "text-gray-700 hover:bg-gray-200"
               }`}
             >
-              <FaUser  /> <span>Profile</span>
+              <FaUser /> <span>Profile</span>
             </button>
             <button
               onClick={() => setActiveSection("preferences")}
@@ -426,23 +471,32 @@ const ArtistProfile: React.FC = () => {
                 activeSection === "address"
                   ? "bg-blue-600 text-white font-semibold"
                   : "text-gray-700 hover:bg-gray-200"
- }`}
+              }`}
             >
               <FaMapMarkerAlt /> <span>Address & Contact</span>
             </button>
 
             <button
-  onClick={() => setActiveSection("orders")}
-  className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
-    activeSection === "orders"
-      ? "bg-blue-600 text-white font-semibold"
-      : "text-gray-700 hover:bg-gray-200"
-  }`}
->
-  <FaShoppingCart /> <span>Orders</span>
-</button>
+              onClick={() => setActiveSection("transactions")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "transactions"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaShoppingCart /> <span>Transactions</span>
+            </button>
 
-
+            <button
+              onClick={() => setActiveSection("orders")}
+              className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md ${
+                activeSection === "orders"
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <FaShoppingCart /> <span>Orders</span>
+            </button>
 
             <button
               onClick={() => setActiveSection("wishlist")}
@@ -458,16 +512,18 @@ const ArtistProfile: React.FC = () => {
         </aside>
 
         <main className="flex-1 p-6 bg-white shadow-lg rounded-lg">
-  {activeSection === "profile"
-    ? renderProfile()
-    : activeSection === "preferences"
-    ? renderPreferences()
-    : activeSection === "address"
-    ? renderAddress()
-    : activeSection === "orders"
-    ? renderOrders()
-    : renderWishlist()}
-</main>
+          {activeSection === "profile"
+            ? renderProfile()
+            : activeSection === "preferences"
+            ? renderPreferences()
+            : activeSection === "address"
+            ? renderAddress()
+            : activeSection === "transactions"
+            ? renderTransactions()
+            : activeSection === "orders"
+            ? renderOrders()
+            : renderWishlist()}
+        </main>
       </div>
     </div>
   );
