@@ -1,3 +1,4 @@
+// ClientPostJob.tsx
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthProvider";
 import axios from "axios";
@@ -8,6 +9,7 @@ import EditJobModal from "../../components/EditJobModal";
 import ViewApplicantsModal from "../../components/ViewApplicantsModal";
 import Swal from "sweetalert2";
 
+// Interfaces...
 interface Job {
   job_id: string;
   title: string;
@@ -18,7 +20,6 @@ interface Job {
   created_at: string;
   status?: "Open" | "Closed" | "Completed" | "In Progress";
 }
-
 interface Applicant {
   user_id: string;
   firstname: string;
@@ -28,6 +29,7 @@ interface Applicant {
   status: "Pending" | "Accepted" | "Rejected";
 }
 
+// Static data
 const artStyles = [
   "Realism",
   "Portraiture",
@@ -92,12 +94,21 @@ const ClientPostJob: React.FC = () => {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
 
+  // Responsive escape/outside click handling
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") setActiveMenuId(null);
     };
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".dropdown-wrapper")) setActiveMenuId(null);
+    };
     document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const fetchJobs = async () => {
@@ -109,8 +120,6 @@ const ClientPostJob: React.FC = () => {
       );
       const jobList = res.data || [];
       setJobs(jobList);
-
-      // Fetch applicant counts
       const counts: Record<string, number> = {};
       await Promise.all(
         jobList.map(async (job: Job) => {
@@ -147,7 +156,6 @@ const ClientPostJob: React.FC = () => {
 
     setIsPosting(true);
     setError(null);
-
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/jobs`, {
         user_id: user?.id,
@@ -158,7 +166,6 @@ const ClientPostJob: React.FC = () => {
         preferred_art_styles: selectedStyles,
       });
 
-      // Reset form
       setTitle("");
       setDescription("");
       setBudget("");
@@ -167,7 +174,6 @@ const ClientPostJob: React.FC = () => {
       setShowForm(false);
       fetchJobs();
 
-      // Toast success
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -178,7 +184,6 @@ const ClientPostJob: React.FC = () => {
         timerProgressBar: true,
       });
     } catch {
-      // Toast error
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -238,41 +243,6 @@ const ClientPostJob: React.FC = () => {
     setActiveMenuId(null);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest(".dropdown-wrapper")) {
-        setActiveMenuId(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const togglePostForm = () => {
-    if (showForm) {
-      setTitle("");
-      setDescription("");
-      setBudget("");
-      setDeadline("");
-      setSelectedStyles([]);
-      setError(null);
-    }
-    setShowForm((prev) => !prev);
-  };
-
-  const isFormValid =
-    title && description && budget && deadline && selectedStyles.length > 0;
-  const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 5;
-  const indexOfLastJob = currentPage * jobsPerPage;
-  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
-  const currentJobs = jobs.slice(indexOfFirstJob, indexOfLastJob);
-  const totalPages = Math.ceil(jobs.length / jobsPerPage);
-
   const handleViewApplicants = async (job: Job) => {
     setSelectedJobId(job.job_id);
     try {
@@ -281,8 +251,6 @@ const ClientPostJob: React.FC = () => {
       );
       setApplicants(res.data);
       setIsApplicantsModalOpen(true);
-
-      // Save count
       setApplicantCounts((prev) => ({
         ...prev,
         [job.job_id]: res.data.length,
@@ -359,17 +327,39 @@ const ClientPostJob: React.FC = () => {
     }
   };
 
+  const togglePostForm = () => {
+    if (showForm) {
+      setTitle("");
+      setDescription("");
+      setBudget("");
+      setDeadline("");
+      setSelectedStyles([]);
+      setError(null);
+    }
+    setShowForm((prev) => !prev);
+  };
+
+  const isFormValid =
+    title && description && budget && deadline && selectedStyles.length > 0;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 5;
+  const indexOfLastJob = currentPage * jobsPerPage;
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+  const currentJobs = jobs.slice(indexOfFirstJob, indexOfLastJob);
+  const totalPages = Math.ceil(jobs.length / jobsPerPage);
+
   return (
-    <div className="container mx-auto py-16 px-4">
-      <h1 className="text-4xl font-bold text-center text-[#5C0601] mb-4">
+    <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      <h1 className="text-3xl sm:text-4xl font-bold text-center text-[#5C0601] mb-6">
         Post a Job Offer
       </h1>
       <hr className="border-gray-300 mb-6" />
 
-      {/* Collapsible Post Form */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-10">
+      {/* Post Form Section */}
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-10">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">
             Need an artist? Post your job here.
           </h3>
           <p className="text-sm text-gray-500 mb-4">
@@ -383,7 +373,7 @@ const ClientPostJob: React.FC = () => {
           </button>
         </div>
 
-        {/* Expandable Form */}
+        {/* Expandable Job Form */}
         <div
           className={`transition-all duration-500 ease-in-out overflow-hidden ${
             showForm ? "max-h-screen opacity-100 mt-6" : "max-h-0 opacity-0"
@@ -431,7 +421,7 @@ const ClientPostJob: React.FC = () => {
               />
             </div>
             <div>
-              <p className="mb-2 text-lg font-bold text-gray-700">
+              <p className="mb-2 text-base sm:text-lg font-bold text-gray-700">
                 Preferred Art Styles
               </p>
               <div className="flex flex-wrap gap-2">
@@ -451,7 +441,6 @@ const ClientPostJob: React.FC = () => {
                 ))}
               </div>
             </div>
-
             <div className="text-right">
               <button
                 onClick={handlePostJob}
@@ -474,10 +463,11 @@ const ClientPostJob: React.FC = () => {
           </div>
         </div>
       </div>
-
       {/* Job Listing */}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold text-[#5C0601] mb-6">My Job Posts</h2>
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+        <h2 className="text-xl sm:text-2xl font-bold text-[#5C0601] mb-6">
+          My Job Posts
+        </h2>
         {loading ? (
           <div className="text-center text-gray-500">Loading...</div>
         ) : jobs.length === 0 ? (
@@ -488,28 +478,25 @@ const ClientPostJob: React.FC = () => {
               {currentJobs.map((job) => (
                 <div
                   key={job.job_id}
-                  className="relative bg-white border border-gray-200 p-6 rounded-xl shadow-md"
+                  className="relative bg-white border border-gray-200 p-4 sm:p-6 rounded-xl shadow-md"
                 >
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-xl font-bold text-[#5C0601]">
-                      {job.title}
-                    </h3>
-
+                  <div className="mb-1">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      className={`mb-1 inline-block px-3 py-1 rounded-full text-xs font-semibold ${
                         job.status === "Closed"
                           ? "bg-gray-200 text-gray-600"
                           : job.status === "In Progress"
                           ? "bg-yellow-100 text-yellow-700"
                           : job.status === "Completed"
                           ? "bg-blue-100 text-blue-700"
-                          : job.status === "Open"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-500"
+                          : "bg-green-100 text-green-800"
                       }`}
                     >
                       {job.status ?? "Unknown"}
                     </span>
+                    <h3 className="text-lg sm:text-xl font-bold text-[#5C0601]">
+                      {job.title}
+                    </h3>
                   </div>
 
                   <div className="absolute top-4 right-4 z-20 dropdown-wrapper">
@@ -562,6 +549,7 @@ const ClientPostJob: React.FC = () => {
                     Posted {moment(job.created_at).format("MMM D, YYYY")}
                   </p>
                   <p className="text-gray-700 mb-4">{job.description}</p>
+
                   <div className="flex flex-wrap gap-2 mb-4">
                     {(typeof job.preferred_art_styles === "string"
                       ? job.preferred_art_styles.split(",").map((s) => s.trim())
@@ -575,8 +563,9 @@ const ClientPostJob: React.FC = () => {
                       </span>
                     ))}
                   </div>
-                  <div className="flex justify-between items-center text-sm text-gray-700 font-medium mt-4">
-                    <div className="flex gap-6">
+
+                  <div className="flex flex-wrap justify-between items-center text-sm text-gray-700 font-medium mt-4 gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <div>
                         <strong>Budget:</strong> {job.budget}
                       </div>
@@ -601,7 +590,7 @@ const ClientPostJob: React.FC = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center mt-6 gap-2">
+              <div className="flex justify-center mt-6 gap-2 flex-wrap">
                 {Array.from({ length: totalPages }, (_, i) => (
                   <button
                     key={i}
@@ -621,6 +610,7 @@ const ClientPostJob: React.FC = () => {
         )}
       </div>
 
+      {/* Modals */}
       {isEditModalOpen && editJobData && (
         <EditJobModal
           job={editJobData}

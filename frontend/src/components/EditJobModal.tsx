@@ -68,18 +68,10 @@ const EditJobModal: React.FC<Props> = ({ job, onClose, onUpdated }) => {
       ? job.preferred_art_styles.split(",").map((s) => s.trim())
       : job.preferred_art_styles
   );
+  const [status, setStatus] = useState<Job["status"]>(job.status || "Open");
   const [isSaving, setIsSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
-
-  const [status, setStatus] = useState<Job["status"]>(job.status || "Open");
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
 
   useEffect(() => {
     setShowModal(true);
@@ -142,6 +134,7 @@ const EditJobModal: React.FC<Props> = ({ job, onClose, onUpdated }) => {
           status,
         }
       );
+
       onUpdated();
       Swal.fire({
         toast: true,
@@ -153,7 +146,7 @@ const EditJobModal: React.FC<Props> = ({ job, onClose, onUpdated }) => {
         timerProgressBar: true,
       });
       onClose();
-    } catch (err) {
+    } catch {
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -169,76 +162,77 @@ const EditJobModal: React.FC<Props> = ({ job, onClose, onUpdated }) => {
   };
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 transition-opacity duration-300 ${
-        showModal ? "opacity-100" : "opacity-0"
-      }`}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div
         ref={modalRef}
-        className={`bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 transform transition-all duration-300 ${
-          showModal ? "scale-100 translate-y-0" : "scale-95 translate-y-5"
+        className={`bg-white w-[95%] sm:w-[90%] max-w-2xl max-h-[90vh] rounded-xl shadow-2xl overflow-y-auto p-4 sm:p-6 transform transition-all duration-300 ${
+          showModal ? "scale-100 opacity-100" : "scale-95 opacity-0"
         }`}
       >
-        <h2 className="text-2xl font-bold mb-4 text-[#5C0601]">
-          Edit Job Post
-        </h2>
+        <div className="flex flex-col space-y-4 pb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#5C0601]">
+            Edit Job Post
+          </h2>
 
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full mb-3 p-3 border border-gray-300 rounded-md"
-          placeholder="Job Title"
-        />
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={4}
-          className="w-full mb-3 p-3 border border-gray-300 rounded-md"
-          placeholder="Job Description"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <select
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            className="p-3 border border-gray-300 rounded-md"
-          >
-            <option value="">Select Budget</option>
-            {budgetRanges.map((range) => (
-              <option key={range} value={range}>
-                {range}
-              </option>
-            ))}
-          </select>
           <input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            className="p-3 border border-gray-300 rounded-md"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-md"
+            placeholder="Job Title"
           />
-        </div>
 
-        <div className="mb-4">
-          <p className="mb-2 font-medium text-gray-700">Preferred Styles:</p>
-          <div className="flex flex-wrap gap-2">
-            {artStyles.map((style) => (
-              <button
-                key={style}
-                type="button"
-                onClick={() => toggleStyle(style)}
-                className={`px-4 py-2 rounded-full border text-sm ${
-                  selectedStyles.includes(style)
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "border-gray-300 text-gray-700 hover:bg-blue-100"
-                }`}
-              >
-                {style}
-              </button>
-            ))}
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            className="w-full p-3 border border-gray-300 rounded-md"
+            placeholder="Job Description"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <select
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className="p-3 border border-gray-300 rounded-md"
+            >
+              <option value="">Select Budget</option>
+              {budgetRanges.map((range) => (
+                <option key={range} value={range}>
+                  {range}
+                </option>
+              ))}
+            </select>
+            <input
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              className="p-3 border border-gray-300 rounded-md"
+            />
           </div>
-          <div className="mb-4">
-            <p className="mb-2 font-medium text-gray-700">Job Visibility:</p>
+
+          <div>
+            <p className="mb-2 font-bold text-gray-700">Preferred Styles:</p>
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+              {artStyles.map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  onClick={() => toggleStyle(style)}
+                  className={`px-4 py-2 rounded-full border text-sm ${
+                    selectedStyles.includes(style)
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "border-gray-300 text-gray-700 hover:bg-blue-100"
+                  }`}
+                >
+                  {style}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 font-bold text-gray-700">Job Visibility:</p>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as Job["status"])}
@@ -252,32 +246,32 @@ const EditJobModal: React.FC<Props> = ({ job, onClose, onUpdated }) => {
               <option value="Completed">Completed</option>
             </select>
           </div>
-        </div>
 
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-md border text-gray-700 border-gray-300 hover:bg-gray-100"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`px-6 py-2 rounded-md text-white font-medium ${
-              isSaving
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#5C0601] hover:bg-[#7b0802]"
-            }`}
-          >
-            {isSaving ? (
-              <span className="flex items-center gap-2">
-                <FaSpinner className="animate-spin" /> Saving...
-              </span>
-            ) : (
-              "Save Changes"
-            )}
-          </button>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+            <button
+              onClick={onClose}
+              className="px-5 py-2 rounded-md border text-gray-700 border-gray-300 hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`px-6 py-2 rounded-md text-white font-medium ${
+                isSaving
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#5C0601] hover:bg-[#7b0802]"
+              }`}
+            >
+              {isSaving ? (
+                <span className="flex items-center gap-2">
+                  <FaSpinner className="animate-spin" /> Saving...
+                </span>
+              ) : (
+                "Save Changes"
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
