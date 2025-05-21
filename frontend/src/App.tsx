@@ -1,4 +1,3 @@
-// src/App.tsx
 import { Routes, Route, useLocation } from "react-router-dom";
 import "./App.css";
 import "./index.css";
@@ -48,6 +47,10 @@ import EditAdminProfile from "./pages/admin/EditAdminProfile";
 import DynamicDashboard from "./components/DynamicDashboard";
 import ClientPostJob from "./pages/client/ClientPostJob";
 import BrowseJobs from "./pages/BrowseJobs";
+import PaymentSuccess from "./pages/client/PaymentSuccess";
+import PaymentCancel from "./pages/client/PaymentCancel";
+import PaymentArtSuccess from "./pages/artist/PaymentArtSuccess";
+import PaymentArtCancel from "./pages/artist/PaymentArtCancel";
 
 const App = () => {
   const location = useLocation();
@@ -106,6 +109,13 @@ const App = () => {
             />
             <Route path="/client-project-page" element={<ClientProject />} />
             {/* Other routes */}
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-cancel" element={<PaymentCancel />} />
+            <Route
+              path="/payment-art-success"
+              element={<PaymentArtSuccess />}
+            />
+            <Route path="/payment-art-cancel" element={<PaymentArtCancel />} />
             <Route path="/browse-artists" element={<BrowseArtist />} />
             <Route
               path="/profile/artist/:userId"

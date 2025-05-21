@@ -38,6 +38,14 @@ const supabase = createClient(
 const Paymongo = require("paymongo");
 const paymongo = new Paymongo(process.env.VITE_PAYMONGO_SECRET_KEY);
 
+// === Helper: PayMongo Headers ===
+const getPayMongoHeaders = () => ({
+  Authorization: `Basic ${Buffer.from(
+    process.env.VITE_PAYMONGO_SECRET_KEY + ":"
+  ).toString("base64")}`,
+  "Content-Type": "application/json",
+});
+
 app.get("/", (req, res) => {
   res.send("Supabase API is running...");
 });
@@ -1950,9 +1958,9 @@ app.delete("/cart/:userId/:artId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-// ****** NAVBAR CART FUNCTION END... ****** CURRENTLY WORKING
+// ****** NAVBAR CART FUNCTION END... ******
 
-// ****** PAYMENT ORDER (PHOEBE START HERE) ****** CURRENTLY WORKING
+// ****** PAYMENT ORDER (PHOEBE START HERE) ******
 // Fetch user details for pre-filling shipping info
 app.get("/user/:userId", async (req, res) => {
   const { userId } = req.params;
@@ -2062,11 +2070,14 @@ app.post("/create-payment-intent", async (req, res) => {
   }
 });
 
-//Paymongo checkout session
+// Paymongo checkout session
 app.post("/create-checkout-session", async (req, res) => {
   const { amount, currency, description, email, name } = req.body;
 
   try {
+    const baseUrl =
+      req.headers.origin || process.env.FRONTEND_URL || "https://icraftify.com";
+
     const response = await axios.post(
       `${process.env.VITE_PAYMONGO_URL}/checkout_sessions`,
       {
@@ -2086,8 +2097,8 @@ app.post("/create-checkout-session", async (req, res) => {
               },
             ],
             payment_method_types: ["card", "gcash"],
-            success_url: "https://icraftify.com/", // Update this for actual success URL
-            cancel_url: "https://icraftify.com/", // Update this for actual cancel URL
+            success_url: `${baseUrl}/payment-art-success`,
+            cancel_url: `${baseUrl}/payment-art-cancel`,
           },
         },
       },
@@ -2203,7 +2214,7 @@ app.put("/order/:orderId", async (req, res) => {
     res.status(500).json({ error: "Failed to update order status." });
   }
 });
-// ****** PAYMENT ORDER (PHOEBE START HERE) END... ****** CURRENTLY WORKING
+// ****** PAYMENT ORDER (PHOEBE START HERE) END... ******
 
 // ***** BROWSE ARTIST MATCHING ALGORITHM ******
 
@@ -2243,7 +2254,7 @@ function normalizeArtStyle(style) {
 }
 
 // ***** Calculate Score based on Preferences ******
-function calculateScore(clientPrefs, artistPrefs) {
+function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
   let score = 0;
 
   try {
@@ -2251,7 +2262,6 @@ function calculateScore(clientPrefs, artistPrefs) {
     console.log("Client Preferences:", JSON.stringify(clientPrefs));
     console.log("Artist Preferences:", JSON.stringify(artistPrefs));
 
-    // 🎨 Art Style Match (Improved)
     const clientStyles = ensureArray(clientPrefs.preferred_art_style).map(
       normalizeArtStyle
     );
@@ -2259,108 +2269,73 @@ function calculateScore(clientPrefs, artistPrefs) {
       normalizeArtStyle
     );
 
-    console.log("Client Styles (Processed):", clientStyles);
-    console.log("Artist Styles (Processed):", artistStyles);
-
-    // Improved matching logic to consider each style individually
     const matchedStyles = clientStyles.filter((style) =>
       artistStyles.includes(style)
     );
-
-    const styleScore = matchedStyles.length * 2;
+    const styleScore = Math.min(matchedStyles.length, 3) * 10;
     score += styleScore;
     console.log(
       `Art Style Match Score: ${styleScore} (for ${matchedStyles.length} matched styles)`
     );
 
-    // 📍 Location Match
-    if (
-      clientPrefs.location_requirement &&
-      artistPrefs.location_preference &&
-      clientPrefs.location_requirement === artistPrefs.location_preference
-    ) {
-      score += 2;
-      console.log("Location Match Score: 2");
+    if (clientPrefs.location_requirement === artistPrefs.location_preference) {
+      score += 10;
+      console.log("Location Match Score: 10");
     }
 
-    // 💰 Budget Match
-    if (
-      clientPrefs.budget_range &&
-      artistPrefs.budget_range &&
-      clientPrefs.budget_range === artistPrefs.budget_range
-    ) {
-      score += 2;
-      console.log("Budget Match Score: 2");
+    if (clientPrefs.budget_range === artistPrefs.budget_range) {
+      score += 10;
+      console.log("Budget Match Score: 10");
     }
 
-    // ⏳ Project Duration Match
-    if (
-      clientPrefs.timeline &&
-      artistPrefs.preferred_project_duration &&
-      clientPrefs.timeline === artistPrefs.preferred_project_duration
-    ) {
-      score += 1;
-      console.log("Project Duration Match Score: 1");
+    if (clientPrefs.timeline === artistPrefs.preferred_project_duration) {
+      score += 5;
+      console.log("Project Duration Match Score: 5");
     }
 
-    // 📞 Communication Preference Match
     if (
       Array.isArray(clientPrefs.communication_preferences) &&
-      artistPrefs.preferred_communication &&
       clientPrefs.communication_preferences.includes(
         artistPrefs.preferred_communication
       )
     ) {
-      score += 1;
-      console.log("Communication Preference Match Score: 1");
+      score += 5;
+      console.log("Communication Preference Match Score: 5");
     }
 
-    // 📂 Project Type Match
     if (
       Array.isArray(clientPrefs.project_type) &&
-      artistPrefs.project_type &&
       clientPrefs.project_type.includes(artistPrefs.project_type)
     ) {
-      score += 2;
-      console.log("Project Type Match Score: 2");
+      score += 10;
+      console.log("Project Type Match Score: 10");
     }
 
-    // 🧑‍🎨 Collaboration Type Match
-    if (
-      clientPrefs.collaboration_type &&
-      artistPrefs.collaboration_type &&
-      clientPrefs.collaboration_type === artistPrefs.collaboration_type
-    ) {
-      score += 1;
-      console.log("Collaboration Type Match Score: 1");
+    if (clientPrefs.collaboration_type === artistPrefs.collaboration_type) {
+      score += 5;
+      console.log("Collaboration Type Match Score: 5");
     }
 
-    // 🧑‍💼 Client Type Preference Match
-    if (
-      artistPrefs.client_type_preference &&
-      clientPrefs.client_type &&
-      artistPrefs.client_type_preference === clientPrefs.client_type
-    ) {
-      score += 1;
-      console.log("Client Type Preference Match Score: 1");
+    if (artistPrefs.client_type_preference === clientPrefs.client_type) {
+      score += 5;
+      console.log("Client Type Preference Match Score: 5");
     }
 
-    // 📐 Project Scale Match
-    if (
-      artistPrefs.project_scale &&
-      clientPrefs.project_scale &&
-      artistPrefs.project_scale === clientPrefs.project_scale
-    ) {
-      score += 1;
-      console.log("Project Scale Match Score: 1");
+    if (artistPrefs.project_scale === clientPrefs.project_scale) {
+      score += 5;
+      console.log("Project Scale Match Score: 5");
     }
 
+    score += Math.min(collaborativeBoost, 15);
+    console.log(
+      `Collaborative Boost Score: ${Math.min(collaborativeBoost, 15)}`
+    );
     console.log(`Total Calculated Score for Artist: ${score}`);
   } catch (err) {
     console.warn("Error calculating score:", err);
   }
 
-  return score;
+  return Math.round(score);
 }
 
 // Get Collaborative Filtering Scores based on user activity
@@ -2532,11 +2507,16 @@ app.get("/match-artists/:userId", async (req, res) => {
     const collaborativeScores = await getCollaborativeFilteringScores(userId);
 
     // 7. Combine the preference-based and collaborative scores
+    const maxRawBoost = Math.max(...Object.values(collaborativeScores), 1);
+
     const artistRankings = processedArtists.map((artist) => {
-      const preferenceScore =
-        scores[processedClient.user_id][artist.user_id] || 0;
-      const collaborativeBoost = collaborativeScores[artist.user_id] || 0;
-      const combinedScore = preferenceScore + collaborativeBoost;
+      const rawBoost = collaborativeScores[artist.user_id] || 0;
+      const collaborativeBoost = Math.min((rawBoost / maxRawBoost) * 15, 15);
+      const combinedScore = calculateScore(
+        processedClient.preferences,
+        artist.preferences,
+        collaborativeBoost
+      );
 
       return {
         artistId: artist.user_id,
@@ -2553,7 +2533,7 @@ app.get("/match-artists/:userId", async (req, res) => {
       console.log(
         `Rank ${index + 1}: ${ranked.artist.firstname} ${
           ranked.artist.lastname
-        }, Score: ${ranked.score}`
+        }, Combined Match Score: ${ranked.score}%`
       );
     });
 
@@ -2631,7 +2611,7 @@ function normalizeArtStyle1(style1) {
 }
 
 // ***** Calculate Score based on Preferences ******
-function calculateScore1(artistPrefs1, clientPrefs1) {
+function calculateScore1(artistPrefs1, clientPrefs1, collaborativeBoost1 = 0) {
   let score1 = 0;
 
   try {
@@ -2639,7 +2619,6 @@ function calculateScore1(artistPrefs1, clientPrefs1) {
     console.log("Client Preferences:", JSON.stringify(clientPrefs1));
     console.log("Artist Preferences:", JSON.stringify(artistPrefs1));
 
-    // 🎨 Art Style Match (Improved)
     const clientStyles1 = ensureArray1(clientPrefs1.preferred_art_style).map(
       normalizeArtStyle1
     );
@@ -2647,123 +2626,76 @@ function calculateScore1(artistPrefs1, clientPrefs1) {
       artistPrefs1.art_style_specialization
     ).map(normalizeArtStyle1);
 
-    console.log(
-      "Client Art Style Preferences:",
-      clientPrefs1.preferred_art_style
-    );
-    console.log(
-      "Artist Art Style Preferences:",
-      artistPrefs1.art_style_specialization
-    );
-
-    // Improved matching logic to consider each style individually
     const matchedStyles1 = artistStyles1.filter((style1) =>
       clientStyles1.includes(style1)
     );
 
-    console.log("Matched Styles Count:", matchedStyles1.length);
-    console.log("Matched Styles List:", matchedStyles1);
-
-    const styleScore1 = matchedStyles1.length * 2;
+    const styleScore1 = Math.min(matchedStyles1.length, 3) * 10; // Max 30
     score1 += styleScore1;
     console.log(
       `Art Style Match Score: ${styleScore1} (for ${matchedStyles1.length} matched styles)`
     );
 
-    // 📍 Location Match
     if (
-      artistPrefs1.location_requirement &&
-      clientPrefs1.location_preference &&
-      artistPrefs1.location_requirement === artistPrefs1.location_preference
+      artistPrefs1.location_requirement === clientPrefs1.location_preference
     ) {
-      score1 += 2;
-      console.log("Location Match Score: 2");
+      score1 += 10;
+      console.log("Location Match Score: 10");
     }
 
-    // 💰 Budget Match
-    if (
-      artistPrefs1.budget_range &&
-      clientPrefs1.budget_range &&
-      artistPrefs1.budget_range === clientPrefs1.budget_range
-    ) {
-      score1 += 2;
-      console.log("Budget Match Score: 2");
+    if (artistPrefs1.budget_range === clientPrefs1.budget_range) {
+      score1 += 10;
+      console.log("Budget Match Score: 10");
     }
 
-    // ⏳ Project Duration Match
-    if (
-      artistPrefs1.timeline &&
-      clientPrefs1.preferred_project_duration &&
-      artistPrefs1.timeline === clientPrefs1.preferred_project_duration
-    ) {
-      score1 += 1;
-      console.log("Project Duration Match Score: 1");
+    if (artistPrefs1.timeline === clientPrefs1.preferred_project_duration) {
+      score1 += 5;
+      console.log("Project Duration Match Score: 5");
     }
 
-    // 📞 Communication Preference Match
     if (
       Array.isArray(artistPrefs1.communication_preferences) &&
-      clientPrefs1.preferred_communication &&
       artistPrefs1.communication_preferences.includes(
         clientPrefs1.preferred_communication
       )
     ) {
-      score1 += 1;
-      console.log("Communication Preference Match Score: 1");
+      score1 += 5;
+      console.log("Communication Preference Match Score: 5");
     }
 
-    // 📂 Project Type Match
     if (
       Array.isArray(artistPrefs1.project_type) &&
-      clientPrefs1.project_type &&
       artistPrefs1.project_type.includes(clientPrefs1.project_type)
     ) {
-      score1 += 2;
-      console.log("Project Type Match Score: 2");
+      score1 += 10;
+      console.log("Project Type Match Score: 10");
     }
 
-    // 🧑‍🎨 Collaboration Type Match
-    if (
-      artistPrefs1.collaboration_type &&
-      clientPrefs1.collaboration_type &&
-      artistPrefs1.collaboration_type === clientPrefs1.collaboration_type
-    ) {
-      score1 += 1;
-      console.log("Collaboration Type Match Score: 1");
+    if (artistPrefs1.collaboration_type === clientPrefs1.collaboration_type) {
+      score1 += 5;
+      console.log("Collaboration Type Match Score: 5");
     }
 
-    // 🧑‍💼 Client Type Preference Match
-    if (
-      clientPrefs1.client_type_preference &&
-      artistPrefs1.client_type &&
-      clientPrefs1.client_type_preference === artistPrefs1.client_type
-    ) {
-      score1 += 1;
-      console.log("Client Type Preference Match Score: 1");
+    if (artistPrefs1.client_type === clientPrefs1.client_type_preference) {
+      score1 += 5;
+      console.log("Client Type Preference Match Score: 5");
     }
 
-    // 📐 Project Scale Match
-    if (
-      clientPrefs1.project_scale &&
-      artistPrefs1.project_scale &&
-      clientPrefs1.project_scale === artistPrefs1.project_scale
-    ) {
-      score1 += 1;
-      console.log("Project Scale Match Score: 1");
+    if (artistPrefs1.project_scale === clientPrefs1.project_scale) {
+      score1 += 5;
+      console.log("Project Scale Match Score: 5");
     }
 
-    // 👀 Boost from collaborative signals
-    if (collaborativeBoost1) {
-      score1 += collaborativeBoost1;
-      console.log(`Collaborative Boost Score: ${collaborativeBoost1}`);
-    }
-
+    score1 += Math.min(collaborativeBoost1, 15);
+    console.log(
+      `Collaborative Boost Score: ${Math.min(collaborativeBoost1, 15)}`
+    );
     console.log(`Total Calculated Score for Artist: ${score1}`);
   } catch (err) {
     console.warn("Error calculating score:", err);
   }
 
-  return score1;
+  return Math.round(score1); // Total out of 100
 }
 
 // Get Collaborative Filtering Scores based on user activity
@@ -2937,15 +2869,21 @@ app.get("/match-clients/:userId", async (req, res) => {
     const collaborativeScores1 = await getCollaborativeFilteringScores1(userId);
 
     // 7. Combine the preference-based and collaborative scores
+    const maxRawBoost = Math.max(...Object.values(collaborativeScores1), 1);
+
     const clientRankings1 = processedClients1.map((client) => {
-      const preferenceScore1 =
-        scores1[processedArtist1.user_id][client.user_id] || 0;
-      const collaborativeBoost1 = collaborativeScores1[client.user_id] || 0;
-      const combinedScore1 = preferenceScore1 + collaborativeBoost1;
+      const rawBoost = collaborativeScores1[client.user_id] || 0;
+      const collaborativeBoost1 = Math.min((rawBoost / maxRawBoost) * 15, 15);
+      const preferenceScore1 = calculateScore1(
+        processedArtist1.preferences,
+        client.preferences,
+        collaborativeBoost1
+      );
 
       return {
         artistId: client.user_id,
-        score1: combinedScore1,
+        score1: preferenceScore1,
+        collaborativeBoost1: Math.round(collaborativeBoost1),
         client,
       };
     });
@@ -2958,7 +2896,7 @@ app.get("/match-clients/:userId", async (req, res) => {
       console.log(
         `Rank ${index + 1}: ${ranked.client.firstname} ${
           ranked.client.lastname
-        }, Score: ${ranked.score1}`
+        }, ` + `Combined Match Score: ${ranked.score1}%`
       );
     });
 
@@ -2970,7 +2908,7 @@ app.get("/match-clients/:userId", async (req, res) => {
         role: ranked.client.role,
         address: ranked.client.address,
         profile_image: ranked.client.profile_image,
-        score1: ranked.score1,
+        score1: `${ranked.score1}%`, // final combined score as percentage
       },
       artist: {
         id: processedArtist1.user_id,
@@ -4038,6 +3976,8 @@ app.post("/api/projects/update-status", async (req, res) => {
             description: milestone.description,
             status: milestone.status,
             completion_percentage: 0,
+            milestone_fee: 0,
+            is_paid: false,
             created_at: new Date(),
             updated_at: new Date(),
           })
@@ -4180,16 +4120,36 @@ app.get("/api/projects/:projectId/client_project_details", async (req, res) => {
       throw new Error(`Error fetching project: ${projectError.message}`);
     }
 
-    const { data: proposalData, error: proposalError } = await supabase
-      .from("proposals")
-      .select("budget")
-      .eq("proposal_id", projectData.proposal_id)
-      .single();
+    let budget = null;
 
-    if (proposalError) {
-      throw new Error(
-        `Error fetching proposal details: ${proposalError.message}`
-      );
+    if (projectData.proposal_id) {
+      // Budget from proposals (add ₱ prefix)
+      const { data: proposalData, error: proposalError } = await supabase
+        .from("proposals")
+        .select("budget")
+        .eq("proposal_id", projectData.proposal_id)
+        .single();
+
+      if (proposalError) {
+        throw new Error(
+          `Error fetching proposal details: ${proposalError.message}`
+        );
+      }
+
+      budget = `₱${proposalData.budget}`;
+    } else if (projectData.job_id) {
+      // Budget from jobs (leave as-is, already formatted)
+      const { data: jobData, error: jobError } = await supabase
+        .from("jobs")
+        .select("budget")
+        .eq("job_id", projectData.job_id)
+        .single();
+
+      if (jobError) {
+        throw new Error(`Error fetching job details: ${jobError.message}`);
+      }
+
+      budget = jobData.budget;
     }
 
     // Fetch client info directly from the project client_id
@@ -4197,7 +4157,7 @@ app.get("/api/projects/:projectId/client_project_details", async (req, res) => {
 
     const projectDetails = {
       ...projectData,
-      budget: proposalData.budget,
+      budget,
       clientProfile,
     };
 
@@ -4223,24 +4183,44 @@ app.get("/api/projects/:projectId/artist_project_details", async (req, res) => {
       throw new Error(`Error fetching project: ${projectError.message}`);
     }
 
-    const { data: proposalData, error: proposalError } = await supabase
-      .from("proposals")
-      .select("budget")
-      .eq("proposal_id", projectData.proposal_id)
-      .single();
+    let budget = null;
 
-    if (proposalError) {
-      throw new Error(
-        `Error fetching proposal details: ${proposalError.message}`
-      );
+    if (projectData.proposal_id) {
+      // Case: budget from proposal, add ₱ prefix
+      const { data: proposalData, error: proposalError } = await supabase
+        .from("proposals")
+        .select("budget")
+        .eq("proposal_id", projectData.proposal_id)
+        .single();
+
+      if (proposalError) {
+        throw new Error(
+          `Error fetching proposal details: ${proposalError.message}`
+        );
+      }
+
+      budget = `₱${proposalData.budget}`;
+    } else if (projectData.job_id) {
+      // Case: budget from job, return as-is (already formatted on frontend)
+      const { data: jobData, error: jobError } = await supabase
+        .from("jobs")
+        .select("budget")
+        .eq("job_id", projectData.job_id)
+        .single();
+
+      if (jobError) {
+        throw new Error(`Error fetching job details: ${jobError.message}`);
+      }
+
+      budget = jobData.budget; // No prefix added
     }
 
-    // Fetch client info directly from the project client_id
+    // Fetch artist info directly from the project artist_id
     const artistProfile = await fetchProfileDetails(projectData.artist_id);
 
     const projectDetails = {
       ...projectData,
-      budget: proposalData.budget,
+      budget,
       artistProfile,
     };
 
@@ -4987,7 +4967,7 @@ app.post("/log-profile-visit/:userId", async (req, res) => {
 // visit profile endpoint end....
 
 // ***** MILESTONE ENDPOINT ******
-// Endpoint to fetch all projects with status "In Progress" and their milestones
+// === GET: All "In Progress" Projects with Milestones ===
 app.get("/api/projects/in-progress-with-milestones", async (req, res) => {
   try {
     const { data: projects, error: projectError } = await supabase
@@ -4995,9 +4975,7 @@ app.get("/api/projects/in-progress-with-milestones", async (req, res) => {
       .select("*")
       .eq("status", "In Progress");
 
-    if (projectError) {
-      throw new Error(`Error fetching projects: ${projectError.message}`);
-    }
+    if (projectError) throw projectError;
 
     const projectsWithMilestones = await Promise.all(
       projects.map(async (project) => {
@@ -5007,18 +4985,13 @@ app.get("/api/projects/in-progress-with-milestones", async (req, res) => {
           .eq("project_id", project.project_id)
           .order("due_date", { ascending: true });
 
-        if (milestoneError) {
-          throw new Error(
-            `Error fetching milestones: ${milestoneError.message}`
-          );
-        }
+        if (milestoneError) throw milestoneError;
 
-        // ✅ Compute project-level average of milestone completion percentages
-        const total = milestones.reduce(
-          (acc, m) => acc + (m.completion_percentage || 0),
-          0
-        );
-        const avg = milestones.length ? total / milestones.length : 0;
+        const avg =
+          milestones.reduce(
+            (sum, m) => sum + (m.completion_percentage || 0),
+            0
+          ) / (milestones.length || 1);
 
         return {
           ...project,
@@ -5030,40 +5003,38 @@ app.get("/api/projects/in-progress-with-milestones", async (req, res) => {
 
     res.status(200).json(projectsWithMilestones);
   } catch (err) {
-    console.error("Error fetching projects and milestones:", err);
-    res.status(500).json({ error: "Failed to fetch projects and milestones." });
+    console.error("Failed to fetch projects with milestones:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// Fetch milestones for a specific project
+// === GET: Milestones for Specific Project ===
 app.get("/api/projects/:projectId/milestones", async (req, res) => {
-  const { projectId } = req.params;
-
   try {
     const { data, error } = await supabase
       .from("milestones")
       .select("*")
-      .eq("project_id", projectId)
+      .eq("project_id", req.params.projectId)
       .order("due_date", { ascending: true });
 
     if (error) throw error;
-
     res.status(200).json(data);
   } catch (err) {
-    console.error("Error fetching milestones:", err);
+    console.error("Error fetching milestones:", err.message);
     res.status(500).json({ error: "Failed to fetch milestones." });
   }
 });
 
-// Create a new milestone for a project
+// === POST: Create Milestone ===
 app.post("/api/projects/:projectId/milestones", async (req, res) => {
   const { projectId } = req.params;
   const {
     milestone_name,
     description,
     due_date,
-    status,
-    completion_percentage,
+    status = "Not Started",
+    completion_percentage = 0,
+    milestone_fee = 0,
   } = req.body;
 
   try {
@@ -5076,46 +5047,38 @@ app.post("/api/projects/:projectId/milestones", async (req, res) => {
           description,
           due_date,
           status,
-          completion_percentage: completion_percentage || 0,
+          completion_percentage,
+          milestone_fee,
+          is_paid: false,
         },
       ])
       .select();
 
     if (error) throw error;
-
     res.status(201).json(data[0]);
   } catch (err) {
-    console.error("Error creating milestone:", err);
+    console.error("Error creating milestone:", err.message);
     res.status(500).json({ error: "Failed to create milestone." });
   }
 });
 
-// Update a milestone (allowing partial updates and updating completion_percentage)
+// === PUT: Update Milestone ===
 app.put("/api/milestones/:milestoneId", async (req, res) => {
-  const { milestoneId } = req.params;
-  const { milestone_name, status, due_date } = req.body;
-
-  // Only include fields that are provided
   const updates = {};
+  const { milestone_name, status, due_date, milestone_fee } = req.body;
+
   if (milestone_name !== undefined) updates.milestone_name = milestone_name;
-  if (status !== undefined) updates.status = status;
-  if (due_date !== undefined) updates.due_date = due_date;
-
-  // Calculate completion_percentage based on status if provided
   if (status !== undefined) {
-    if (status === "Completed") {
-      updates.completion_percentage = 100;
-    } else if (status === "In Progress") {
-      updates.completion_percentage = 50;
-    } else if (status === "Not Started") {
-      updates.completion_percentage = 0;
-    }
+    updates.status = status;
+    updates.completion_percentage =
+      status === "Completed" ? 100 : status === "In Progress" ? 50 : 0;
   }
+  if (due_date !== undefined) updates.due_date = due_date;
+  if (milestone_fee !== undefined) updates.milestone_fee = milestone_fee;
 
-  updates.updated_at = new Date(); // Always update timestamp
+  updates.updated_at = new Date();
 
-  if (Object.keys(updates).length === 1) {
-    // Only updated_at is present
+  if (Object.keys(updates).length <= 1) {
     return res
       .status(400)
       .json({ error: "No valid fields provided for update." });
@@ -5125,18 +5088,33 @@ app.put("/api/milestones/:milestoneId", async (req, res) => {
     const { data, error } = await supabase
       .from("milestones")
       .update(updates)
-      .eq("milestone_id", milestoneId)
+      .eq("milestone_id", req.params.milestoneId)
       .select();
 
     if (error) throw error;
-    if (!data || data.length === 0) {
+    if (!data || data.length === 0)
       return res.status(404).json({ error: "Milestone not found." });
-    }
 
     res.status(200).json(data[0]);
   } catch (err) {
-    console.error("Error updating milestone:", err);
+    console.error("Error updating milestone:", err.message);
     res.status(500).json({ error: "Failed to update milestone." });
+  }
+});
+
+// === DELETE: Milestone ===
+app.delete("/api/milestones/:milestoneId", async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from("milestones")
+      .delete()
+      .eq("milestone_id", req.params.milestoneId);
+
+    if (error) throw error;
+    res.status(200).json({ success: true, message: "Milestone deleted." });
+  } catch (err) {
+    console.error("Error deleting milestone:", err.message);
+    res.status(500).json({ error: "Failed to delete milestone." });
   }
 });
 
@@ -5541,12 +5519,12 @@ app.get("/api/job-applicants/:jobId", async (req, res) => {
   }
 });
 
-// Update application status
+// Update job application status and create project if accepted
 app.patch("/api/job-applicants/status", async (req, res) => {
   const { job_id, user_id, status } = req.body;
 
   try {
-    // 1. Update the application status
+    // Step 1: Update the job application status
     const { error: updateError } = await supabase
       .from("job_applications")
       .update({ status })
@@ -5555,19 +5533,76 @@ app.patch("/api/job-applicants/status", async (req, res) => {
 
     if (updateError) throw updateError;
 
-    // 2. If accepted, update the job status to "In Progress"
+    // Step 2: If Accepted, update job status and create project
     if (status === "Accepted") {
-      const { error: jobError } = await supabase
+      // Get job details
+      const { data: job, error: jobFetchError } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("job_id", job_id)
+        .single();
+
+      if (jobFetchError || !job) {
+        throw jobFetchError || new Error("Job not found");
+      }
+
+      // Update the job's status to "In Progress"
+      const { error: jobUpdateError } = await supabase
         .from("jobs")
         .update({ status: "In Progress" })
         .eq("job_id", job_id);
 
-      if (jobError) throw jobError;
+      if (jobUpdateError) throw jobUpdateError;
+
+      // Create project entry
+      const { data: newProject, error: projectError } = await supabase
+        .from("projects")
+        .insert([
+          {
+            job_id: job_id,
+            project_name: job.title,
+            description: job.description,
+            client_id: job.user_id,
+            artist_id: user_id,
+            due_date: job.deadline,
+            status: "To Do",
+            priority: "Normal",
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ])
+        .select("*")
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Send notification to artist
+      const notificationMsg = `You've been accepted for the job "${job.title}". A project has been created.`;
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert([
+          {
+            user_id,
+            type: "Job Accepted",
+            message: notificationMsg,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+      if (notificationError) {
+        console.error("Failed to send notification:", notificationError);
+      }
+
+      return res.status(200).json({
+        message: "Application accepted and project created",
+        project: newProject,
+      });
     }
 
     res.status(200).json({ message: "Status updated successfully." });
   } catch (err) {
-    console.error("Error updating status:", err);
+    console.error("Error updating job applicant status:", err);
     res.status(500).json({ error: "Failed to update status." });
   }
 });
@@ -5613,3 +5648,218 @@ app.delete("/api/delete-application", async (req, res) => {
   }
 });
 // JOBS OFFER ENDPOINT END... ******
+
+// MILESTONE WITH PAYMONGO ENDPOINT... ******
+
+// Pay a milestone directly via milestone ID
+app.post("/milestones/:milestoneId/pay", async (req, res) => {
+  const { milestoneId } = req.params;
+  const { user_email, user_name } = req.body;
+
+  try {
+    const { data: milestone, error } = await supabase
+      .from("milestones")
+      .select("milestone_name, milestone_fee, is_paid, project_id")
+      .eq("milestone_id", milestoneId)
+      .single();
+
+    if (error || !milestone) {
+      return res.status(404).json({ error: "Milestone not found" });
+    }
+
+    if (milestone.is_paid) {
+      return res.status(400).json({ error: "Milestone already paid" });
+    }
+
+    // Dynamically determine frontend base URL
+    const frontendUrl =
+      req.headers.origin || process.env.FRONTEND_URL || "https://icraftify.com";
+
+    const response = await axios.post(
+      `${process.env.VITE_PAYMONGO_URL}/checkout_sessions`,
+      {
+        data: {
+          attributes: {
+            billing: { email: user_email, name: user_name },
+            line_items: [
+              {
+                amount: Math.round(milestone.milestone_fee * 100),
+                currency: "PHP",
+                description: milestone.milestone_name,
+                name: `Milestone Fee (${milestone.milestone_name})`,
+                quantity: 1,
+              },
+            ],
+            payment_method_types: ["card", "gcash"],
+            success_url: `${frontendUrl}/milestone/success?milestone_id=${milestoneId}`,
+            cancel_url: `${frontendUrl}/milestone/cancel`,
+            metadata: {
+              milestone_id: milestoneId,
+              project_id: milestone.project_id,
+              type: "milestone",
+            },
+          },
+        },
+      },
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            process.env.VITE_PAYMONGO_SECRET_KEY + ":"
+          ).toString("base64")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const checkoutUrl = response?.data?.data?.attributes?.checkout_url;
+
+    if (!checkoutUrl) {
+      console.error(
+        "Missing checkout_url in PayMongo response:",
+        response.data
+      );
+      return res
+        .status(500)
+        .json({ error: "checkout_url not found in PayMongo response" });
+    }
+
+    await supabase.from("milestone_payments").insert({
+      milestone_id: milestoneId,
+      project_id: milestone.project_id,
+      amount: milestone.milestone_fee,
+      status: "pending",
+      checkout_url: checkoutUrl,
+      payment_intent_id: response?.data?.data?.id || null,
+      paid_at: new Date(),
+    });
+
+    return res.status(200).json({ checkout_url: checkoutUrl });
+  } catch (err) {
+    console.error("Error creating milestone checkout:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Initiate Milestone Payment via /api/milestone-payment/checkout
+app.post("/api/milestone-payment/checkout", async (req, res) => {
+  const {
+    milestone_id,
+    project_id,
+    amount,
+    user_name,
+    user_email,
+    currency = "PHP",
+  } = req.body;
+
+  if (!milestone_id || !project_id || !amount || !user_name || !user_email) {
+    return res.status(400).json({ error: "Missing required payment details." });
+  }
+
+  try {
+    // Use request origin as base URL fallback
+    const frontendUrl =
+      req.headers.origin || process.env.FRONTEND_URL || "https://icraftify.com";
+
+    // Fetch milestone name
+    const { data: milestone, error: milestoneError } = await supabase
+      .from("milestones")
+      .select("milestone_name")
+      .eq("milestone_id", milestone_id)
+      .single();
+
+    const milestoneName = milestone?.milestone_name || "Unnamed";
+
+    const response = await axios.post(
+      `${process.env.VITE_PAYMONGO_URL}/checkout_sessions`,
+      {
+        data: {
+          attributes: {
+            billing: { name: user_name, email: user_email },
+            line_items: [
+              {
+                name: `Milestone Fee (${milestoneName})`,
+                description: `Payment for milestone ${milestone_id}`,
+                amount,
+                currency,
+                quantity: 1,
+              },
+            ],
+            payment_method_types: ["card", "gcash"],
+            success_url: `${frontendUrl}/payment-success?milestone_id=${milestone_id}`,
+            cancel_url: `${frontendUrl}/payment-cancel`,
+            metadata: {
+              milestone_id,
+              project_id,
+              type: "milestone",
+            },
+          },
+        },
+      },
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            process.env.VITE_PAYMONGO_SECRET_KEY + ":"
+          ).toString("base64")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const checkoutUrl = response?.data?.data?.attributes?.checkout_url;
+
+    if (!checkoutUrl) {
+      return res
+        .status(500)
+        .json({ error: "checkout_url not found in PayMongo response" });
+    }
+
+    await supabase.from("milestone_payments").insert({
+      milestone_id,
+      project_id,
+      amount: amount / 100,
+      status: "pending",
+      checkout_url: checkoutUrl,
+      payment_intent_id: response?.data?.data?.id || null,
+      paid_at: new Date(),
+    });
+
+    res.status(200).json({ checkout_url: checkoutUrl });
+  } catch (err) {
+    console.error("PayMongo Checkout Error:", err.message);
+    res.status(500).json({ error: "Failed to create checkout session." });
+  }
+});
+
+// === MARK AS PAID MANUALLY AFTER SUCCESS REDIRECT ===
+app.post("/milestones/:milestoneId/mark-paid", async (req, res) => {
+  const { milestoneId } = req.params;
+
+  try {
+    const { error: milestoneError } = await supabase
+      .from("milestones")
+      .update({ is_paid: true })
+      .eq("milestone_id", milestoneId);
+
+    const { error: paymentError } = await supabase
+      .from("milestone_payments")
+      .update({
+        status: "paid",
+        paid_at: new Date(),
+      })
+      .eq("milestone_id", milestoneId);
+
+    if (milestoneError || paymentError) {
+      return res
+        .status(500)
+        .json({ error: "Failed to mark milestone as paid" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Milestone successfully marked as paid" });
+  } catch (err) {
+    console.error("Mark-paid error:", err);
+    return res.status(500).json({ error: "Unexpected server error" });
+  }
+});
+// MILESTONE WITH PAYMONGO ENDPOINT END... ******

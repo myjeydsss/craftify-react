@@ -1,4 +1,3 @@
-// ClientPostJob.tsx
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthProvider";
 import axios from "axios";
@@ -8,6 +7,7 @@ import moment from "moment";
 import EditJobModal from "../../components/EditJobModal";
 import ViewApplicantsModal from "../../components/ViewApplicantsModal";
 import Swal from "sweetalert2";
+import { AnimatePresence, motion } from "framer-motion";
 
 // Interfaces...
 interface Job {
@@ -373,259 +373,274 @@ const ClientPostJob: React.FC = () => {
           </button>
         </div>
 
-        {/* Expandable Job Form */}
-        <div
-          className={`transition-all duration-500 ease-in-out overflow-hidden ${
-            showForm ? "max-h-screen opacity-100 mt-6" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="border-t border-gray-200 pt-6 mt-4 space-y-4">
-            {error && (
-              <div className="text-center text-red-600 font-semibold">
-                {error}
-              </div>
-            )}
-            <input
-              type="text"
-              placeholder="Job Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
-            />
-            <textarea
-              placeholder="Describe your project..."
-              rows={4}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
-            ></textarea>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <select
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
-              >
-                <option value="">Select a Budget Range</option>
-                {budgetRanges.map((range) => (
-                  <option key={range} value={range}>
-                    {range}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="date"
-                placeholder="Deadline"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
-              />
-            </div>
-            <div>
-              <p className="mb-2 text-base sm:text-lg font-bold text-gray-700">
-                Preferred Art Styles
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {artStyles.map((style) => (
-                  <button
-                    key={style}
-                    type="button"
-                    onClick={() => toggleStyle(style)}
-                    className={`px-4 py-2 rounded-full border text-sm ${
-                      selectedStyles.includes(style)
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "border-gray-300 text-gray-700 hover:bg-blue-100"
-                    }`}
-                  >
-                    {style}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="text-right">
-              <button
-                onClick={handlePostJob}
-                disabled={isPosting || !isFormValid}
-                className={`py-2 px-8 rounded-full text-white font-semibold text-base shadow-md ${
-                  isPosting
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#5C0601] hover:bg-[#7b0802] transition-transform duration-200 transform hover:scale-105"
-                }`}
-              >
-                {isPosting ? (
-                  <div className="flex items-center justify-center">
-                    <FaSpinner className="animate-spin mr-2" /> Posting...
+        <AnimatePresence>
+          {showForm && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mt-6 shadow-lg rounded-xl overflow-hidden"
+            >
+              <div className="border-t border-gray-200 bg-white p-4 sm:p-6 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 space-y-4">
+                {error && (
+                  <div className="text-center text-red-600 font-semibold">
+                    {error}
                   </div>
-                ) : (
-                  "Post Job"
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* Job Listing */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
-        <h2 className="text-xl sm:text-2xl font-bold text-[#5C0601] mb-6">
-          My Job Posts
-        </h2>
-        {loading ? (
-          <div className="text-center text-gray-500">Loading...</div>
-        ) : jobs.length === 0 ? (
-          <p className="text-gray-600">You haven't posted any jobs yet.</p>
-        ) : (
-          <>
-            <div className="grid gap-6">
-              {currentJobs.map((job) => (
-                <div
-                  key={job.job_id}
-                  className="relative bg-white border border-gray-200 p-4 sm:p-6 rounded-xl shadow-md"
-                >
-                  <div className="mb-1">
-                    <span
-                      className={`mb-1 inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        job.status === "Closed"
-                          ? "bg-gray-200 text-gray-600"
-                          : job.status === "In Progress"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : job.status === "Completed"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {job.status ?? "Unknown"}
-                    </span>
-                    <h3 className="text-lg sm:text-xl font-bold text-[#5C0601]">
-                      {job.title}
-                    </h3>
-                  </div>
 
-                  <div className="absolute top-4 right-4 z-20 dropdown-wrapper">
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMenuId((prev) =>
-                            prev === job.job_id ? null : job.job_id
-                          );
-                        }}
-                        className="p-2 rounded-full hover:bg-gray-100 transition"
-                      >
-                        <HiDotsHorizontal className="w-5 h-5 text-gray-600" />
-                      </button>
+                <input
+                  type="text"
+                  placeholder="Job Title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
+                />
 
-                      <div
-                        className={`transition-all duration-200 origin-top-right transform scale-95 opacity-0 ${
-                          activeMenuId === job.job_id
-                            ? "scale-100 opacity-100"
-                            : "pointer-events-none"
-                        } absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-md`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() => handleEdit(job)}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(job.job_id)}
-                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
-                        {job.status !== "Completed" && (
-                          <button
-                            onClick={() => handleMarkAsCompleted(job.job_id)}
-                            className="w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-100"
-                          >
-                            Mark as Completed
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                <textarea
+                  placeholder="Describe your project..."
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
+                ></textarea>
 
-                  <p className="text-sm text-gray-500 mb-2">
-                    Posted {moment(job.created_at).format("MMM D, YYYY")}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <select
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
+                  >
+                    <option value="">Select a Budget Range</option>
+                    {budgetRanges.map((range) => (
+                      <option key={range} value={range}>
+                        {range}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="date"
+                    placeholder="Deadline"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5C0601]"
+                  />
+                </div>
+
+                <div>
+                  <p className="mb-2 text-base sm:text-lg font-bold text-gray-700">
+                    Preferred Art Styles
                   </p>
-                  <p className="text-gray-700 mb-4">{job.description}</p>
-
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {(typeof job.preferred_art_styles === "string"
-                      ? job.preferred_art_styles.split(",").map((s) => s.trim())
-                      : job.preferred_art_styles
-                    )?.map((style, idx) => (
-                      <span
-                        key={`${job.job_id}-style-${idx}`}
-                        className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
+                  <div className="flex flex-wrap gap-2">
+                    {artStyles.map((style) => (
+                      <button
+                        key={style}
+                        type="button"
+                        onClick={() => toggleStyle(style)}
+                        className={`px-4 py-2 rounded-full border text-sm ${
+                          selectedStyles.includes(style)
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "border-gray-300 text-gray-700 hover:bg-blue-100"
+                        }`}
                       >
                         {style}
-                      </span>
+                      </button>
                     ))}
                   </div>
-
-                  <div className="flex flex-wrap justify-between items-center text-sm text-gray-700 font-medium mt-4 gap-4">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div>
-                        <strong>Budget:</strong> {job.budget}
-                      </div>
-                      <div>
-                        <strong>Deadline:</strong>{" "}
-                        {moment(job.deadline).format("MMM D, YYYY")}
-                      </div>
-                    </div>
-                    {applicantCounts[job.job_id] !== undefined && (
-                      <button
-                        onClick={() => handleViewApplicants(job)}
-                        className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold px-4 py-1 rounded-full shadow transition"
-                      >
-                        {applicantCounts[job.job_id]} Applicant
-                        {applicantCounts[job.job_id] !== 1 && "s"}
-                      </button>
-                    )}
-                  </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-6 gap-2 flex-wrap">
-                {Array.from({ length: totalPages }, (_, i) => (
+                {/* Post Button */}
+                <div className="text-center pt-4">
                   <button
-                    key={i}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`px-4 py-2 rounded-md border ${
-                      currentPage === i + 1
-                        ? "bg-[#5C0601] text-white"
-                        : "bg-white text-gray-700 border-gray-300"
+                    onClick={handlePostJob}
+                    disabled={isPosting || !isFormValid}
+                    className={`py-2 px-8 rounded-full text-white font-semibold text-base shadow-md ${
+                      isPosting
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-[#5C0601] hover:bg-[#7b0802] transition-transform duration-200 transform hover:scale-105"
                     }`}
                   >
-                    {i + 1}
+                    {isPosting ? (
+                      <div className="flex items-center justify-center">
+                        <FaSpinner className="animate-spin mr-2" /> Posting...
+                      </div>
+                    ) : (
+                      "Post Job"
+                    )}
                   </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Job Listing */}
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg mt-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#5C0601] mb-6">
+            My Job Posts
+          </h2>
+          {loading ? (
+            <div className="text-center text-gray-500">Loading...</div>
+          ) : jobs.length === 0 ? (
+            <p className="text-gray-600">You haven't posted any jobs yet.</p>
+          ) : (
+            <>
+              <div className="grid gap-6">
+                {currentJobs.map((job) => (
+                  <div
+                    key={job.job_id}
+                    className="relative bg-white border border-gray-200 p-4 sm:p-6 rounded-xl shadow-md"
+                  >
+                    <div className="mb-1">
+                      <span
+                        className={`mb-1 inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                          job.status === "Closed"
+                            ? "bg-gray-200 text-gray-600"
+                            : job.status === "In Progress"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : job.status === "Completed"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {job.status ?? "Unknown"}
+                      </span>
+                      <h3 className="text-lg sm:text-xl font-bold text-[#5C0601]">
+                        {job.title}
+                      </h3>
+                    </div>
+
+                    <div className="absolute top-4 right-4 z-20 dropdown-wrapper">
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuId((prev) =>
+                              prev === job.job_id ? null : job.job_id
+                            );
+                          }}
+                          className="p-2 rounded-full hover:bg-gray-100 transition"
+                        >
+                          <HiDotsHorizontal className="w-5 h-5 text-gray-600" />
+                        </button>
+
+                        <div
+                          className={`transition-all duration-200 origin-top-right transform scale-95 opacity-0 ${
+                            activeMenuId === job.job_id
+                              ? "scale-100 opacity-100"
+                              : "pointer-events-none"
+                          } absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-md`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => handleEdit(job)}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(job.job_id)}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                          {job.status !== "Completed" && (
+                            <button
+                              onClick={() => handleMarkAsCompleted(job.job_id)}
+                              className="w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-100"
+                            >
+                              Mark as Completed
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-gray-500 mb-2">
+                      Posted {moment(job.created_at).format("MMM D, YYYY")}
+                    </p>
+                    <p className="text-gray-700 mb-4">{job.description}</p>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {(typeof job.preferred_art_styles === "string"
+                        ? job.preferred_art_styles
+                            .split(",")
+                            .map((s) => s.trim())
+                        : job.preferred_art_styles
+                      )?.map((style, idx) => (
+                        <span
+                          key={`${job.job_id}-style-${idx}`}
+                          className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
+                        >
+                          {style}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap justify-between items-center text-sm text-gray-700 font-medium mt-4 gap-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div>
+                          <strong>Budget:</strong> {job.budget}
+                        </div>
+                        <div>
+                          <strong>Deadline:</strong>{" "}
+                          {moment(job.deadline).format("MMM D, YYYY")}
+                        </div>
+                      </div>
+                      {applicantCounts[job.job_id] !== undefined && (
+                        <button
+                          onClick={() => handleViewApplicants(job)}
+                          className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold px-4 py-1 rounded-full shadow transition"
+                        >
+                          {applicantCounts[job.job_id]} Applicant
+                          {applicantCounts[job.job_id] !== 1 && "s"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
-            )}
-          </>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-6 gap-2 flex-wrap">
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`px-4 py-2 rounded-md border ${
+                        currentPage === i + 1
+                          ? "bg-[#5C0601] text-white"
+                          : "bg-white text-gray-700 border-gray-300"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Modals */}
+        {isEditModalOpen && editJobData && (
+          <EditJobModal
+            job={editJobData}
+            onClose={() => setIsEditModalOpen(false)}
+            onUpdated={fetchJobs}
+          />
+        )}
+
+        {isApplicantsModalOpen && (
+          <ViewApplicantsModal
+            applicants={applicants}
+            onClose={() => setIsApplicantsModalOpen(false)}
+            onUpdateStatus={handleUpdateStatus}
+          />
         )}
       </div>
-
-      {/* Modals */}
-      {isEditModalOpen && editJobData && (
-        <EditJobModal
-          job={editJobData}
-          onClose={() => setIsEditModalOpen(false)}
-          onUpdated={fetchJobs}
-        />
-      )}
-
-      {isApplicantsModalOpen && (
-        <ViewApplicantsModal
-          applicants={applicants}
-          onClose={() => setIsApplicantsModalOpen(false)}
-          onUpdateStatus={handleUpdateStatus}
-        />
-      )}
     </div>
   );
 };

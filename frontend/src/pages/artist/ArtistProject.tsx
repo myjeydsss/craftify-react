@@ -7,13 +7,11 @@ import {
   FaEye,
   FaRegCheckCircle,
   FaRegClock,
-  FaCheck,
-  FaRegEdit,
-  FaTimes,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import MilestoneModal from "../../components/ArtistMilestoneModal"; // Adjust path if needed
 
 interface Project {
   project_id: string;
@@ -45,6 +43,7 @@ interface Milestone {
   milestone_name: string;
   due_date: string;
   status: string;
+  milestone_fee?: number;
   completion_percentage: number;
 }
 
@@ -368,6 +367,7 @@ const ArtistProject: React.FC = () => {
         milestone_name: milestoneToUpdate.milestone_name,
         due_date: milestoneToUpdate.due_date,
         status: milestoneToUpdate.status,
+        milestone_fee: milestoneToUpdate.milestone_fee,
       });
 
       // Refetch milestones after update
@@ -817,6 +817,7 @@ const ArtistProject: React.FC = () => {
                     </div>
                   </div>
                 ))}
+
               {/* Pagination Controls */}
               <div className="flex justify-center mt-6 space-x-2">
                 {Array.from({
@@ -839,6 +840,23 @@ const ArtistProject: React.FC = () => {
                   </button>
                 ))}
               </div>
+
+              {/* ✅ Milestone Modal Section (outside .map but inside conditional) */}
+              {selectedProject && (
+                <MilestoneModal
+                  milestones={milestones}
+                  selectedProject={selectedProject}
+                  editMode={editMode}
+                  show={showMilestoneSidebar}
+                  close={() => setShowMilestoneSidebar(false)}
+                  handleEditChange={handleEditChange}
+                  handleEditMilestone={handleEditMilestone}
+                  handleSaveEdit={handleSaveEdit}
+                  handleCancelEdit={handleCancelEdit}
+                  setMilestones={setMilestones}
+                  recalculateProjectCompletion={recalculateProjectCompletion}
+                />
+              )}
             </>
           ) : (
             <div className="text-center text-gray-600 text-lg mt-12">
@@ -848,155 +866,6 @@ const ArtistProject: React.FC = () => {
               <p className="text-sm text-gray-500">
                 Once a project moves to "In Progress," you'll see it here.
               </p>
-            </div>
-          )}
-
-          {/* Milestone Modal */}
-          {showMilestoneSidebar && selectedProject && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300 ease-out">
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-2xl w-11/12 sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 relative transform scale-95 animate-fadeIn max-h-[90vh] flex flex-col">
-                {/* Modal Header */}
-                <div className="sticky top-0 bg-white pb-4 border-b mb-4 z-0">
-                  <h3 className="text-xl sm:text-2xl font-bold text-center text-gray-800">
-                    Milestone Stages -{" "}
-                    <span className="text-[#5C0601]">
-                      {selectedProject.project_name}
-                    </span>
-                  </h3>
-                </div>
-
-                {/* Scrollable Content */}
-                <div className="overflow-y-auto">
-                  <table className="w-full text-sm table-fixed border-collapse">
-                    <thead className="bg-gray-100">
-                      <tr className="text-left text-gray-600 text-xs sm:text-sm">
-                        <th className="py-2 px-3 sm:px-4 w-1/3">Stage</th>
-                        <th className="py-2 px-3 sm:px-4 w-1/4">Due Date</th>
-                        <th className="py-2 px-3 sm:px-4 w-1/4">Status</th>
-                        <th className="py-2 px-3 sm:px-4 w-1/6">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {milestones.map((milestone) => (
-                        <tr
-                          key={milestone.milestone_id}
-                          className="border-t hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="py-3 px-3 sm:px-4">
-                            {editMode === milestone.milestone_id ? (
-                              <input
-                                type="text"
-                                className="border px-2 py-1 rounded w-full text-xs sm:text-sm"
-                                value={milestone.milestone_name ?? ""}
-                                onChange={(e) =>
-                                  handleEditChange(
-                                    e,
-                                    "milestone_name",
-                                    milestone.milestone_id
-                                  )
-                                }
-                              />
-                            ) : (
-                              <span className="text-gray-800 text-xs sm:text-sm">
-                                {milestone.milestone_name ?? ""}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3 sm:px-4">
-                            {editMode === milestone.milestone_id ? (
-                              <input
-                                type="date"
-                                className="border px-2 py-1 rounded w-full text-xs sm:text-sm"
-                                value={milestone.due_date ?? ""}
-                                onChange={(e) =>
-                                  handleEditChange(
-                                    e,
-                                    "due_date",
-                                    milestone.milestone_id
-                                  )
-                                }
-                              />
-                            ) : (
-                              <span className="text-gray-600 text-xs sm:text-sm">
-                                {milestone.due_date ?? ""}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3 sm:px-4">
-                            {editMode === milestone.milestone_id ? (
-                              <select
-                                className="border px-2 py-1 rounded w-full text-xs sm:text-sm"
-                                value={milestone.status ?? "Not Started"}
-                                onChange={(e) =>
-                                  handleEditChange(
-                                    e,
-                                    "status",
-                                    milestone.milestone_id
-                                  )
-                                }
-                              >
-                                <option value="Not Started">Not Started</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Completed">Completed</option>
-                              </select>
-                            ) : (
-                              <span
-                                className={`px-2 py-1 rounded text-xs font-semibold ${
-                                  milestone.status === "Completed"
-                                    ? "bg-green-100 text-green-700"
-                                    : milestone.status === "In Progress"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-gray-100 text-gray-600"
-                                }`}
-                              >
-                                {milestone.status ?? "Not Started"}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3 sm:px-4 flex space-x-2">
-                            {editMode === milestone.milestone_id ? (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    handleSaveEdit(milestone.milestone_id)
-                                  }
-                                  className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded-md text-xs sm:text-sm"
-                                >
-                                  <FaCheck />
-                                </button>
-                                <button
-                                  onClick={handleCancelEdit}
-                                  className="bg-red-500 hover:bg-red-600 text-white py-1 px-2 rounded-md text-xs sm:text-sm"
-                                >
-                                  <FaTimes />
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  handleEditMilestone(milestone.milestone_id)
-                                }
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-2 rounded-md text-xs sm:text-sm"
-                              >
-                                <FaRegEdit />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {/* Close Button (bottom) */}
-                  <div className="text-center mt-8">
-                    <button
-                      onClick={closeProjectModal}
-                      className="px-8 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -1046,7 +915,7 @@ const ArtistProject: React.FC = () => {
                   </p>
                   <p className="text-base text-gray-700">
                     {selectedProject.budget
-                      ? `₱ ${selectedProject.budget.toLocaleString()}`
+                      ? `${selectedProject.budget.toLocaleString()}`
                       : "No budget available"}
                   </p>
                 </div>

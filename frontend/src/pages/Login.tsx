@@ -6,11 +6,9 @@ import { useAuth } from "../context/AuthProvider";
 import Footer from "../components/Footer";
 
 const Login: React.FC = () => {
- useEffect(() => {
-      document.title = "Login | Craftify";
-    }, []);
-  
-    
+  useEffect(() => {
+    document.title = "Login | Craftify";
+  }, []);
 
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -66,12 +64,19 @@ const Login: React.FC = () => {
     <>
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 px-4">
         <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
-          <h2 className="text-3xl font-bold text-center text-red-400">Welcome to Craftify!</h2>
-          <p className="mt-2 text-center text-sm text-gray-500">Please log in to continue</p>
+          <h2 className="text-3xl font-bold text-center text-red-400">
+            Welcome to Craftify!
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-500">
+            Please log in to continue
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email
               </label>
               <input
@@ -85,7 +90,10 @@ const Login: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="relative mt-2">
@@ -109,25 +117,39 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            {errorMsg && <p className="text-sm text-red-600 bg-red-100 p-2 rounded">{errorMsg}</p>}
+            {errorMsg && (
+              <p className="text-sm text-red-600 bg-red-100 p-2 rounded">
+                {errorMsg}
+              </p>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 text-white bg-red-400 rounded-md shadow hover:bg-red-500 focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition"
             >
-              {loading ? <FaSpinner className="animate-spin mx-auto text-white" /> : "Log In"}
+              {loading ? (
+                <FaSpinner className="animate-spin mx-auto text-white" />
+              ) : (
+                "Log In"
+              )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link to="/register" className="text-sm text-blue-500 hover:text-blue-700 transition">
+            <Link
+              to="/register"
+              className="text-sm text-blue-500 hover:text-blue-700 transition"
+            >
               Don't have an account? Sign up here
             </Link>
           </div>
 
           <div className="mt-4 text-center">
-            <Link to="/password-reset" className="text-sm text-blue-500 hover:text-blue-700 transition">
+            <Link
+              to="/password-reset"
+              className="text-sm text-blue-500 hover:text-blue-700 transition"
+            >
               Forgot Password?
             </Link>
           </div>

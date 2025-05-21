@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../../context/AuthProvider";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import ClientMilestoneModal from "../../components/ClientMilestoneModal";
 
 interface Project {
   project_id: string;
@@ -716,6 +717,14 @@ const ClientProject: React.FC = () => {
                   </button>
                 ))}
               </div>
+              {showMilestoneSidebar && selectedProject && (
+                <ClientMilestoneModal
+                  show={showMilestoneSidebar}
+                  project={selectedProject}
+                  milestones={milestones}
+                  onClose={() => setShowMilestoneSidebar(false)}
+                />
+              )}
             </>
           ) : (
             <div className="text-center text-gray-600 text-lg mt-12">
@@ -725,74 +734,6 @@ const ClientProject: React.FC = () => {
               <p className="text-sm text-gray-500">
                 Once a project moves to "In Progress," you'll see it here.
               </p>
-            </div>
-          )}
-
-          {/* Milestone Modal */}
-          {showMilestoneSidebar && selectedProject && !showProjectDetails && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300 ease-out">
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-2xl w-11/12 sm:w-4/5 md:w-3/4 lg:w-2/3 xl:w-1/2 relative transform scale-95 animate-fadeIn max-h-[90vh] flex flex-col">
-                {/* Modal Header */}
-                <div className="sticky top-0 bg-white pb-4 border-b mb-4 z-0">
-                  <h3 className="text-xl sm:text-2xl font-bold text-center text-gray-800">
-                    Milestone Stages -{" "}
-                    <span className="text-[#5C0601]">
-                      {selectedProject.project_name}
-                    </span>
-                  </h3>
-                </div>
-
-                {/* Milestone Table */}
-                <div className="overflow-y-auto">
-                  <table className="w-full text-sm table-fixed border-collapse">
-                    <thead className="bg-gray-100">
-                      <tr className="text-left text-gray-600 text-xs sm:text-sm">
-                        <th className="py-2 px-3 sm:px-4 w-1/3">Stage</th>
-                        <th className="py-2 px-3 sm:px-4 w-1/4">Due Date</th>
-                        <th className="py-2 px-3 sm:px-4 w-1/4">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {milestones.map((milestone) => (
-                        <tr
-                          key={milestone.milestone_id}
-                          className="border-t hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="py-3 px-3 sm:px-4">
-                            {milestone.milestone_name}
-                          </td>
-                          <td className="py-3 px-3 sm:px-4">
-                            {milestone.due_date}
-                          </td>
-                          <td className="py-3 px-3 sm:px-4">
-                            <span
-                              className={`px-2 py-1 rounded text-xs font-semibold ${
-                                milestone.status === "Completed"
-                                  ? "bg-green-100 text-green-700"
-                                  : milestone.status === "In Progress"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {milestone.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Close Button */}
-                <div className="text-center mt-8">
-                  <button
-                    onClick={() => setShowMilestoneSidebar(false)}
-                    className="px-8 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -841,7 +782,7 @@ const ClientProject: React.FC = () => {
                 </p>
                 <p className="text-base text-gray-800">
                   {selectedProject.budget
-                    ? `₱ ${selectedProject.budget.toLocaleString()}`
+                    ? `${selectedProject.budget.toLocaleString()}`
                     : "No budget available"}
                 </p>
               </div>
