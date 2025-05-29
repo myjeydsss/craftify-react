@@ -197,7 +197,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                     {editMode === m.milestone_id ? (
                       <input
                         className="w-full border rounded px-2 py-1"
-                        value={m.milestone_name}
+                        value={m.milestone_name || ""}
                         onChange={(e) =>
                           handleEditChange(e, "milestone_name", m.milestone_id)
                         }
@@ -212,7 +212,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                       <input
                         type="date"
                         className="w-full border rounded px-2 py-1"
-                        value={m.due_date}
+                        value={m.due_date || ""}
                         onChange={(e) =>
                           handleEditChange(e, "due_date", m.milestone_id)
                         }
@@ -228,7 +228,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                     {editMode === m.milestone_id ? (
                       <select
                         className="w-full border rounded px-2 py-1"
-                        value={m.status}
+                        value={m.status || ""}
                         onChange={(e) =>
                           handleEditChange(e, "status", m.milestone_id)
                         }
@@ -258,7 +258,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                         type="number"
                         placeholder="₱ Fee"
                         className="w-full border rounded px-2 py-1"
-                        value={m.milestone_fee ?? ""}
+                        value={m.milestone_fee != null ? m.milestone_fee : ""}
                         onChange={(e) =>
                           handleEditChange(e, "milestone_fee", m.milestone_id)
                         }
@@ -356,7 +356,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                   <td className="px-5 py-3">
                     <select
                       className="w-full border rounded px-2 py-1"
-                      value={newMilestone.status || "Not Started"}
+                      value={newMilestone.status || ""}
                       onChange={(e) =>
                         setNewMilestone((prev) => ({
                           ...prev,
@@ -374,7 +374,11 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                       type="number"
                       placeholder="₱ Fee"
                       className="w-full border rounded px-2 py-1"
-                      value={newMilestone.milestone_fee || ""}
+                      value={
+                        newMilestone.milestone_fee != null
+                          ? newMilestone.milestone_fee
+                          : ""
+                      }
                       onChange={(e) =>
                         setNewMilestone((prev) => ({
                           ...prev,
@@ -423,7 +427,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                   <input
                     type="text"
                     className="w-full border rounded px-3 py-2 mb-3 text-sm"
-                    value={m.milestone_name}
+                    value={m.milestone_name || ""}
                     onChange={(e) =>
                       handleEditChange(e, "milestone_name", m.milestone_id)
                     }
@@ -434,7 +438,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                   <input
                     type="date"
                     className="w-full border rounded px-3 py-2 mb-3 text-sm"
-                    value={m.due_date}
+                    value={m.due_date || ""}
                     onChange={(e) =>
                       handleEditChange(e, "due_date", m.milestone_id)
                     }
@@ -444,7 +448,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                   </label>
                   <select
                     className="w-full border rounded px-3 py-2 mb-3 text-sm"
-                    value={m.status}
+                    value={m.status || ""}
                     onChange={(e) =>
                       handleEditChange(e, "status", m.milestone_id)
                     }
@@ -581,7 +585,7 @@ const ArtistMilestoneModal: React.FC<Props> = ({
               </label>
               <select
                 className="w-full border rounded px-3 py-2 mb-3 text-sm"
-                value={newMilestone.status || "Not Started"}
+                value={newMilestone.status || ""}
                 onChange={(e) =>
                   setNewMilestone((prev) => ({
                     ...prev,
@@ -600,7 +604,11 @@ const ArtistMilestoneModal: React.FC<Props> = ({
                 type="number"
                 placeholder="e.g. 2000"
                 className="w-full border rounded px-3 py-2 mb-3 text-sm"
-                value={newMilestone.milestone_fee || ""}
+                value={
+                  newMilestone.milestone_fee != null
+                    ? newMilestone.milestone_fee
+                    : ""
+                }
                 onChange={(e) =>
                   setNewMilestone((prev) => ({
                     ...prev,

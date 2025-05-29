@@ -17,7 +17,7 @@ import {
 import { useAuth } from "../../context/AuthProvider";
 import Swal from "sweetalert2";
 import ClipLoader from "react-spinners/ClipLoader";
-import TransactionHistory from "../TransactionHistory"; // Adjust the path as necessary
+import TransactionHistory from "../TransactionHistory";
 import ArtistTransactions from "./ArtistTransaction";
 
 interface ArtistProfileData {

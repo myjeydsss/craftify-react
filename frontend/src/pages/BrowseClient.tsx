@@ -16,6 +16,7 @@ interface Client {
   email: string;
   role: string;
   address: string | null;
+  status: string;
   phone: string | null;
   profile_image: string | null;
 }
@@ -269,6 +270,11 @@ const BrowseClient: React.FC = () => {
                       {client.address || "No address available"}
                     </p>
                   </div>
+                  {client.status === "approved" && (
+                    <div className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded mt-1">
+                      I.D. Verified
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

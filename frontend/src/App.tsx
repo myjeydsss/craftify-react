@@ -51,6 +51,7 @@ import PaymentSuccess from "./pages/client/PaymentSuccess";
 import PaymentCancel from "./pages/client/PaymentCancel";
 import PaymentArtSuccess from "./pages/artist/PaymentArtSuccess";
 import PaymentArtCancel from "./pages/artist/PaymentArtCancel";
+import ClientVerification from "./pages/client/ClientVerification";
 
 const App = () => {
   const location = useLocation();
@@ -108,6 +109,10 @@ const App = () => {
               element={<EditClientProfile />}
             />
             <Route path="/client-project-page" element={<ClientProject />} />
+            <Route
+              path="/client-verification"
+              element={<ClientVerification />}
+            />
             {/* Other routes */}
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-cancel" element={<PaymentCancel />} />

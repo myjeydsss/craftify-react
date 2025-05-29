@@ -5,27 +5,27 @@ import { FaEye } from "react-icons/fa";
 import { useAuth } from "../../context/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
-// Interface for Artist Verification
-interface ArtistVerification {
+interface Verification {
   verification_id: string;
   user_id: string;
   status: string;
   created_at: string;
   document_url: string;
   valid_id: string;
-  artist?: {
+  userType: "artist" | "client";
+  userInfo: {
     firstname: string;
     lastname: string;
     role: string;
-  } | null; // Allow artist to be null
+  } | null;
 }
 
 const Verification: React.FC = () => {
-  const [verifications, setVerifications] = useState<ArtistVerification[]>([]);
+  const [verifications, setVerifications] = useState<Verification[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVerification, setSelectedVerification] =
-    useState<ArtistVerification | null>(null);
+    useState<Verification | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -47,9 +47,7 @@ const Verification: React.FC = () => {
     const fetchVerifications = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/artist-verifications`
-        );
+        const response = await axios.get(`${API_BASE_URL}/api/verifications`);
         setVerifications(response.data || []);
       } catch (error) {
         console.error("Error fetching verifications:", error);
@@ -65,8 +63,8 @@ const Verification: React.FC = () => {
   const filteredVerifications = verifications.filter((verification) => {
     const search = searchTerm.toLowerCase();
     return (
-      verification.artist &&
-      (`${verification.artist.firstname} ${verification.artist.lastname}`
+      verification.userInfo &&
+      (`${verification.userInfo.firstname} ${verification.userInfo.lastname}`
         .toLowerCase()
         .includes(search) ||
         verification.status.toLowerCase().includes(search))
@@ -82,7 +80,7 @@ const Verification: React.FC = () => {
   );
   const totalPages = Math.ceil(filteredVerifications.length / itemsPerPage);
 
-  const handleView = (verification: ArtistVerification) => {
+  const handleView = (verification: Verification) => {
     setSelectedVerification(verification);
     setIsModalOpen(true);
   };
@@ -102,10 +100,10 @@ const Verification: React.FC = () => {
     setIsImageModalOpen(false);
   };
 
-  const handleApprove = async (verificationId: string) => {
+  const handleApprove = async (verificationId: string, userType: string) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/api/artist-verification/${verificationId}/approved`
+        `${API_BASE_URL}/api/${userType}-verification/${verificationId}/approved`
       );
       if (response.status === 200) {
         Swal.fire("Success", "The verification has been approved.", "success");
@@ -126,10 +124,10 @@ const Verification: React.FC = () => {
     }
   };
 
-  const handleReject = async (verificationId: string) => {
+  const handleReject = async (verificationId: string, userType: string) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/api/artist-verification/${verificationId}/rejected`
+        `${API_BASE_URL}/api/${userType}-verification/${verificationId}/rejected`
       );
       if (response.status === 200) {
         Swal.fire("Success", "The verification has been rejected.", "success");
@@ -180,7 +178,7 @@ const Verification: React.FC = () => {
       <div className="mb-6 flex justify-between">
         <input
           type="text"
-          placeholder="Search by artist name or status"
+          placeholder="Search by user name or status"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full px-4 py-2 text-gray-900 border rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -205,12 +203,12 @@ const Verification: React.FC = () => {
                 className="bg-white border-b hover:bg-gray-50 transition-colors"
               >
                 <td className="px-6 py-4 text-center">
-                  {verification.artist
-                    ? `${verification.artist.firstname} ${verification.artist.lastname}`
+                  {verification.userInfo
+                    ? `${verification.userInfo.firstname} ${verification.userInfo.lastname}`
                     : "Unknown Artist"}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  {verification.artist ? verification.artist.role : "N/A"}
+                  {verification.userInfo ? verification.userInfo.role : "N/A"}
                 </td>
                 <td className="px-6 py-4 text-center">{verification.status}</td>
                 <td className="px-6 py-4 text-center">
@@ -284,8 +282,8 @@ const Verification: React.FC = () => {
                 <div className="mb-4">
                   <p className="font-semibold">Artist Name:</p>
                   <p className="text-gray-700">
-                    {selectedVerification.artist
-                      ? `${selectedVerification.artist.firstname} ${selectedVerification.artist.lastname}`
+                    {selectedVerification.userInfo
+                      ? `${selectedVerification.userInfo.firstname} ${selectedVerification.userInfo.lastname}`
                       : "Unknown Artist"}
                   </p>
                 </div>
@@ -352,7 +350,10 @@ const Verification: React.FC = () => {
             <div className="flex justify-center mt-6 space-x-4">
               <button
                 onClick={() =>
-                  handleApprove(selectedVerification.verification_id)
+                  handleApprove(
+                    selectedVerification.verification_id,
+                    selectedVerification.userType
+                  )
                 }
                 className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-200"
               >
@@ -360,7 +361,10 @@ const Verification: React.FC = () => {
               </button>
               <button
                 onClick={() =>
-                  handleReject(selectedVerification.verification_id)
+                  handleReject(
+                    selectedVerification.verification_id,
+                    selectedVerification.userType
+                  )
                 }
                 className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition duration-200"
               >

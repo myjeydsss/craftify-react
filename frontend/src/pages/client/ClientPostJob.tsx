@@ -357,7 +357,7 @@ const ClientPostJob: React.FC = () => {
       <hr className="border-gray-300 mb-6" />
 
       {/* Post Form Section */}
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-10">
+      <div className="bg-white p-4 sm:p-6 rounded-lg mb-10">
         <div className="text-center">
           <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">
             Need an artist? Post your job here.

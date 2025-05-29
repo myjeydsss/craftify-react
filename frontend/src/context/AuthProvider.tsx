@@ -5,7 +5,7 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import { supabase } from "../../client"; // Adjust the import based on your setup
+import { supabase } from "../../client";
 import { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -19,7 +19,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updatePassword: (
     newPassword: string
-  ) => Promise<{ success: boolean; error?: string }>; // Add this line
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -229,43 +229,33 @@ app.get("/user-role/:userId", async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const { data: artistData } = await supabase
-      .from("artist")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
+    const roleTables = [
+      { table: "artist", label: "Artist" },
+      { table: "client", label: "Client" },
+      { table: "admin", label: "Admin" },
+    ];
 
-    if (artistData) {
-      return res.status(200).json({ role: artistData.role });
+    for (const { table, label } of roleTables) {
+      const { data, error } = await supabase
+        .from(table)
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle(); // ✅ safer than `.single()`
+
+      if (error) {
+        console.error(`Error checking role in ${table}:`, error);
+        continue;
+      }
+
+      if (data) {
+        return res.status(200).json({ role: label });
+      }
     }
 
-    const { data: clientData } = await supabase
-      .from("client")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-
-    if (clientData) {
-      return res.status(200).json({ role: clientData.role });
-    }
-
-    const { data: adminData } = await supabase
-      .from("admin")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-
-    if (adminData) {
-      return res.status(200).json({ role: adminData.role });
-    }
-
-    console.error(
-      `User ID ${userId} does not exist in artist, client, or admin tables.`
-    );
     return res.status(404).json({ error: "User role not found." });
   } catch (err) {
-    console.error("Error fetching user role:", err);
-    res.status(500).json({ error: "Server error fetching user role." });
+    console.error("Unexpected error in /user-role:", err);
+    res.status(500).json({ error: "Server error." });
   }
 });
 
@@ -1122,18 +1112,36 @@ app.get("/client-profile/:userId", async (req, res) => {
     "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-profile/";
 
   try {
-    const { data: clientData, error } = await supabase
+    const { data: clientData, error: clientError } = await supabase
       .from("client")
       .select(
-        "user_id, firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image"
+        "user_id, firstname, lastname, bio, gender, date_of_birth, email, role, address, phone, profile_image, verification_id"
       )
       .eq("user_id", userId)
       .single();
 
-    if (error || !clientData) {
+    if (clientError || !clientData) {
+      console.error("Error fetching client profile:", clientError);
       return res.status(404).json({ error: "Client profile not found." });
     }
 
+    // Include verification status if verification_id exists
+    if (clientData.verification_id) {
+      const { data: verificationData, error: verificationError } =
+        await supabase
+          .from("client_verification")
+          .select("status")
+          .eq("verification_id", clientData.verification_id)
+          .single();
+
+      if (verificationError) {
+        console.error("Error fetching verification status:", verificationError);
+      } else {
+        clientData.status = verificationData?.status || null;
+      }
+    }
+
+    // Attach CDN profile image URL
     if (clientData.profile_image) {
       clientData.profile_image = `${CDNURL}${userId}/${clientData.profile_image}`;
     }
@@ -1629,6 +1637,7 @@ app.get("/view-artist-preferences/:userId", async (req, res) => {
   }
 });
 // GET VIEW ARTIST PROFILE END...
+
 // ****** BROWSE ARTIST END... ****** CURRENTLY WORKING
 
 // ****** BROWSE CLIENT ****** CURRENTLY WORKING
@@ -1651,7 +1660,8 @@ app.get("/clients", async (req, res) => {
         role,
         address,
         phone,
-        profile_image
+        profile_image,
+        verification_id
       `);
 
     if (clientsError) {
@@ -1659,12 +1669,39 @@ app.get("/clients", async (req, res) => {
       return res.status(500).json({ error: "Failed to fetch clients." });
     }
 
-    const formattedClients = clientsData.map((client) => {
-      if (client.profile_image) {
-        client.profile_image = `${CDNURL}${client.user_id}/${client.profile_image}`;
-      }
-      return client;
-    });
+    const formattedClients = await Promise.all(
+      clientsData.map(async (client) => {
+        if (client.profile_image) {
+          client.profile_image = `${CDNURL}${client.user_id}/${client.profile_image}`;
+        }
+
+        if (client.verification_id) {
+          const { data: verificationData, error: verificationError } =
+            await supabase
+              .from("client_verification")
+              .select("status, created_at")
+              .eq("verification_id", client.verification_id)
+              .single();
+
+          if (verificationError) {
+            console.error(
+              `Error fetching verification for client ${client.user_id}:`,
+              verificationError
+            );
+            client.status = null;
+            client.created_at = null;
+          } else {
+            client.status = verificationData?.status || null;
+            client.created_at = verificationData?.created_at || null;
+          }
+        } else {
+          client.status = null;
+          client.created_at = null;
+        }
+
+        return client;
+      })
+    );
 
     res.status(200).json(formattedClients);
   } catch (err) {
@@ -4534,10 +4571,14 @@ app.get("/cart/count/:userId", async (req, res) => {
 });
 //***** NOTIFICATION FUNCTION END... ******
 
-// ***** ARTIST VERIFICATION FUNCTION ******
+// ***** ARTIST-CLIENT VERIFICATION FUNCTION ******
 const VERIFY_CDNURL =
   "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-verification/";
 
+const VERIFY_CDNURL_CLIENT =
+  "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/client-verification/";
+
+// ARTIST VERIFICATION
 app.post(
   "/api/artist-verification/:userId",
   upload.fields([{ name: "document" }, { name: "valid_id" }]),
@@ -4670,58 +4711,224 @@ app.post(
   }
 );
 
-// **Fetch all artist verifications**
-app.get("/api/artist-verifications", async (req, res) => {
+// CLIENT VERIFICATION
+app.post(
+  "/api/client-verification/:userId",
+  upload.fields([{ name: "document" }, { name: "valid_id" }]),
+  async (req, res) => {
+    const { userId } = req.params;
+    const files = req.files;
+
+    if (!userId || !files || !files.document || !files.valid_id) {
+      return res
+        .status(400)
+        .json({ error: "User  ID, portfolio, and valid ID are required." });
+    }
+
+    try {
+      // Upload portfolio to Supabase storage
+      const documentFile = files.document[0];
+      const documentFileName = `${Date.now()}-${documentFile.originalname}`;
+      const documentPath = `portfolio/${userId}/${documentFileName}`;
+
+      const { error: documentUploadError } = await supabase.storage
+        .from("client-verification")
+        .upload(documentPath, documentFile.buffer, {
+          contentType: documentFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (documentUploadError) {
+        return res.status(500).json({ error: "Failed to upload portfolio." });
+      }
+
+      // Upload valid ID to Supabase storage
+      const validIdFile = files.valid_id[0];
+      const validIdFileName = `${Date.now()}-${validIdFile.originalname}`;
+      const validIdPath = `valid_id/${userId}/${validIdFileName}`;
+
+      const { error: validIdUploadError } = await supabase.storage
+        .from("client-verification")
+        .upload(validIdPath, validIdFile.buffer, {
+          contentType: validIdFile.mimetype,
+          cacheControl: "3600",
+        });
+
+      if (validIdUploadError) {
+        return res.status(500).json({ error: "Failed to upload valid ID." });
+      }
+
+      // Insert verification request and get the returned ID
+      const { data: verificationData, error: verificationError } =
+        await supabase
+          .from("client_verification")
+          .insert({
+            user_id: userId,
+            document_url: `portfolio/${userId}/${documentFileName}`,
+            valid_id: `valid_id/${userId}/${validIdFileName}`,
+            status: "pending",
+            created_at: new Date().toISOString(),
+          })
+          .select("verification_id");
+      if (verificationError) {
+        return res
+          .status(500)
+          .json({ error: "Failed to save verification request" });
+      }
+
+      // Add verification ID to existing client record
+      const { error: clientUpdateError } = await supabase
+        .from("client")
+        .update({ verification_id: verificationData[0].verification_id })
+        .eq("user_id", userId);
+
+      if (clientUpdateError) {
+        return res
+          .status(500)
+          .json({ error: "Failed to update client verification ID." });
+      }
+
+      // Fetch the sender's name for the notification
+      const { data: userData, error: userError } = await supabase
+        .from("client")
+        .select("firstname, lastname")
+        .eq("user_id", userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error("Error fetching user data:", userError);
+        return res
+          .status(500)
+          .json({ error: "Failed to fetch user data for notification." });
+      }
+
+      const senderName = `${userData.firstname} ${userData.lastname}`;
+
+      // Notify admins about the new verification request
+      const { data: adminData, error: adminError } = await supabase
+        .from("admin")
+        .select("user_id");
+
+      if (adminError) {
+        console.error("Error fetching admin users:", adminError);
+        return res.status(500).json({ error: "Failed to fetch admin users." });
+      }
+
+      // Create notifications for each admin
+      const notificationPromises = adminData.map(async (admin) => {
+        const notificationMessage = `New verification request submitted by ${senderName}.`;
+        return supabase.from("notifications").insert([
+          {
+            user_id: admin.user_id,
+            type: "Verification",
+            message: notificationMessage,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      });
+
+      // Wait for all notifications to be created
+      await Promise.all(notificationPromises);
+
+      res.status(200).json({
+        success: true,
+        message: "Verification request submitted successfully.",
+      });
+    } catch (err) {
+      console.error("An unexpected error occurred during verification:", err);
+      res
+        .status(500)
+        .json({ error: "An unexpected error occurred during verification." });
+    }
+  }
+);
+
+// **Fetch all users verifications**
+app.get("/api/verifications", async (req, res) => {
   try {
-    const { data: verifications, error } = await supabase
+    // Fetch artist verifications
+    const { data: artistVerifications, error: artistError } = await supabase
       .from("artist_verification")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (artistError) {
+      console.error("Error fetching artist verifications:", artistError);
+      return res.status(400).json({ error: artistError.message });
+    }
 
-    // Enrich verifications with artist details
-    const enrichedVerifications = await Promise.all(
-      verifications.map(async (verification) => {
-        const { data: artistData, error: artistError } = await supabase
+    // Fetch client verifications
+    const { data: clientVerifications, error: clientError } = await supabase
+      .from("client_verification")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (clientError) {
+      console.error("Error fetching client verifications:", clientError);
+      return res.status(400).json({ error: clientError.message });
+    }
+
+    // Enrich artist verifications
+    const enrichedArtists = await Promise.all(
+      artistVerifications.map(async (verification) => {
+        const { data: artistData, error } = await supabase
           .from("artist")
           .select("firstname, lastname, role")
           .eq("user_id", verification.user_id)
           .single();
 
-        if (artistError) {
-          console.error(
-            `Error fetching artist data for verification ${verification.verification_id}:`,
-            artistError
-          );
-          return { ...verification, artist: null };
-        }
-
-        // Construct full URLs for document and valid ID
-        const documentUrl = `${VERIFY_CDNURL}${verification.document_url}`;
-        const validIdUrl = `${VERIFY_CDNURL}${verification.valid_id}`;
-
         return {
           ...verification,
-          artist: artistData,
-          document_url: documentUrl,
-          valid_id: validIdUrl,
+          userType: "artist",
+          userInfo: artistData || null,
+          document_url: `${VERIFY_CDNURL}${verification.document_url}`,
+          valid_id: `${VERIFY_CDNURL}${verification.valid_id}`,
         };
       })
     );
 
-    res.status(200).json(enrichedVerifications);
+    // Enrich client verifications
+    const enrichedClients = await Promise.all(
+      clientVerifications.map(async (verification) => {
+        const { data: clientData, error } = await supabase
+          .from("client")
+          .select("firstname, lastname, role")
+          .eq("user_id", verification.user_id)
+          .single();
+
+        return {
+          ...verification,
+          userType: "client",
+          userInfo: clientData || null,
+          document_url: `${VERIFY_CDNURL_CLIENT}${verification.document_url}`,
+          valid_id: `${VERIFY_CDNURL_CLIENT}${verification.valid_id}`,
+        };
+      })
+    );
+
+    // Combine and sort all verifications by creation date (descending)
+    const combined = [...enrichedArtists, ...enrichedClients].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    res.status(200).json(combined);
   } catch (err) {
-    console.error("Failed to fetch artist verifications:", err);
-    res.status(500).json({ error: "Failed to fetch artist verifications." });
+    console.error("Failed to fetch verifications:", err);
+    res.status(500).json({ error: "Failed to fetch verifications." });
   }
 });
 
-// Endpoint to approve or reject artist verification
+// Endpoint to approve or reject verifications
 app.post(
-  "/api/artist-verification/:verificationId/:action",
+  "/api/:userType-verification/:verificationId/:action",
   async (req, res) => {
-    const { verificationId, action } = req.params;
+    const { userType, verificationId, action } = req.params;
+
+    if (!["artist", "client"].includes(userType)) {
+      return res.status(400).json({ error: "Invalid user type." });
+    }
 
     if (!["approved", "rejected"].includes(action)) {
       return res
@@ -4729,10 +4936,13 @@ app.post(
         .json({ error: "Invalid action. Use 'approved' or 'rejected'." });
     }
 
+    const tableName = `${userType}_verification`;
+    const userTable = userType;
+
     try {
-      // Fetch the user ID associated with the verification request
+      // Fetch user ID linked to the verification
       const { data: verificationData, error: fetchError } = await supabase
-        .from("artist_verification")
+        .from(tableName)
         .select("user_id")
         .eq("verification_id", verificationId)
         .single();
@@ -4745,21 +4955,21 @@ app.post(
 
       const userId = verificationData.user_id;
 
-      // Update the verification status
-      const { error } = await supabase
-        .from("artist_verification")
+      // Update verification status
+      const { error: updateError } = await supabase
+        .from(tableName)
         .update({ status: action })
         .eq("verification_id", verificationId);
 
-      if (error) {
+      if (updateError) {
         return res
           .status(500)
           .json({ error: "Failed to update verification status." });
       }
 
-      // Notify the user about the status change
+      // Fetch user details for notification
       const { data: userData, error: userFetchError } = await supabase
-        .from("artist")
+        .from(userTable)
         .select("firstname, lastname")
         .eq("user_id", userId)
         .single();
@@ -4781,7 +4991,7 @@ app.post(
             user_id: userId,
             type: "Verification",
             message: notificationMessage,
-            is_read: false, // Set to false initially
+            is_read: false,
             created_at: new Date().toISOString(),
           },
         ]);
@@ -4793,12 +5003,12 @@ app.post(
           .json({ error: "Failed to create notification." });
       }
 
-      res
+      return res
         .status(200)
         .json({ success: true, message: `Verification has been ${action}.` });
     } catch (err) {
       console.error("Unexpected error:", err);
-      res.status(500).json({ error: "An unexpected error occurred." });
+      return res.status(500).json({ error: "An unexpected error occurred." });
     }
   }
 );
@@ -4807,70 +5017,7 @@ app.post(
 
 // ***** VERIFIED ARTIST FUNCTION ******
 
-app.get("/verified-artists", async (req, res) => {
-  const CDNURL =
-    "https://seaczeofjlkfcwnofbny.supabase.co/storage/v1/object/public/artist-profile/";
-
-  try {
-    const { data: artistsData, error: artistsError } = await supabase.from(
-      "artist"
-    ).select(`
-        user_id,
-        firstname,
-        lastname,
-        profile_image,
-        verification_id
-      `);
-
-    if (artistsError) {
-      console.error("Error fetching verified artists:", artistsError);
-      return res
-        .status(500)
-        .json({ error: "Failed to fetch verified artists." });
-    }
-
-    const verifiedArtists = await Promise.all(
-      artistsData.map(async (artist) => {
-        if (artist.profile_image) {
-          artist.profile_image = `${CDNURL}${artist.user_id}/${artist.profile_image}`;
-        }
-
-        // Fetch verification status from artist_verification table
-        let status = null;
-        if (artist.verification_id) {
-          const { data: verificationData, error: verificationError } =
-            await supabase
-              .from("artist_verification")
-              .select("status")
-              .eq("verification_id", artist.verification_id)
-              .single();
-
-          if (verificationError) {
-            console.error(
-              `Error fetching verification status for user ${artist.user_id}:`,
-              verificationError
-            );
-          } else {
-            status = verificationData?.status || null;
-          }
-        }
-
-        // Only return approved artists
-        return status === "approved" ? { ...artist, status } : null;
-      })
-    );
-
-    // Filter out null values
-    const filteredArtists = verifiedArtists.filter((artist) => artist !== null);
-
-    res.status(200).json(filteredArtists);
-  } catch (err) {
-    console.error("Unexpected error fetching verified artists:", err);
-    res.status(500).json({ error: "Unexpected server error." });
-  }
-});
-
-// ***** VERIFIED ARTIST FUNCTION END... ******
+// ***** VERIFIED ARTIST FUNCTION END ******
 
 // ***** ENHANCED RECOMMENDED ARTISTS FOR CLIENT ******
 app.get("/recommend-artists/:userId", async (req, res) => {
