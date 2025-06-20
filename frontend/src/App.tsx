@@ -52,6 +52,8 @@ import PaymentCancel from "./pages/client/PaymentCancel";
 import PaymentArtSuccess from "./pages/artist/PaymentArtSuccess";
 import PaymentArtCancel from "./pages/artist/PaymentArtCancel";
 import ClientVerification from "./pages/client/ClientVerification";
+import OrdersTable from "./pages/admin/OrdersTable";
+import MilestoneTransactions from "./pages/admin/MilestoneTransactions";
 
 const App = () => {
   const location = useLocation();
@@ -102,6 +104,11 @@ const App = () => {
             <Route path="/tags-table" element={<TagTable />} />
             <Route path="/arts-table" element={<ArtsTable />} />
             <Route path="/verification" element={<Verification />} />
+            <Route path="/orders-table" element={<OrdersTable />} />
+            <Route
+              path="/milestone-table"
+              element={<MilestoneTransactions />}
+            />
             {/* Client routes */}
             <Route path="/client-profile" element={<ClientProfile />} />
             <Route

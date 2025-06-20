@@ -14,6 +14,7 @@ const PORT = process.env.PORT || 8081;
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://craftify-react-git-main-myjeydsss-projects.vercel.app",
   "https://craftify-react.vercel.app",
   "https://craftify-react.onrender.com",
@@ -583,6 +584,7 @@ app.post("/artist-preferences/create-default", async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
+
 app.put("/artist-profile", async (req, res) => {
   const { userId, profile, preferences } = req.body;
 
@@ -2255,21 +2257,98 @@ app.put("/order/:orderId", async (req, res) => {
 
 // ***** BROWSE ARTIST MATCHING ALGORITHM ******
 
-// Utility function to ensure the preferences are parsed as arrays
+// ***** Utility Mapping for Davao Regions *****
+const DavaoRegionCityMap = {
+  "Davao del Sur": [
+    "Bansalan",
+    "Davao City",
+    "Digos City",
+    "Don Marcelino",
+    "Hagonoy",
+    "Jose Abad Santos",
+    "Kiblawan",
+    "Magsaysay",
+    "Malalag",
+    "Malita",
+    "Matanao",
+    "Padada",
+    "Santa Cruz",
+    "Santa Maria",
+    "Sarangani",
+    "Sulop",
+  ],
+  "Davao del Norte": [
+    "Asuncion",
+    "Braulio E. Dujali",
+    "Carmen",
+    "Island Garden City of Samal",
+    "Kapalong",
+    "New Corella",
+    "Panabo City",
+    "San Isidro",
+    "Santo Tomas",
+    "Tagum City",
+    "Talaingod",
+  ],
+  "Davao de Oro": [
+    "Compostela",
+    "Laak (San Vicente)",
+    "Mabini (Dona Alicia)",
+    "Maco",
+    "Maragusan (San Mariano)",
+    "Mawab",
+    "Monkayo",
+    "Montivesta",
+    "Nabunturan",
+    "New Bataan",
+    "Pantukan",
+  ],
+  "Davao Occidental": ["Don Marcelino", "Malita", "Santa Maria", "Sarangani"],
+  "Davao Oriental": [
+    "Baganga",
+    "Banaybanay",
+    "Boston",
+    "Caraga",
+    "Cateel",
+    "Governor Generoso",
+    "Lupon",
+    "Manay",
+    "Mati",
+    "San Isidro",
+    "Tarragona",
+  ],
+};
+
+// ***** Utility Functions *****
 function ensureArray(data) {
-  if (Array.isArray(data)) {
-    return data;
-  }
+  if (Array.isArray(data)) return data;
   try {
     const parsed = JSON.parse(data);
     return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.warn("Error parsing data as array:", e);
+  } catch {
     return [];
   }
 }
 
-// Utility function to normalize and map similar art styles
+function getRegion(location) {
+  if (typeof location !== "string") return "";
+  const parts = location.split(",").map((p) => p.trim());
+  return parts[parts.length - 1] || "";
+}
+
+function getCity(location) {
+  if (typeof location !== "string") return "";
+  const parts = location.split(",").map((p) => p.trim());
+  return parts.length >= 2 ? parts[parts.length - 2] : "";
+}
+
+function doesCityMatchRegion(city, region) {
+  return (
+    DavaoRegionCityMap[region] &&
+    DavaoRegionCityMap[region].includes(city.trim())
+  );
+}
+
 function normalizeArtStyle(style) {
   const styleMap = {
     "Geometric Art": "Geometric Patterns",
@@ -2290,15 +2369,11 @@ function normalizeArtStyle(style) {
   return styleMap[style] || style;
 }
 
-// ***** Calculate Score based on Preferences ******
+// ***** Calculate Score with Enhanced Location Matching *****
 function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
   let score = 0;
 
   try {
-    console.log("Calculating score for artist:");
-    console.log("Client Preferences:", JSON.stringify(clientPrefs));
-    console.log("Artist Preferences:", JSON.stringify(artistPrefs));
-
     const clientStyles = ensureArray(clientPrefs.preferred_art_style).map(
       normalizeArtStyle
     );
@@ -2311,23 +2386,31 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
     );
     const styleScore = Math.min(matchedStyles.length, 3) * 10;
     score += styleScore;
-    console.log(
-      `Art Style Match Score: ${styleScore} (for ${matchedStyles.length} matched styles)`
-    );
 
-    if (clientPrefs.location_requirement === artistPrefs.location_preference) {
+    const clientRegion = getRegion(clientPrefs.address || "");
+    const artistRegion = getRegion(artistPrefs.address || "");
+    const clientCity = getCity(clientPrefs.address || "");
+    const artistCity = getCity(artistPrefs.address || "");
+
+    if (
+      clientCity &&
+      clientRegion &&
+      artistCity &&
+      artistRegion &&
+      clientCity === artistCity &&
+      clientRegion === artistRegion &&
+      doesCityMatchRegion(clientCity, clientRegion) &&
+      doesCityMatchRegion(artistCity, artistRegion)
+    ) {
       score += 10;
-      console.log("Location Match Score: 10");
     }
 
     if (clientPrefs.budget_range === artistPrefs.budget_range) {
       score += 10;
-      console.log("Budget Match Score: 10");
     }
 
     if (clientPrefs.timeline === artistPrefs.preferred_project_duration) {
       score += 5;
-      console.log("Project Duration Match Score: 5");
     }
 
     if (
@@ -2337,7 +2420,6 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       )
     ) {
       score += 5;
-      console.log("Communication Preference Match Score: 5");
     }
 
     if (
@@ -2345,29 +2427,21 @@ function calculateScore(clientPrefs, artistPrefs, collaborativeBoost = 0) {
       clientPrefs.project_type.includes(artistPrefs.project_type)
     ) {
       score += 10;
-      console.log("Project Type Match Score: 10");
     }
 
     if (clientPrefs.collaboration_type === artistPrefs.collaboration_type) {
       score += 5;
-      console.log("Collaboration Type Match Score: 5");
     }
 
     if (artistPrefs.client_type_preference === clientPrefs.client_type) {
       score += 5;
-      console.log("Client Type Preference Match Score: 5");
     }
 
     if (artistPrefs.project_scale === clientPrefs.project_scale) {
       score += 5;
-      console.log("Project Scale Match Score: 5");
     }
 
     score += Math.min(collaborativeBoost, 15);
-    console.log(
-      `Collaborative Boost Score: ${Math.min(collaborativeBoost, 15)}`
-    );
-    console.log(`Total Calculated Score for Artist: ${score}`);
   } catch (err) {
     console.warn("Error calculating score:", err);
   }
@@ -2549,6 +2623,16 @@ app.get("/match-artists/:userId", async (req, res) => {
     const artistRankings = processedArtists.map((artist) => {
       const rawBoost = collaborativeScores[artist.user_id] || 0;
       const collaborativeBoost = Math.min((rawBoost / maxRawBoost) * 15, 15);
+
+      // Recalculate clientStyles and artistStyles
+      const clientStyles = ensureArray(
+        processedClient.preferences.preferred_art_style
+      ).map(normalizeArtStyle);
+
+      const artistStyles = ensureArray(
+        artist.preferences.art_style_specialization
+      ).map(normalizeArtStyle);
+
       const combinedScore = calculateScore(
         processedClient.preferences,
         artist.preferences,
@@ -2559,6 +2643,55 @@ app.get("/match-artists/:userId", async (req, res) => {
         artistId: artist.user_id,
         score: combinedScore,
         artist,
+        matchBreakdown: {
+          matchedStyles: clientStyles.filter((style) =>
+            artistStyles.includes(style)
+          ),
+          location: (() => {
+            const clientRegion = getRegion(processedClient.address || "");
+            const clientCity = getCity(processedClient.address || "");
+            const artistRegion = getRegion(artist.address || "");
+            const artistCity = getCity(artist.address || "");
+            return (
+              clientCity &&
+              artistCity &&
+              clientRegion &&
+              artistRegion &&
+              clientRegion === artistRegion &&
+              clientCity === artistCity &&
+              doesCityMatchRegion(clientCity, clientRegion) &&
+              doesCityMatchRegion(artistCity, artistRegion)
+            );
+          })(),
+          budget:
+            processedClient.preferences.budget_range ===
+            artist.preferences.budget_range,
+          timeline:
+            processedClient.preferences.timeline ===
+            artist.preferences.preferred_project_duration,
+          communication: Array.isArray(
+            processedClient.preferences.communication_preferences
+          )
+            ? processedClient.preferences.communication_preferences.includes(
+                artist.preferences.preferred_communication
+              )
+            : false,
+          projectType: Array.isArray(processedClient.preferences.project_type)
+            ? processedClient.preferences.project_type.includes(
+                artist.preferences.project_type
+              )
+            : false,
+          collaboration:
+            processedClient.preferences.collaboration_type ===
+            artist.preferences.collaboration_type,
+          clientType:
+            artist.preferences.client_type_preference ===
+            processedClient.preferences.client_type,
+          projectScale:
+            artist.preferences.project_scale ===
+            processedClient.preferences.project_scale,
+          collaborativeBoost: collaborativeBoost,
+        },
       };
     });
 
@@ -2583,6 +2716,7 @@ app.get("/match-artists/:userId", async (req, res) => {
         address: ranked.artist.address,
         profile_image: ranked.artist.profile_image,
         score: ranked.score,
+        matchBreakdown: ranked.matchBreakdown,
       },
       client: {
         id: processedClient.user_id,
@@ -2624,6 +2758,25 @@ function ensureArray1(data) {
     console.warn("Error parsing data as array:", e);
     return [];
   }
+}
+
+function getRegion1(location1) {
+  if (typeof location1 !== "string") return "";
+  const parts = location1.split(",").map((p) => p.trim());
+  return parts[parts.length - 1] || "";
+}
+
+function getCity1(location1) {
+  if (typeof location1 !== "string") return "";
+  const parts = location1.split(",").map((p) => p.trim());
+  return parts.length >= 2 ? parts[parts.length - 2] : "";
+}
+
+function doesCityMatchRegion1(city1, region1) {
+  return (
+    DavaoRegionCityMap[region1] &&
+    DavaoRegionCityMap[region1].includes(city1.trim())
+  );
 }
 
 // Utility function to normalize and map similar art styles
@@ -2673,11 +2826,22 @@ function calculateScore1(artistPrefs1, clientPrefs1, collaborativeBoost1 = 0) {
       `Art Style Match Score: ${styleScore1} (for ${matchedStyles1.length} matched styles)`
     );
 
+    const clientRegion1 = getRegion1(clientPrefs1.address || "");
+    const artistRegion1 = getRegion1(artistPrefs1.address || "");
+    const clientCity1 = getCity1(clientPrefs1.address || "");
+    const artistCity1 = getCity1(artistPrefs1.address || "");
+
     if (
-      artistPrefs1.location_requirement === clientPrefs1.location_preference
+      clientCity1 &&
+      clientRegion1 &&
+      artistCity1 &&
+      artistRegion1 &&
+      clientCity1 === artistCity1 &&
+      clientRegion1 === artistRegion1 &&
+      doesCityMatchRegion1(clientCity1, clientRegion1) &&
+      doesCityMatchRegion1(artistCity1, artistRegion1)
     ) {
       score1 += 10;
-      console.log("Location Match Score: 10");
     }
 
     if (artistPrefs1.budget_range === clientPrefs1.budget_range) {
@@ -2911,6 +3075,14 @@ app.get("/match-clients/:userId", async (req, res) => {
     const clientRankings1 = processedClients1.map((client) => {
       const rawBoost = collaborativeScores1[client.user_id] || 0;
       const collaborativeBoost1 = Math.min((rawBoost / maxRawBoost) * 15, 15);
+
+      const clientStyles1 = ensureArray1(
+        client.preferences.preferred_art_style
+      ).map(normalizeArtStyle1);
+      const artistStyles1 = ensureArray1(
+        processedArtist1.preferences.art_style_specialization
+      ).map(normalizeArtStyle1);
+
       const preferenceScore1 = calculateScore1(
         processedArtist1.preferences,
         client.preferences,
@@ -2918,10 +3090,58 @@ app.get("/match-clients/:userId", async (req, res) => {
       );
 
       return {
-        artistId: client.user_id,
-        score1: preferenceScore1,
-        collaborativeBoost1: Math.round(collaborativeBoost1),
         client,
+        score1: preferenceScore1,
+        matchBreakdown1: {
+          matchedStyles1: artistStyles1.filter((style) =>
+            clientStyles1.includes(style)
+          ),
+          location1: (() => {
+            const clientRegion = getRegion1(client.address || "");
+            const clientCity = getCity1(client.address || "");
+            const artistRegion = getRegion1(processedArtist1.address || "");
+            const artistCity = getCity1(processedArtist1.address || "");
+
+            return (
+              clientCity &&
+              clientRegion &&
+              artistCity &&
+              artistRegion &&
+              clientCity === artistCity &&
+              clientRegion === artistRegion &&
+              doesCityMatchRegion1(clientCity, clientRegion) &&
+              doesCityMatchRegion1(artistCity, artistRegion)
+            );
+          })(),
+          budget1:
+            processedArtist1.preferences.budget_range ===
+            client.preferences.budget_range,
+          timeline1:
+            processedArtist1.preferences.timeline ===
+            client.preferences.preferred_project_duration,
+          communication1: Array.isArray(
+            processedArtist1.preferences.communication_preferences
+          )
+            ? processedArtist1.preferences.communication_preferences.includes(
+                client.preferences.preferred_communication
+              )
+            : false,
+          projectType1: Array.isArray(processedArtist1.preferences.project_type)
+            ? processedArtist1.preferences.project_type.includes(
+                client.preferences.project_type
+              )
+            : false,
+          collaboration1:
+            processedArtist1.preferences.collaboration_type ===
+            client.preferences.collaboration_type,
+          clientType1:
+            processedArtist1.preferences.client_type ===
+            client.preferences.client_type_preference,
+          projectScale1:
+            processedArtist1.preferences.project_scale ===
+            client.preferences.project_scale,
+          collaborativeBoost1: Math.round(collaborativeBoost1),
+        },
       };
     });
 
@@ -2945,7 +3165,8 @@ app.get("/match-clients/:userId", async (req, res) => {
         role: ranked.client.role,
         address: ranked.client.address,
         profile_image: ranked.client.profile_image,
-        score1: `${ranked.score1}%`, // final combined score as percentage
+        score1: ranked.score1,
+        matchBreakdown1: ranked.matchBreakdown1,
       },
       artist: {
         id: processedArtist1.user_id,
@@ -5347,6 +5568,51 @@ app.get("/orders/:userId", async (req, res) => {
   }
 });
 
+// Fetch all orders - Admin Access
+app.get("/admin/orders", async (req, res) => {
+  try {
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select(
+        `
+        id,
+        created_at,
+        amount,
+        status,
+        description,
+        payment_intent_id,
+        checkout_url,
+        artist_id,
+        art_id,
+        user_id
+      `
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching all orders:", error.message);
+      return res.status(400).json({ error: "Failed to fetch all orders." });
+    }
+
+    const formattedOrders = orders.map((order) => ({
+      id: order.id,
+      date: order.created_at,
+      amount: order.amount,
+      status: order.status,
+      description: order.description,
+      payment_intent_id: order.payment_intent_id,
+      checkout_url: order.checkout_url,
+      artist_id: order.artist_id,
+      art_id: order.art_id,
+      user_id: order.user_id,
+    }));
+
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.error("Unexpected error fetching all orders:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
 // ORDERS/TRANSACTIONS END ******
 
 // JOBS OFFER ENDPOINT... ******
@@ -6007,6 +6273,48 @@ app.post("/milestones/:milestoneId/mark-paid", async (req, res) => {
   } catch (err) {
     console.error("Mark-paid error:", err);
     return res.status(500).json({ error: "Unexpected server error" });
+  }
+});
+
+//admin fetch transaction
+
+app.get("/admin/milestone-transactions", async (req, res) => {
+  try {
+    // Fetch milestone payments with milestone name
+    const { data, error } = await supabase.from("milestone_payments").select(`
+        milestone_id,
+        project_id,
+        amount,
+        status,
+        checkout_url,
+        payment_intent_id,
+        paid_at,
+        milestones (
+          milestone_name
+        )
+      `);
+
+    if (error) {
+      console.error("Error fetching milestone transactions:", error.message);
+      return res.status(500).json({ error: "Failed to fetch transactions." });
+    }
+
+    // Normalize the milestone name from the joined table
+    const formatted = data.map((tx) => ({
+      milestone_id: tx.milestone_id,
+      project_id: tx.project_id,
+      amount: tx.amount,
+      status: tx.status,
+      checkout_url: tx.checkout_url,
+      payment_intent_id: tx.payment_intent_id,
+      paid_at: tx.paid_at,
+      milestone_name: tx.milestones?.milestone_name || "Unnamed",
+    }));
+
+    res.status(200).json(formatted);
+  } catch (err) {
+    console.error("Server error fetching milestone transactions:", err.message);
+    res.status(500).json({ error: "Unexpected server error." });
   }
 });
 // MILESTONE WITH PAYMONGO ENDPOINT END... ******

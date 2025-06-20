@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { FaSearch, FaMapMarkerAlt, FaUserCircle } from "react-icons/fa";
+import {
+  FaSearch,
+  FaMapMarkerAlt,
+  FaUserCircle,
+  FaInfoCircle,
+} from "react-icons/fa";
 import Masonry from "react-masonry-css";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -28,6 +33,19 @@ interface Match {
     role: string;
     address: string | null;
     profile_image: string | null;
+    score?: number;
+    matchBreakdown?: {
+      matchedStyles?: string[];
+      location?: boolean;
+      budget?: boolean;
+      timeline?: boolean;
+      communication?: boolean;
+      projectType?: boolean;
+      collaboration?: boolean;
+      clientType?: boolean;
+      projectScale?: boolean;
+      collaborativeBoost?: number;
+    };
   };
   client: {
     id: string;
@@ -59,6 +77,10 @@ const BrowseArtist: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState<number>(25);
   const totalItems = artists.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const [openBreakdownIndex, setOpenBreakdownIndex] = useState<number | null>(
+    null
+  );
 
   // Fetch artists from the server
   useEffect(() => {
@@ -360,7 +382,7 @@ const BrowseArtist: React.FC = () => {
                     </div>
 
                     {/* Best Matched Artist Section */}
-                    <div className="flex flex-col items-center w-full md:w-1/2 text-center">
+                    <div className="flex flex-col items-center w-full md:w-1/2 text-center relative">
                       {matchedArtists[0]?.artist.profile_image ? (
                         <img
                           src={matchedArtists[0]?.artist.profile_image}
@@ -382,6 +404,85 @@ const BrowseArtist: React.FC = () => {
                         {matchedArtists[0]?.artist.address ||
                           "No address provided"}
                       </p>
+
+                      {/* Match Score and Tooltip */}
+                      <div className="flex items-center space-x-2 mt-2 relative group">
+                        <p className="text-sm text-blue-600 font-semibold">
+                          Match Score: {matchedArtists[0]?.artist.score ?? 0}%
+                        </p>
+
+                        <FaInfoCircle className="text-gray-500 w-4 h-4 hover:text-gray-700 cursor-pointer" />
+
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-[-8px] w-72 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-sm text-gray-700 z-50 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 pointer-events-none">
+                          {/* Arrow */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-3 h-3 bg-white border-l border-t border-gray-300 rotate-45 z-10"></div>
+
+                          <ul className="list-disc pl-4 space-y-1 text-left">
+                            {Array.isArray(
+                              matchedArtists[0].artist.matchBreakdown
+                                ?.matchedStyles
+                            ) &&
+                              matchedArtists[0].artist.matchBreakdown
+                                .matchedStyles.length > 0 && (
+                                <li>
+                                  <strong>Matched Styles:</strong>{" "}
+                                  {matchedArtists[0].artist.matchBreakdown.matchedStyles.join(
+                                    ", "
+                                  )}
+                                </li>
+                              )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.location && (
+                              <li>
+                                <strong>Location:</strong> Matched
+                              </li>
+                            )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.budget && (
+                              <li>
+                                <strong>Budget:</strong> Matched
+                              </li>
+                            )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.timeline && (
+                              <li>
+                                <strong>Timeline:</strong> Matched
+                              </li>
+                            )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.communication && (
+                              <li>
+                                <strong>Communication:</strong> Matched
+                              </li>
+                            )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.projectType && (
+                              <li>
+                                <strong>Project Type:</strong> Matched
+                              </li>
+                            )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.collaboration && (
+                              <li>
+                                <strong>Collaboration:</strong> Matched
+                              </li>
+                            )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.clientType && (
+                              <li>
+                                <strong>Client Type:</strong> Matched
+                              </li>
+                            )}
+                            {matchedArtists[0].artist.matchBreakdown
+                              ?.projectScale && (
+                              <li>
+                                <strong>Project Scale:</strong> Matched
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -419,9 +520,9 @@ const BrowseArtist: React.FC = () => {
                         return (
                           <li
                             key={match.artist.id}
-                            className={`flex justify-between items-center p-3 ${rankColor} rounded-md shadow-md hover:shadow-lg transition`}
+                            className={`flex flex-col md:flex-row justify-between items-start md:items-center p-3 ${rankColor} rounded-md shadow-md hover:shadow-lg transition`}
                           >
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-start space-x-3 w-full">
                               {match.artist.profile_image ? (
                                 <img
                                   src={match.artist.profile_image}
@@ -433,7 +534,7 @@ const BrowseArtist: React.FC = () => {
                                   <FaUserCircle className="text-gray-300 w-6 h-6" />
                                 </div>
                               )}
-                              <div>
+                              <div className="flex-1">
                                 <h4 className="text-lg font-bold text-gray-800 flex items-center">
                                   {rankLabel} {match.artist.name}
                                 </h4>
@@ -441,16 +542,84 @@ const BrowseArtist: React.FC = () => {
                                   {match.artist.address ||
                                     "No Address Provided"}
                                 </p>
+                                <p className="text-sm text-blue-600 mt-1 font-semibold">
+                                  Match Score: {match.artist.score ?? 0}%
+                                </p>
+
+                                <button
+                                  onClick={() =>
+                                    setOpenBreakdownIndex(
+                                      openBreakdownIndex === index
+                                        ? null
+                                        : index
+                                    )
+                                  }
+                                  className="text-sm text-blue-500 underline hover:text-blue-700 mt-1"
+                                >
+                                  {openBreakdownIndex === index
+                                    ? "Hide Details"
+                                    : "Show Match Breakdown"}
+                                </button>
+
+                                {openBreakdownIndex === index && (
+                                  <ul className="mt-2 text-xs text-gray-600 list-disc pl-5 space-y-1">
+                                    {Array.isArray(
+                                      match.artist.matchBreakdown?.matchedStyles
+                                    ) &&
+                                      match.artist.matchBreakdown.matchedStyles
+                                        .length > 0 && (
+                                        <li>
+                                          <strong>Matched Styles:</strong>{" "}
+                                          {match.artist.matchBreakdown.matchedStyles.join(
+                                            ", "
+                                          )}
+                                        </li>
+                                      )}
+                                    {match.artist.matchBreakdown?.location && (
+                                      <li>✔️ Location matched</li>
+                                    )}
+                                    {match.artist.matchBreakdown?.budget && (
+                                      <li>✔️ Budget matched</li>
+                                    )}
+                                    {match.artist.matchBreakdown?.timeline && (
+                                      <li>✔️ Project duration matched</li>
+                                    )}
+                                    {match.artist.matchBreakdown
+                                      ?.communication && (
+                                      <li>
+                                        ✔️ Communication preference matched
+                                      </li>
+                                    )}
+                                    {match.artist.matchBreakdown
+                                      ?.projectType && (
+                                      <li>✔️ Project type matched</li>
+                                    )}
+                                    {match.artist.matchBreakdown
+                                      ?.collaboration && (
+                                      <li>✔️ Collaboration type matched</li>
+                                    )}
+                                    {match.artist.matchBreakdown
+                                      ?.clientType && (
+                                      <li>✔️ Client type preference matched</li>
+                                    )}
+                                    {match.artist.matchBreakdown
+                                      ?.projectScale && (
+                                      <li>✔️ Project scale matched</li>
+                                    )}
+                                  </ul>
+                                )}
                               </div>
                             </div>
-                            <button
-                              onClick={() =>
-                                navigate(`/profile/artist/${match.artist.id}`)
-                              }
-                              className="px-4 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
-                            >
-                              View
-                            </button>
+                            <div className="mt-3 md:mt-0">
+                              <button
+                                onClick={() =>
+                                  navigate(`/profile/artist/${match.artist.id}`)
+                                }
+                                className="px-4 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+                              >
+                                View
+                              </button>
+                            </div>
                           </li>
                         );
                       })}

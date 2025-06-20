@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
 import { FaPlus, FaUserCircle } from "react-icons/fa";
+import { DavaoRegionCityMap } from "../../components/locationData";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -16,6 +17,9 @@ interface ArtistProfile {
   email: string;
   phone: string;
   profile_image: string;
+  region: string;
+  city: string;
+  district: string;
 }
 
 interface Preferences {
@@ -54,6 +58,9 @@ const EditArtistProfile: React.FC = () => {
     email: "",
     phone: "",
     profile_image: "",
+    region: "",
+    city: "",
+    district: "",
   });
 
   const [preferences, setPreferences] = useState<Preferences>({
@@ -91,7 +98,19 @@ const EditArtistProfile: React.FC = () => {
         const profileResponse = await axios.get(
           `${API_BASE_URL}/artist-profile/${user.id}`
         );
-        setArtistProfile(profileResponse.data);
+        const { address, ...rest } = profileResponse.data;
+
+        const [district = "", city = "", region = ""] = address
+          ? address.split(",").map((part: string) => part.trim())
+          : [];
+
+        setArtistProfile({
+          ...rest,
+          address,
+          district,
+          city,
+          region,
+        });
 
         // Fetch artist preferences
         const preferencesResponse = await axios.get(
@@ -208,15 +227,24 @@ const EditArtistProfile: React.FC = () => {
         if (newImage) uploadedImage = newImage;
       }
 
-      // Ensure only the filename is sent, not the full CDN URL
-      // If no image is uploaded or selected, set uploadedImage as an empty string
       if (!uploadedImage) {
         uploadedImage = "";
       }
 
+      const composedAddress =
+        artistProfile.district || artistProfile.city || artistProfile.region
+          ? [artistProfile.district, artistProfile.city, artistProfile.region]
+              .filter(Boolean)
+              .join(", ")
+          : "";
+
       const payload = {
         userId: user.id,
-        profile: { ...artistProfile, profile_image: uploadedImage },
+        profile: {
+          ...artistProfile,
+          profile_image: uploadedImage,
+          address: composedAddress, // final address string
+        },
         preferences: { ...preferences },
       };
 
@@ -328,15 +356,66 @@ const EditArtistProfile: React.FC = () => {
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
           </div>
+
+          {/* Region Dropdown */}
           <div>
-            <label className="text-gray-700">Address</label>
-            <input
-              name="address"
-              value={artistProfile.address}
+            <label className="text-gray-700">Region</label>
+            <select
+              name="region"
+              value={artistProfile.region || ""}
+              onChange={(e) => {
+                handleProfileChange(e);
+                setArtistProfile((prev) => ({
+                  ...prev,
+                  city: "",
+                }));
+              }}
+              className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+            >
+              <option value="">Select Region</option>
+              {Object.keys(DavaoRegionCityMap).map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* City Dropdown */}
+          <div>
+            <label className="text-gray-700">City / Municipality</label>
+            <select
+              name="city"
+              value={artistProfile.city || ""}
               onChange={handleProfileChange}
+              disabled={!artistProfile.region}
+              className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+            >
+              <option value="">Select City</option>
+              {(
+                DavaoRegionCityMap[
+                  artistProfile.region as keyof typeof DavaoRegionCityMap
+                ] || []
+              ).map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* District Input */}
+          <div>
+            <label className="text-gray-700">District / Barangay</label>
+            <input
+              name="district"
+              value={artistProfile.district || ""}
+              onChange={handleProfileChange}
+              placeholder="Enter your barangay or district"
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
           </div>
+
           <div>
             <label className="text-gray-700">Email</label>
             <input

@@ -1,0 +1,68 @@
+export const DavaoRegionCityMap = {
+    "Davao del Sur": [
+      "Bansalan",
+      "Davao City",
+      "Digos City",
+      "Don Marcelino",
+      "Hagonoy",
+      "Jose Abad Santos",
+      "Kiblawan",
+      "Magsaysay",
+      "Malalag",
+      "Malita",
+      "Matanao",
+      "Padada",
+      "Santa Cruz",
+      "Santa Maria",
+      "Sarangani",
+      "Sulop",
+    ],
+
+    "Davao del Norte": [
+        "Asuncion", 
+        "Braulio E. Dujali", 
+        "Carmen", 
+        "Island Garden City of Samal", 
+        "Kapalong",
+        "New Corella",
+        "Panabo City", 
+        "San Isidro", 
+        "Santo Tomas", 
+        "Tagum City", 
+        "Talaingod"
+    ],
+
+    "Davao de Oro": [
+        "Compostela",
+        "Laak (San Vicente)",
+        "Mabini (Dona Alicia)",
+        "Maco",
+        "Maragusan (San Mariano)",
+        "Mawab",
+        "Monkayo",
+        "Montivesta",
+        "Nabunturan", 
+        "New Bataan", 
+        "Pantukan",
+    ],
+
+    "Davao Occidental": [
+        "Don Marcelino",
+        "Malita", 
+        "Santa Maria", 
+        "Sarangani"],
+
+    "Davao Oriental": [
+        "Baganga", 
+        "Banaybanay", 
+        "Boston",
+        "Caraga",
+        "Cateel",
+        "Governor Generoso",
+        "Lupon",
+        "Manay",
+        "Mati",
+        "San Isidro",
+        "Tarragona",
+    ],
+  };

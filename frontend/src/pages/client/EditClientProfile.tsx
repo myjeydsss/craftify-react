@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
 import { FaPlus, FaUserCircle } from "react-icons/fa";
+import { DavaoRegionCityMap } from "../../components/locationData";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -16,6 +17,9 @@ interface ClientProfile {
   email: string;
   phone: string;
   profile_image: string;
+  region: string;
+  city: string;
+  district: string;
 }
 
 interface Preferences {
@@ -46,6 +50,9 @@ const EditClientProfile: React.FC = () => {
     email: "",
     phone: "",
     profile_image: "",
+    region: "",
+    city: "",
+    district: "",
   });
 
   const [preferences, setPreferences] = useState<Preferences>({
@@ -73,8 +80,18 @@ const EditClientProfile: React.FC = () => {
         const profileResponse = await axios.get(
           `${API_BASE_URL}/client-profile/${user.id}`
         );
-        setClientProfile(profileResponse.data);
 
+        const profile = profileResponse.data;
+        const [district = "", city = "", region = ""] = (profile.address || "")
+          .split(",")
+          .map((s: string) => s.trim());
+
+        setClientProfile({
+          ...profile,
+          district,
+          city,
+          region,
+        });
         const preferencesResponse = await axios.get(
           `${API_BASE_URL}/client-preferences/${user.id}`
         );
@@ -180,14 +197,22 @@ const EditClientProfile: React.FC = () => {
         if (newImage) uploadedImage = newImage;
       }
 
-      // If no image is uploaded or selected, set uploadedImage as an empty string
-      if (!uploadedImage) {
-        uploadedImage = "";
-      }
+      // Compose full address from district, city, region
+      const composedAddress = [
+        clientProfile.district,
+        clientProfile.city,
+        clientProfile.region,
+      ]
+        .filter(Boolean)
+        .join(", ");
 
       const payload = {
         userId: user.id,
-        profile: { ...clientProfile, profile_image: uploadedImage },
+        profile: {
+          ...clientProfile,
+          profile_image: uploadedImage,
+          address: composedAddress,
+        },
         preferences: { ...preferences },
       };
 
@@ -252,7 +277,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">First Name</label>
             <input
               name="firstname"
-              value={clientProfile.firstname || ""}
+              value={clientProfile.firstname}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -261,7 +286,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Last Name</label>
             <input
               name="lastname"
-              value={clientProfile.lastname || ""}
+              value={clientProfile.lastname}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -270,7 +295,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Bio</label>
             <textarea
               name="bio"
-              value={clientProfile.bio || ""}
+              value={clientProfile.bio}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -279,7 +304,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Gender</label>
             <select
               name="gender"
-              value={clientProfile.gender || ""}
+              value={clientProfile.gender}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             >
@@ -294,26 +319,77 @@ const EditClientProfile: React.FC = () => {
             <input
               type="date"
               name="date_of_birth"
-              value={clientProfile.date_of_birth || ""}
+              value={clientProfile.date_of_birth}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
           </div>
+
+          {/* Region Dropdown */}
           <div>
-            <label className="text-gray-700">Address</label>
-            <input
-              name="address"
-              value={clientProfile.address || ""}
+            <label className="text-gray-700">Region</label>
+            <select
+              name="region"
+              value={clientProfile.region || ""}
+              onChange={(e) => {
+                handleProfileChange(e);
+                setClientProfile((prev) => ({
+                  ...prev,
+                  city: "",
+                }));
+              }}
+              className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+            >
+              <option value="">Select Region</option>
+              {Object.keys(DavaoRegionCityMap).map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* City Dropdown */}
+          <div>
+            <label className="text-gray-700">City / Municipality</label>
+            <select
+              name="city"
+              value={clientProfile.city || ""}
               onChange={handleProfileChange}
+              disabled={!clientProfile.region}
+              className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
+            >
+              <option value="">Select City</option>
+              {(
+                DavaoRegionCityMap[
+                  clientProfile.region as keyof typeof DavaoRegionCityMap
+                ] || []
+              ).map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* District Input */}
+          <div>
+            <label className="text-gray-700">District / Barangay</label>
+            <input
+              name="district"
+              value={clientProfile.district || ""}
+              onChange={handleProfileChange}
+              placeholder="Enter your barangay or district"
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
           </div>
+
           <div>
             <label className="text-gray-700">Email</label>
             <input
               type="email"
               name="email"
-              value={clientProfile.email || ""}
+              value={clientProfile.email}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -322,7 +398,7 @@ const EditClientProfile: React.FC = () => {
             <label className="text-gray-700">Phone</label>
             <input
               name="phone"
-              value={clientProfile.phone || ""}
+              value={clientProfile.phone}
               onChange={handleProfileChange}
               className="block w-full border rounded-lg p-2 mt-1 focus:outline-none focus:ring focus:ring-blue-300"
             />
@@ -363,6 +439,7 @@ const EditClientProfile: React.FC = () => {
                   "Furniture Making",
                   "Woodworking",
                   "Handmade Crafts",
+                  "Watercolor",
                   "DIY Projects",
                   "Beginner / Exploring Styles",
                   "Others",

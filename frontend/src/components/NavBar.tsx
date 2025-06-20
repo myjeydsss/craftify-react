@@ -308,6 +308,26 @@ const NavBar: React.FC = () => {
             Arts Table
           </Link>
           <Link
+            to="/orders-table"
+            className={`${
+              isActive("/orders-table")
+                ? "text-orange-400 border-b-2 border-orange-400"
+                : "text-black hover:text-gray-700"
+            } px-3 py-2 rounded-md text-m font-medium`}
+          >
+            Orders Table
+          </Link>
+          <Link
+            to="/milestone-table"
+            className={`${
+              isActive("/milestone-table")
+                ? "text-orange-400 border-b-2 border-orange-400"
+                : "text-black hover:text-gray-700"
+            } px-3 py-2 rounded-md text-m font-medium`}
+          >
+            Milestone Payment Table
+          </Link>
+          <Link
             to="/verification"
             className={`${
               isActive("/verification")
@@ -535,6 +555,28 @@ const NavBar: React.FC = () => {
             Arts Table
           </Link>
           <Link
+            to="/orders-table"
+            onClick={handleLinkClick}
+            className={`${
+              isActive("/orders-table")
+                ? "text-orange-400"
+                : "text-black hover:text-gray-700"
+            } text-base font-medium`}
+          >
+            Orders Table
+          </Link>
+          <Link
+            to="/milestone-table"
+            onClick={handleLinkClick}
+            className={`${
+              isActive("/milestone-table")
+                ? "text-orange-400"
+                : "text-black hover:text-gray-700"
+            } text-base font-medium`}
+          >
+            Milestone Payment Table
+          </Link>
+          <Link
             to="/verification"
             onClick={handleLinkClick}
             className={`${
@@ -545,6 +587,7 @@ const NavBar: React.FC = () => {
           >
             Verification
           </Link>
+
           {commonLinks.map((link) => (
             <Link
               key={link.to}
